@@ -11,7 +11,9 @@ dm::DMWnd::DMWnd() :
 	Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId),
 	DocumentWindow::TitleBarButtons::allButtons)
 {
-//	setContentNonOwned( &canvas, false );
+	DMCanvas();
+
+	setContentNonOwned(&canvas, false);
 
 	centreWithSize			(640, 480	);
 	setUsingNativeTitleBar	(true		);
@@ -25,14 +27,16 @@ dm::DMWnd::DMWnd() :
 		peer->setIcon(DarkMarkLogo());
 	}
 
-#if 0
 	if (cfg().containsKey("DMWnd"))
 	{
 		restoreWindowStateFromString( cfg().getValue("DMWnd") );
 	}
 
-	setFullScreen(cfg().kiosk_mode);
-#endif
+//	setFullScreen(cfg().kiosk_mode);
+
+	Log("loading darknet neural network");
+	dmapp().darkhelp.reset(new DarkHelp(cfg().get_str("darknet_config"), cfg().get_str("darknet_weights"), cfg().get_str("darknet_names")));
+	Log("neural network loaded in " + darkhelp().duration_string());
 
 	setVisible(true);
 
@@ -42,7 +46,7 @@ dm::DMWnd::DMWnd() :
 
 dm::DMWnd::~DMWnd(void)
 {
-//	cfg().setValue("DMWnd", getWindowStateAsString());
+	cfg().setValue("DMWnd", getWindowStateAsString());
 
 	return;
 }

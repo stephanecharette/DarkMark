@@ -53,6 +53,7 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 
 	std::srand(std::time(nullptr));
 
+	cfg.reset(new Cfg);
 	wnd.reset(new DMWnd);
 
 	return;

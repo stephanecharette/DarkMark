@@ -13,11 +13,15 @@
 // forward declare a few classes
 namespace dm
 {
+	class Cfg;
 	class DMWnd;
+	class DMCanvas;
 	class DarkMarkApplication;
 }
 
 #include "Log.hpp"
+#include "Cfg.hpp"
 #include "Bitmaps.hpp"
+#include "DMCanvas.hpp"
 #include "DMWnd.hpp"
 #include "DarkMarkApp.hpp"
