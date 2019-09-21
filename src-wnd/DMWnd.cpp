@@ -7,13 +7,11 @@
 
 dm::DMWnd::DMWnd() :
 	DocumentWindow(
-	String("DarkMark v" DARKMARK_VERSION),
-	Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId),
-	DocumentWindow::TitleBarButtons::allButtons)
+		String("DarkMark v" DARKMARK_VERSION),
+		Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId),
+		DocumentWindow::TitleBarButtons::allButtons)
 {
-	DMCanvas();
-
-	setContentNonOwned(&canvas, false);
+	setContentNonOwned(&content, false);
 
 	centreWithSize			(640, 480	);
 	setUsingNativeTitleBar	(true		);
@@ -37,6 +35,9 @@ dm::DMWnd::DMWnd() :
 	Log("loading darknet neural network");
 	dmapp().darkhelp.reset(new DarkHelp(cfg().get_str("darknet_config"), cfg().get_str("darknet_weights"), cfg().get_str("darknet_names")));
 	Log("neural network loaded in " + darkhelp().duration_string());
+
+	content.canvas.redraw_layers();
+	content.corner[0].original_image = content.canvas.original_image;
 
 	setVisible(true);
 

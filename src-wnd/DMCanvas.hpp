@@ -9,13 +9,15 @@
 
 namespace dm
 {
-	class DMCanvas : public Component
+	class DMCanvas final : public Component
 	{
 		public:
 
 			DMCanvas();
 
 			virtual ~DMCanvas();
+
+			virtual void resized();
 
 			virtual void paint(Graphics & g);
 
@@ -27,8 +29,20 @@ namespace dm
 			virtual void mouseDrag(const MouseEvent & event);
 			virtual void mouseWheelMove(const MouseEvent & event, const MouseWheelDetails & wheel);
 
-			cv::Mat current_image;
-			Image current_img;
+			DMCanvas & redraw_layers();
+
+			cv::Mat original_image;
+			cv::Mat scaled_image;
+			cv::Mat layer_background_image;
+			cv::Mat layer_darkhelp;
+			cv::Mat layer_class_names;
+			cv::Mat layer_bounding_boxes;
+			cv::Mat layer_points_of_interest;
+			cv::Mat composited_image;
+
+			Image final_img;
+
+			bool need_to_redraw_layers = true;
 
 			std::list<cv::Point> click_points;
 
@@ -41,6 +55,6 @@ namespace dm
 
 			juce::Rectangle<int> mouse_drag_rectangle;
 
-			double zoom;
+			double zoom_factor;
 	};
 }

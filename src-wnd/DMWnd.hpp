@@ -21,6 +21,6 @@ namespace dm
 
 			virtual bool keyPressed(const KeyPress &key);
 
-			DMCanvas canvas;
+			DMContent content;
 	};
 }
