@@ -10,4 +10,6 @@
 namespace dm
 {
 	Image DarkMarkLogo();
+
+	Image convert_opencv_mat_to_juce_image(cv::Mat mat);
 }

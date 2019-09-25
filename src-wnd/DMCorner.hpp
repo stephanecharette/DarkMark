@@ -9,27 +9,37 @@
 
 namespace dm
 {
-	class DMCorner final : public Component
+	class DMCorner final : public CrosshairComponent
 	{
 		public:
+
+			enum class EType
+			{
+				kNone,
+				kTL,
+				kTR,
+				kBR,
+				kBL
+			};
 
 			DMCorner();
 
 			virtual ~DMCorner();
 
-			virtual void resized();
+			virtual void set_type(const EType & t);
 
-			virtual void paint(Graphics & g);
+			virtual void rebuild_cache_image();
 
-			virtual void mouseMove(const MouseEvent & event);
-			virtual void mouseEnter(const MouseEvent & event);
-			virtual void mouseExit(const MouseEvent & event);
+			EType type;
 
 			cv::Mat original_image;
 
-			const juce::Point<int> invalid_point;
+			/// Size of each cell within the corner image.  Size does @em not include the right and bottom border.
+			int cell_size;
+			int cols;
+			int rows;
 
-			juce::Point<int> mouse_current_loc;
-			juce::Point<int> mouse_previous_loc;
+			cv::Point offset;
+			cv::Point poi;
 	};
 }

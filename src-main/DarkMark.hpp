@@ -18,12 +18,14 @@ namespace dm
 	class DMCorner;
 	class DMCanvas;
 	class DMContent;
+	class CrosshairComponent;
 	class DarkMarkApplication;
 }
 
 #include "Log.hpp"
 #include "Cfg.hpp"
 #include "Bitmaps.hpp"
+#include "CrosshairComponent.hpp"
 #include "DMCorner.hpp"
 #include "DMCanvas.hpp"
 #include "DMContent.hpp"
