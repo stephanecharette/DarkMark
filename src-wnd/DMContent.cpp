@@ -5,23 +5,21 @@
 #include "DarkMark.hpp"
 
 
-dm::DMContent::DMContent()
+dm::DMContent::DMContent() :
+	canvas(*this),
+	selected_mark(-1)
 {
+	corners.push_back(new DMCorner(*this, ECorner::kTL));
+	corners.push_back(new DMCorner(*this, ECorner::kTR));
+	corners.push_back(new DMCorner(*this, ECorner::kBR));
+	corners.push_back(new DMCorner(*this, ECorner::kBL));
+
 	addAndMakeVisible(canvas);
-	addAndMakeVisible(corner[0]);
-	addAndMakeVisible(corner[1]);
-	addAndMakeVisible(corner[2]);
-	addAndMakeVisible(corner[3]);
 
-	corner[0].set_type(DMCorner::EType::kTL);
-	corner[1].set_type(DMCorner::EType::kTR);
-	corner[2].set_type(DMCorner::EType::kBR);
-	corner[3].set_type(DMCorner::EType::kBL);
-
-	corner[0].poi = cv::Point(642, 477);
-	corner[1].poi = cv::Point(850, 477);
-	corner[2].poi = cv::Point(642, 477);
-	corner[3].poi = cv::Point(642, 477);
+	for (auto c : corners)
+	{
+		addAndMakeVisible(c);
+	}
 
 	return;
 }
@@ -29,6 +27,12 @@ dm::DMContent::DMContent()
 
 dm::DMContent::~DMContent(void)
 {
+	for (auto c : corners)
+	{
+		delete c;
+	}
+	corners.clear();
+
 	return;
 }
 
@@ -66,10 +70,10 @@ void dm::DMContent::resized()
 	FlexBox col(FlexBox::Direction::column, FlexBox::Wrap::noWrap, FlexBox::AlignContent::stretch, FlexBox::AlignItems::stretch, FlexBox::JustifyContent::spaceBetween);
 	for (int i = 0; i < 4; i ++)
 	{
-		corner[i].cell_size = cell_size;
-		corner[i].cols = number_of_cells;
-		corner[i].rows = number_of_cells;
-		col.items.add(FlexItem(corner[i]).withMargin(margin).withMinHeight(corner_size).withMaxHeight(corner_size));
+		corners[i]->cell_size = cell_size;
+		corners[i]->cols = number_of_cells;
+		corners[i]->rows = number_of_cells;
+		col.items.add(FlexItem(*corners[i]).withMargin(margin).withMinHeight(corner_size).withMaxHeight(corner_size));
 	}
 
 	FlexBox row(FlexBox::Direction::row, FlexBox::Wrap::noWrap, FlexBox::AlignContent::stretch, FlexBox::AlignItems::stretch, FlexBox::JustifyContent::flexStart);
@@ -77,4 +81,74 @@ void dm::DMContent::resized()
 	row.items.add(FlexItem(col).withMargin(0).withMinWidth(corner_size).withMaxWidth(corner_size));
 
 	row.performLayout(r);
+}
+
+
+void dm::DMContent::start_darknet()
+{
+	Log("loading darknet neural network");
+	dmapp().darkhelp.reset(new DarkHelp(cfg().get_str("darknet_config"), cfg().get_str("darknet_weights"), cfg().get_str("darknet_names")));
+	Log("neural network loaded in " + darkhelp().duration_string());
+
+	const std::string filename = "/home/stephane/src/DarkHelp/build/barcode_3.jpg";
+	Log("calling darkhelp to process the image " + filename);
+	try
+	{
+		names = darkhelp().names;
+
+		annotation_colours = darkhelp().annotation_colours;
+
+		canvas.original_image = cv::imread(filename);
+		darkhelp().predict(canvas.original_image);
+		Log("darkhelp processed the image in " + darkhelp().duration_string());
+
+		// convert the predictions into marks
+		for (auto prediction : darkhelp().prediction_results)
+		{
+			Mark m(cv::Point2d(prediction.mid_x, prediction.mid_y), cv::Size2d(prediction.width, prediction.height), cv::Size(0, 0), prediction.best_class);
+			m.colour = annotation_colours.at(m.class_idx % annotation_colours.size());
+			m.name = names.at(m.class_idx);
+			m.description = prediction.name;
+			marks.push_back(m);
+		}
+
+		if (marks.empty())
+		{
+			selected_mark = -1;
+		}
+		else
+		{
+			selected_mark = 0;
+		}
+	}
+	catch(...)
+	{
+		Log("Error: failed to process image " + filename);
+	}
+
+	canvas.need_to_rebuild_cache_image = true;
+	canvas.repaint();
+	for (size_t idx = 0; idx < 4; idx ++)
+	{
+		corners[idx]->original_image = canvas.original_image;
+		corners[idx]->need_to_rebuild_cache_image = true;
+		corners[idx]->repaint();
+	}
+
+	return;
+}
+
+
+void dm::DMContent::rebuild_image_and_repaint()
+{
+	canvas.need_to_rebuild_cache_image = true;
+	canvas.repaint();
+
+	for (auto c : corners)
+	{
+		c->need_to_rebuild_cache_image = true;
+		c->repaint();
+	}
+
+	return;
 }

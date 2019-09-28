@@ -5,13 +5,14 @@
 #include "DarkMark.hpp"
 
 
-dm::DMCorner::DMCorner() :
-	type(EType::kNone),
+dm::DMCorner::DMCorner(DMContent & c, const ECorner type) :
+	content(c),
+	corner(type),
 	cell_size(20),
 	cols(10),
-	rows(10),
-	offset(0, 0),
-	poi(0, 0)
+	rows(10)
+//	offset(0, 0),
+//	poi(0, 0)
 {
 	mouse_drag_is_enabled = false;
 
@@ -25,9 +26,41 @@ dm::DMCorner::~DMCorner()
 }
 
 
-void dm::DMCorner::set_type(const EType & t)
+void dm::DMCorner::mouseDown(const MouseEvent & event)
 {
-	type = t;
+	CrosshairComponent::mouseDown(event);
+
+	if (event.mods.isPopupMenu())
+	{
+		PopupMenu classes;
+		classes.addItem("barcode"		, std::function<void()>( [=]{ this->set_class(0); } ));
+		classes.addItem("aisle-bay-loc"	, std::function<void()>( [=]{ this->set_class(1); } ));
+
+		PopupMenu m;
+		m.addSubMenu("classes", classes);
+
+		m.addItem("testing"	, std::function<void()>( [=]{ this->set_class(0); } ));
+		m.addItem("blah"	, std::function<void()>( [=]{ this->set_class(0); } ));
+		m.showMenuAsync(PopupMenu::Options());
+	}
+	else
+	{
+		const int x = event.getMouseDownX();
+		const int y = event.getMouseDownY();
+		const int cell_x = x / (cell_size + 1);
+		const int cell_y = y / (cell_size + 1);
+		Log("mouse down at x=" + std::to_string(x) + " y=" + std::to_string(y) + " cell=" + std::to_string(cell_x) + "," + std::to_string(cell_y));
+
+		cv::Point p = top_left_point;
+		p.x += cell_x;
+		p.y += cell_y;
+
+		Log("corner loc is: " + std::to_string(top_left_point.x) + "," + std::to_string(top_left_point.y));
+		Log("new poi loc is " + std::to_string(p.x) + "," + std::to_string(p.y));
+
+		content.marks[content.selected_mark].set(corner, p);
+		content.rebuild_image_and_repaint();
+	}
 
 	return;
 }
@@ -39,7 +72,7 @@ void dm::DMCorner::rebuild_cache_image()
 	const int w = getWidth();
 
 	cv::Mat mat;
-	if (original_image.empty())
+	if (original_image.empty() or content.selected_mark < 0)
 	{
 		// nothing we can do
 		mat = cv::Mat(h, w, CV_8UC3, cv::Scalar(0x80, 0xff, 0x80));
@@ -50,21 +83,24 @@ void dm::DMCorner::rebuild_cache_image()
 		const int value = (	cols <= 6 ?	0 :
 							cols < 10 ?	std::round(0.10 * cell_size) :
 										std::round(0.25 * cell_size) );
-		switch(type)
+		cv::Point offset;
+		switch(corner)
 		{
-			case EType::kNone:	offset = cv::Point(0, 0);					break;
-			case EType::kTL:	offset = cv::Point(0 - value, 0 - value);	break;
-			case EType::kTR:	offset = cv::Point(0 + value, 0 - value);	break;
-			case EType::kBR:	offset = cv::Point(0 + value, 0 + value);	break;
-			case EType::kBL:	offset = cv::Point(0 - value, 0 + value);	break;
+			case ECorner::kTL:	offset = cv::Point(0 - value, 0 - value);	break;
+			case ECorner::kTR:	offset = cv::Point(0 + value, 0 - value);	break;
+			case ECorner::kBR:	offset = cv::Point(0 + value, 0 + value);	break;
+			case ECorner::kBL:	offset = cv::Point(0 - value, 0 + value);	break;
 		}
 
-		// background is black, so that takes care of all the horizontal and vertical lines between the cells
+		cv::Point poi = content.marks[content.selected_mark].get_corner(corner, original_image.size());
+
+		// background is black, so that takes care of all the horizontal and vertical lines that create the grid pattern
 		mat = cv::Mat(h, w, CV_8UC3, cv::Scalar(0x00, 0x00, 0x00));
 
 		// draw the individual cells
-		cv::Point p = poi + offset;
-		cv::Mat roi(original_image(cv::Rect(p.x, p.y, cols, rows)));
+		top_left_point = poi + offset;
+std::cout << "ROI: x=" << top_left_point.x << " y=" << top_left_point.y << " size=" << cols << "x" << rows << std::endl;
+		cv::Mat roi(original_image(cv::Rect(top_left_point.x, top_left_point.y, cols, rows)));
 
 		// draw all the cells
 		for (int row_index = 0; row_index < rows; row_index ++)
@@ -81,34 +117,37 @@ void dm::DMCorner::rebuild_cache_image()
 			}
 		}
 
-		const cv::Scalar purple(0xff, 0x00, 0xff);
+		const cv::Scalar colour = content.marks[content.selected_mark].colour;
 
 		// draw the corner cell
-		const int x = (cols/2 + offset.x) * (cell_size + 1);
-		const int y = (rows/2 + offset.y) * (cell_size + 1);
+		offset = poi - top_left_point;
+std::cout << "OFFSET x=" << offset.x << " y=" << offset.y << std::endl;
+		const int x = offset.x * (cell_size + 1);
+		const int y = offset.y * (cell_size + 1);
+std::cout << "rect: x=" << x << " y=" << y << " size=" << cell_size << std::endl;
 		cv::Rect r(x, y, cell_size, cell_size);
-		cv::Mat overlay(cell_size, cell_size, CV_8UC3, purple);
+		cv::Mat overlay(cell_size, cell_size, CV_8UC3, colour);
 		double alpha = 0.40;
 		double beta = 1.0 - alpha;
 		cv::addWeighted(overlay, alpha, mat(r), beta, 0, mat(r));
 
+#if 0
 		// draw the larger overlay rectangle
-		switch(type)
+		switch(corner)
 		{
-			case EType::kTR:
-			case EType::kNone:	r = cv::Rect(-1, -1, -1, -1);									break;
-			case EType::kTL:	r = cv::Rect(x, y, w - x, h - y);								break;
-//			case EType::kTR:	r = cv::Rect(x, y, w - x, h - y);		break;
-			case EType::kBR:	r = cv::Rect(-1, -1, -1, -1);			break;
-			case EType::kBL:	r = cv::Rect(-1, -1, -1, -1);			break;
+			case ECorner::kTL:	r = cv::Rect(x, y, w - x, h - y);					break;
+			case ECorner::kTR:	r = cv::Rect(0, y, x + cell_size, h - y);			break;
+			case ECorner::kBR:	r = cv::Rect(0, 0, x + cell_size, y + cell_size);	break;
+			case ECorner::kBL:	r = cv::Rect(x, 0, w - x, y + cell_size);			break;
 		}
 		if (r.x >= 0 and r.y >= 0 and r.width > 0 and r.height > 0)
 		{
-			overlay = cv::Mat(r.width, r.height, CV_8UC3, purple);
-			alpha = 0.15;
+			overlay = cv::Mat(r.height, r.width, CV_8UC3, colour);
+			alpha = 0.1;
 			beta = 1.0 - alpha;
 			cv::addWeighted(overlay, alpha, mat(r), beta, 0, mat(r));
 		}
+#endif
 	}
 
 	cached_image = convert_opencv_mat_to_juce_image(mat);
@@ -118,62 +157,9 @@ void dm::DMCorner::rebuild_cache_image()
 }
 
 
-#if 0
-void dm::DMCorner::paint(Graphics & g)
+void dm::DMCorner::set_class(size_t class_id)
 {
-	CrosshairComponent::paint(g);
-	paint_crosshairs(g);
-
-
-//	g.setOpacity(0.5f);
-//	g.fillrect(
-#if 0
-		// draw the horizontal and vertical lines
-		g.setColour(Colour(255, 0, 255));
-		int x = (cols/2 + offset.x) * (cell_size + 1) + cell_size / 2;
-		int y = (rows/2 + offset.y) * (cell_size + 1) + cell_size / 2;
-
-		switch(type)
-		{
-			case EType::kNone:
-			{
-				// do nothing
-				break;
-			}
-			case EType::kTL:
-			{
-				g.drawVerticalLine(x, y, h);
-				g.drawHorizontalLine(y, x, w);
-//				g.fillRect(x, y, w, h);
-				break;
-			}
-			case EType::kTR:
-			{
-				g.drawVerticalLine(x, y, h);
-				g.drawHorizontalLine(y, 0, x);
-				break;
-			}
-			case EType::kBR:
-			{
-				g.drawVerticalLine(x, 0, y);
-				g.drawHorizontalLine(y, 0, x);
-				break;
-			}
-			case EType::kBL:
-			{
-				g.drawVerticalLine(x, 0, y);
-				g.drawHorizontalLine(y, x, w);
-				break;
-			}
-		}
-
-		// draw the full corner cell
-		x -= cell_size / 2;
-		y -= cell_size / 2;
-		g.fillRect(x, y, cell_size, cell_size);
-	}
-#endif
+	Log("CLASS=" + std::to_string(class_id));
 
 	return;
 }
-#endif

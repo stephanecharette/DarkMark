@@ -5,7 +5,8 @@
 #include "DarkMark.hpp"
 
 
-dm::DMCanvas::DMCanvas()
+dm::DMCanvas::DMCanvas(DMContent & c) :
+	content(c)
 {
 	mouse_drag_is_enabled = true;
 
@@ -69,21 +70,10 @@ void dm::DMCanvas::rebuild_cache_image()
 	const cv::Scalar purple	(0xff, 0x00, 0xff);
 	const cv::Scalar white	(0xff, 0xff, 0xff);
 
-	if (dmapp().darkhelp and original_image.empty())
+	if (original_image.empty())
 	{
-		const std::string filename = "/home/stephane/src/DarkHelp/build/barcode_3.jpg";
-		Log("calling darkhelp to process the image " + filename);
-		try
-		{
-			original_image = cv::imread(filename);
-			darkhelp().predict(original_image);
-			darkhelp().annotate();
-			Log("darkhelp processed the image in " + darkhelp().duration_string());
-		}
-		catch(...)
-		{
-			Log("Error: failed to process image " + filename);
-		}
+		// nothing we can do
+		return;
 	}
 
 	scaled_image = resize_keeping_aspect_ratio(original_image, cv::Size(getWidth(), getHeight()));
@@ -95,7 +85,7 @@ void dm::DMCanvas::rebuild_cache_image()
 	layer_darkhelp = cv::Mat();
 	layer_class_names = cv::Mat();
 
-	if (darkhelp().prediction_results.empty() == false)
+	if (content.marks.empty() == false)
 	{
 		layer_darkhelp			= cv::Mat::zeros(layer_background_image.size(), CV_8UC3);
 		layer_darkhelp_mask		= cv::Mat::zeros(layer_background_image.size(), CV_8UC1);
@@ -106,19 +96,17 @@ void dm::DMCanvas::rebuild_cache_image()
 		const auto fontscale		= 1.0;
 		const auto fontthickness	= 1;
 
-		for (const auto pred : darkhelp().prediction_results)
+		for (auto m : content.marks)
 		{
-			// the image might have been scaled, so rebuild the prediction rectangle with the new coordinates
-			const int w = std::round(pred.width		* layer_background_image.cols);
-			const int h = std::round(pred.height	* layer_background_image.rows);
-			const int x = std::round(pred.mid_x		* layer_background_image.cols - w / 2.0f);
-			const int y = std::round(pred.mid_y		* layer_background_image.rows - h / 2.0f);
-			cv::Rect r(x, y, w, h);
-			cv::rectangle(layer_darkhelp		, r, purple	, 1, cv::LINE_8);
+			const std::string name		= m.description;
+			const cv::Rect r			= m.get_bounding_rect(layer_background_image.size());
+			const cv::Scalar & colour	= m.colour;
+
+			cv::rectangle(layer_darkhelp		, r, colour	, 1, cv::LINE_8);
 			cv::rectangle(layer_darkhelp_mask	, r, white	, 1, cv::LINE_8);
 
 			int baseline = 0;
-			auto text_size = cv::getTextSize(pred.name, fontface, fontscale, fontthickness, &baseline);
+			auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
 
 			// slide the barcode to the right so it lines up with the right-hand-side border of the bounding rect
 			const int x_offset = r.width - text_size.width - 2;
@@ -127,9 +115,9 @@ void dm::DMCanvas::rebuild_cache_image()
 			// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
 			const cv::Point text_point = r.tl() + cv::Point(x_offset + 1, -2);
 			const cv::Rect text_rect(x_offset + r.x, r.y - text_size.height - 3, text_size.width + 2, text_size.height + 3);
-			cv::rectangle(layer_class_names, text_rect, purple, cv::FILLED, cv::LINE_8);
+			cv::rectangle(layer_class_names, text_rect, colour, cv::FILLED, cv::LINE_8);
 			cv::rectangle(layer_class_names_mask, text_rect, white, cv::FILLED, cv::LINE_8);
-			cv::putText(layer_class_names, pred.name, text_point, fontface, fontscale, white, fontthickness, cv::LINE_AA);
+			cv::putText(layer_class_names, name, text_point, fontface, fontscale, white, fontthickness, cv::LINE_AA);
 		}
 	}
 

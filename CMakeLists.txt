@@ -14,3 +14,8 @@ INCLUDE ( CM_definitions.cmake	)	# compiler definitions
 INCLUDE ( CM_dependencies.cmake	)	# find all required dependencies
 INCLUDE ( CM_source.cmake		)	# source code that needs to be built
 INCLUDE ( CM_package.cmake		)	# create .exe or .deb packages
+
+IF ( GTest_FOUND )
+	ENABLE_TESTING ()
+	ADD_SUBDIRECTORY ( src-test )
+ENDIF ()

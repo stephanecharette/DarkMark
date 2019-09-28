@@ -15,16 +15,20 @@ namespace dm
 {
 	class Cfg;
 	class DMWnd;
+	class Mark;
 	class DMCorner;
 	class DMCanvas;
 	class DMContent;
 	class CrosshairComponent;
 	class DarkMarkApplication;
+
+	typedef std::vector<std::string> VStr;
 }
 
 #include "Log.hpp"
 #include "Cfg.hpp"
 #include "Bitmaps.hpp"
+#include "Mark.hpp"
 #include "CrosshairComponent.hpp"
 #include "DMCorner.hpp"
 #include "DMCanvas.hpp"

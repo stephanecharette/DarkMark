@@ -13,7 +13,7 @@ namespace dm
 	{
 		public:
 
-			DMCanvas();
+			DMCanvas(DMContent & c);
 
 			virtual ~DMCanvas();
 
@@ -22,6 +22,9 @@ namespace dm
 			virtual void rebuild_cache_image();
 
 			DMCanvas & redraw_layers();
+
+			/// Link to the parent which manages the content, including all the marks.
+			DMContent & content;
 
 			cv::Mat original_image;
 			cv::Mat scaled_image;

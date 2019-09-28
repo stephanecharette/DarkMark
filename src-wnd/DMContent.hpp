@@ -19,7 +19,18 @@ namespace dm
 
 			virtual void resized();
 
+			virtual void start_darknet();
+
+			virtual void rebuild_image_and_repaint();
+
 			DMCanvas canvas;
-			DMCorner corner[4];
+			std::vector<DMCorner*> corners;
+
+			VMarks marks;
+			VStr names;
+
+			int selected_mark;
+
+			DarkHelp::VColours annotation_colours;
 	};
 }

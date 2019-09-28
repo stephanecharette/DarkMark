@@ -13,24 +13,20 @@ namespace dm
 	{
 		public:
 
-			enum class EType
-			{
-				kNone,
-				kTL,
-				kTR,
-				kBR,
-				kBL
-			};
-
-			DMCorner();
+			DMCorner(DMContent & c, const ECorner type);
 
 			virtual ~DMCorner();
 
-			virtual void set_type(const EType & t);
+			virtual void mouseDown(const MouseEvent & event);
 
 			virtual void rebuild_cache_image();
 
-			EType type;
+			virtual void set_class(size_t class_id);
+
+			/// Link to the parent which manages the content, including all the marks.
+			DMContent & content;
+
+			ECorner corner;
 
 			cv::Mat original_image;
 
@@ -39,7 +35,8 @@ namespace dm
 			int cols;
 			int rows;
 
-			cv::Point offset;
-			cv::Point poi;
+			cv::Point top_left_point;
+//			cv::Point offset;
+//			cv::Point poi;
 	};
 }

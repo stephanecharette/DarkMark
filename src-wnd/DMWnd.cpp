@@ -32,16 +32,7 @@ dm::DMWnd::DMWnd() :
 
 //	setFullScreen(cfg().kiosk_mode);
 
-	Log("loading darknet neural network");
-	dmapp().darkhelp.reset(new DarkHelp(cfg().get_str("darknet_config"), cfg().get_str("darknet_weights"), cfg().get_str("darknet_names")));
-	Log("neural network loaded in " + darkhelp().duration_string());
-
-	content.canvas.rebuild_cache_image();
-	for (size_t idx = 0; idx < 4; idx ++)
-	{
-		content.corner[idx].original_image = content.canvas.original_image;
-		content.corner[idx].need_to_rebuild_cache_image = true;
-	}
+	content.start_darknet();
 
 	setVisible(true);
 
