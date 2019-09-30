@@ -7,7 +7,8 @@
 
 dm::DMContent::DMContent() :
 	canvas(*this),
-	selected_mark(-1)
+	selected_mark(-1),
+	scale_factor(1.0)
 {
 	corners.push_back(new DMCorner(*this, ECorner::kTL));
 	corners.push_back(new DMCorner(*this, ECorner::kTR));
@@ -20,6 +21,8 @@ dm::DMContent::DMContent() :
 	{
 		addAndMakeVisible(c);
 	}
+
+	setWantsKeyboardFocus(true);
 
 	return;
 }
@@ -39,48 +42,103 @@ dm::DMContent::~DMContent(void)
 
 void dm::DMContent::resized()
 {
-	const auto r = getLocalBounds();
-	const int h = r.getHeight();
-
-	FlexItem::Margin margin;
-	margin.bottom = 1.0f;
-
-	// We have 4 "corner" windows to display, and a limited height in which we can do it.  So start off by dividing the height by 4.
-	const double quarter = static_cast<double>(h - 6) / 4.0; // -6 because we want a 2-pixel border between each corner window
-
-	// We need to figure out how many cells can fit in this quarter height.  Ideally, we'd like each cell to be around 11 pixels in size.  (Must be an odd number.)
-	double number_of_cells = 16.0;
-	double cell_size = 0.0;
-	while (number_of_cells > 5.0)
+	const double window_width	= getWidth();
+	const double window_height	= getHeight();
+	if(	window_width	< 1.0 ||
+		window_height	< 1.0 )
 	{
-		cell_size = std::round((quarter - number_of_cells) / number_of_cells);
-
-		if (cell_size < 11.0)
-		{
-			number_of_cells --;
-			continue;
-		}
-
-		break;
+		// window hasn't been created yet?
+		return;
 	}
 
-	// Now that we know how many cells, and the size of each one, we can calculate the exact size each corner window requires.
-	const int corner_size = std::round((cell_size + 1.0) * number_of_cells - 1);
-
-	FlexBox col(FlexBox::Direction::column, FlexBox::Wrap::noWrap, FlexBox::AlignContent::stretch, FlexBox::AlignItems::stretch, FlexBox::JustifyContent::spaceBetween);
-	for (int i = 0; i < 4; i ++)
+	double image_width	= original_image.cols;
+	double image_height	= original_image.rows;
+	if (image_width		< 1.0 ||
+		image_height	< 1.0 )
 	{
-		corners[i]->cell_size = cell_size;
-		corners[i]->cols = number_of_cells;
-		corners[i]->rows = number_of_cells;
-		col.items.add(FlexItem(*corners[i]).withMargin(margin).withMinHeight(corner_size).withMaxHeight(corner_size));
+		// image hasn't been loaded yet?
+		image_width = 640;
+		image_height = 480;
 	}
 
-	FlexBox row(FlexBox::Direction::row, FlexBox::Wrap::noWrap, FlexBox::AlignContent::stretch, FlexBox::AlignItems::stretch, FlexBox::JustifyContent::flexStart);
-	row.items.add(FlexItem(canvas).withMargin(0).withFlex(1.0));
-	row.items.add(FlexItem(col).withMargin(0).withMinWidth(corner_size).withMaxWidth(corner_size));
+	// the wider the window, the larger the cells should be
+	const double pixels_per_cell				= std::floor(std::max(6.0, window_width / 85.0));	// 600=7, 800=9, 1000=11, 1600=18, ...
 
-	row.performLayout(r);
+	const double min_number_of_cells			= 5.0;
+	const double min_corner_width				= min_number_of_cells * (pixels_per_cell + 1);
+	const double number_of_corner_windows		= corners.size();
+	const double min_horizontal_spacer_height	= 2.0;
+
+	// determine the size of the image once it is scaled
+	const double width_ratio					= (window_width - min_corner_width) / image_width;
+	const double height_ratio					= window_height / image_height;
+	const double ratio							= std::min(width_ratio, height_ratio);
+	const double new_image_width				= std::round(ratio * image_width);
+	const double new_image_height				= std::round(ratio * image_height);
+
+	// determine the size of each corner window
+	const double max_corner_width				= std::floor(window_width - new_image_width);
+	const double max_corner_height				= std::floor(window_height / number_of_corner_windows - (min_horizontal_spacer_height * (number_of_corner_windows - 1.0)));
+	const double number_of_horizontal_cells		= std::floor(max_corner_width	/ (pixels_per_cell + 1));
+	const double number_of_vertical_cells		= std::floor(max_corner_height	/ (pixels_per_cell + 1));
+	const double new_corner_width				= number_of_horizontal_cells	* (pixels_per_cell + 1) - 1;
+	const double new_corner_height				= number_of_vertical_cells		* (pixels_per_cell + 1) - 1;
+	const double horizontal_spacer_height		= std::floor((window_height - new_corner_height * number_of_corner_windows) / (number_of_corner_windows - 1.0));
+
+#if 0
+	// enable this to debug resizing
+	static size_t counter = 0;
+	counter ++;
+	if (counter % 10 == 0)
+	{
+		asm("int $3");
+	}
+
+	Log("resized:"
+			" window size: "		+ std::to_string((int)window_width)		+ "x" + std::to_string((int)window_height)		+
+			" new image size: "		+ std::to_string((int)new_image_width)	+ "x" + std::to_string((int)new_image_height)	+
+			" min corner size: "	+ std::to_string((int)min_corner_width)	+ "x" + std::to_string((int)new_corner_height)	+
+			" max corner size: "	+ std::to_string((int)max_corner_width)	+ "x" + std::to_string((int)max_corner_height)	+
+			" new corner size: "	+ std::to_string((int)new_corner_width)	+ "x" + std::to_string((int)new_corner_height)	+
+			" horizontal spacer: "	+ std::to_string((int)horizontal_spacer_height)											+
+			" pixels per cell: "	+ std::to_string((int)pixels_per_cell)													+
+			" horizontal cells: "	+ std::to_string((int)number_of_horizontal_cells)										+
+			" vertical cells: "		+ std::to_string((int)number_of_vertical_cells)											);
+#endif
+
+	canvas.setBounds(0, 0, new_image_width, new_image_height);
+	int y = 0;
+	for (auto c : corners)
+	{
+		c->setBounds(new_image_width, y, new_corner_width, new_corner_height);
+		y += new_corner_height + horizontal_spacer_height;
+		c->cell_size = pixels_per_cell;
+		c->cols = number_of_horizontal_cells;
+		c->rows = number_of_vertical_cells;
+	}
+
+	// remember some of the important numbers so we don't have to re-calculate them later
+	scaled_image_size = cv::Size(new_image_width, new_image_height);
+	scale_factor = ratio;
+
+	// update the window title to show the scale factor
+	if (dmapp().wnd)
+	{
+		// since we're going to be messing around with the window title, make a copy of the original window name
+
+		static const std::string original_title = dmapp().wnd->getName().toStdString();
+
+		std::string title =
+			original_title +
+			" - "	+ std::string("barcode_3.jpg") +
+			" - "	+ std::to_string(original_image.cols) +
+			"x"		+ std::to_string(original_image.rows) +
+			" - "	+ std::to_string(static_cast<int>(std::round(scale_factor * 100.0))) + "%";
+
+		dmapp().wnd->setName(title);
+	}
+
+	return;
 }
 
 
@@ -90,7 +148,8 @@ void dm::DMContent::start_darknet()
 	dmapp().darkhelp.reset(new DarkHelp(cfg().get_str("darknet_config"), cfg().get_str("darknet_weights"), cfg().get_str("darknet_names")));
 	Log("neural network loaded in " + darkhelp().duration_string());
 
-	const std::string filename = "/home/stephane/src/DarkHelp/build/barcode_3.jpg";
+//	const std::string filename = "/home/stephane/src/DarkHelp/build/barcode_3.jpg";
+	const std::string filename = "/home/stephane/mailboxes/DSCN0435.JPG";
 	Log("calling darkhelp to process the image " + filename);
 	try
 	{
@@ -98,8 +157,8 @@ void dm::DMContent::start_darknet()
 
 		annotation_colours = darkhelp().annotation_colours;
 
-		canvas.original_image = cv::imread(filename);
-		darkhelp().predict(canvas.original_image);
+		original_image = cv::imread(filename);
+		darkhelp().predict(original_image);
 		Log("darkhelp processed the image in " + darkhelp().duration_string());
 
 		// convert the predictions into marks
@@ -130,7 +189,6 @@ void dm::DMContent::start_darknet()
 	canvas.repaint();
 	for (size_t idx = 0; idx < 4; idx ++)
 	{
-		corners[idx]->original_image = canvas.original_image;
 		corners[idx]->need_to_rebuild_cache_image = true;
 		corners[idx]->repaint();
 	}
@@ -151,4 +209,42 @@ void dm::DMContent::rebuild_image_and_repaint()
 	}
 
 	return;
+}
+
+
+bool dm::DMContent::keyPressed(const KeyPress &key)
+{
+	if (key.getKeyCode() == KeyPress::tabKey)
+	{
+		if (marks.empty())
+		{
+			selected_mark = -1;
+		}
+		else
+		{
+			if (key.getModifiers().isShiftDown())
+			{
+				// select previous mark
+				selected_mark --;
+				if (selected_mark < 0)
+				{
+					selected_mark = marks.size() - 1;
+				}
+			}
+			else
+			{
+				// select next mark
+				selected_mark ++;
+				if (selected_mark >= (int)marks.size())
+				{
+					selected_mark = 0;
+				}
+			}
+
+			rebuild_image_and_repaint();
+			return true; // event has been handled
+		}
+	}
+
+	return false;
 }

@@ -72,37 +72,59 @@ void dm::DMCorner::rebuild_cache_image()
 	const int w = getWidth();
 
 	cv::Mat mat;
-	if (original_image.empty() or content.selected_mark < 0)
+	if (content.original_image.empty() or content.selected_mark < 0)
 	{
-		// nothing we can do
+		// nothing we can do if we don't have an image to show, so draw a blank bright green background
 		mat = cv::Mat(h, w, CV_8UC3, cv::Scalar(0x80, 0xff, 0x80));
+
+		// draw vertical grid lines
+		for (int x = cell_size + 1; x < w; x += cell_size + 1)
+		{
+			cv::line(mat, cv::Point(x, 0), cv::Point(x, h), cv::Scalar(0x70, 0xee, 0x70));
+		}
+		// draw horizontal grid lines
+		for (int y = cell_size + 1; y < h; y += cell_size + 1)
+		{
+			cv::line(mat, cv::Point(0, y), cv::Point(w, y), cv::Scalar(0x70, 0xee, 0x70));
+		}
 	}
 	else
 	{
-		// re-calculate the offsets to bring the central point nearer to the middle as the corner window gets smaller
-		const int value = (	cols <= 6 ?	0 :
-							cols < 10 ?	std::round(0.10 * cell_size) :
-										std::round(0.25 * cell_size) );
-		cv::Point offset;
-		switch(corner)
-		{
-			case ECorner::kTL:	offset = cv::Point(0 - value, 0 - value);	break;
-			case ECorner::kTR:	offset = cv::Point(0 + value, 0 - value);	break;
-			case ECorner::kBR:	offset = cv::Point(0 + value, 0 + value);	break;
-			case ECorner::kBL:	offset = cv::Point(0 - value, 0 + value);	break;
-		}
-
-		cv::Point poi = content.marks[content.selected_mark].get_corner(corner, original_image.size());
-
 		// background is black, so that takes care of all the horizontal and vertical lines that create the grid pattern
 		mat = cv::Mat(h, w, CV_8UC3, cv::Scalar(0x00, 0x00, 0x00));
 
-		// draw the individual cells
-		top_left_point = poi + offset;
-std::cout << "ROI: x=" << top_left_point.x << " y=" << top_left_point.y << " size=" << cols << "x" << rows << std::endl;
-		cv::Mat roi(original_image(cv::Rect(top_left_point.x, top_left_point.y, cols, rows)));
+		cv::Point mid_point = content.marks[content.selected_mark].get_corner(corner, content.original_image.size());
+		top_left_point = mid_point;
+		top_left_point.x -= std::round(cols * 0.5);
+		top_left_point.y -= std::round(rows * 0.5);
 
-		// draw all the cells
+		// if we have many columns or many rows, then shift the top-left corner a few more pixels to show more of the region-of-interest
+		if (cols > 6)
+		{
+			const int offset = std::floor(cols * 0.25);
+			switch(corner)
+			{
+				case ECorner::kTL:	top_left_point.x += offset;	break;
+				case ECorner::kTR:	top_left_point.x -= offset;	break;
+				case ECorner::kBR:	top_left_point.x -= offset;	break;
+				case ECorner::kBL:	top_left_point.x += offset;	break;
+			}
+		}
+
+		if (rows > 6)
+		{
+			const int offset = std::floor(rows * 0.25);
+			switch(corner)
+			{
+				case ECorner::kTL:	top_left_point.y += offset;	break;
+				case ECorner::kTR:	top_left_point.y += offset;	break;
+				case ECorner::kBR:	top_left_point.y -= offset;	break;
+				case ECorner::kBL:	top_left_point.y -= offset;	break;
+			}
+		}
+
+		// draw all the individual cells
+		cv::Mat roi(content.original_image(cv::Rect(top_left_point.x, top_left_point.y, cols, rows)));
 		for (int row_index = 0; row_index < rows; row_index ++)
 		{
 			const uint8_t * src_ptr = roi.ptr(row_index);
@@ -117,21 +139,17 @@ std::cout << "ROI: x=" << top_left_point.x << " y=" << top_left_point.y << " siz
 			}
 		}
 
-		const cv::Scalar colour = content.marks[content.selected_mark].colour;
+		const cv::Scalar & colour = content.marks[content.selected_mark].colour;
 
 		// draw the corner cell
-		offset = poi - top_left_point;
-std::cout << "OFFSET x=" << offset.x << " y=" << offset.y << std::endl;
-		const int x = offset.x * (cell_size + 1);
-		const int y = offset.y * (cell_size + 1);
-std::cout << "rect: x=" << x << " y=" << y << " size=" << cell_size << std::endl;
+		const int x = (mid_point - top_left_point).x * (cell_size + 1);
+		const int y = (mid_point - top_left_point).y * (cell_size + 1);
 		cv::Rect r(x, y, cell_size, cell_size);
 		cv::Mat overlay(cell_size, cell_size, CV_8UC3, colour);
-		double alpha = 0.40;
+		double alpha = 0.60;
 		double beta = 1.0 - alpha;
 		cv::addWeighted(overlay, alpha, mat(r), beta, 0, mat(r));
 
-#if 0
 		// draw the larger overlay rectangle
 		switch(corner)
 		{
@@ -143,11 +161,10 @@ std::cout << "rect: x=" << x << " y=" << y << " size=" << cell_size << std::endl
 		if (r.x >= 0 and r.y >= 0 and r.width > 0 and r.height > 0)
 		{
 			overlay = cv::Mat(r.height, r.width, CV_8UC3, colour);
-			alpha = 0.1;
+			alpha = 0.30;
 			beta = 1.0 - alpha;
 			cv::addWeighted(overlay, alpha, mat(r), beta, 0, mat(r));
 		}
-#endif
 	}
 
 	cached_image = convert_opencv_mat_to_juce_image(mat);

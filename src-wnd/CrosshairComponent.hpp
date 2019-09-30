@@ -44,6 +44,8 @@ namespace dm
 			virtual void mouseDrag(const MouseEvent & event);
 //			virtual void mouseWheelMove(const MouseEvent & event, const MouseWheelDetails & wheel);
 
+			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect) { return; }
+
 			/** This is called to generate the content that will be drawn on the screen.  Derived classes must implement
 			 * this method.  The resulting image must be stored in @ref cached_image and be the exact same width and
 			 * height as the component.  Prior to returning, set the flag @ref need_to_rebuild_cache_image to @p false.
@@ -55,10 +57,10 @@ namespace dm
 			const juce::Point<int> invalid_point;
 			const juce::Rectangle<int> invalid_rectangle;
 
-			juce::Point<int> mouse_current_loc;
-			juce::Point<int> mouse_previous_loc;
-			juce::Point<int> mouse_down_loc;
-			juce::Rectangle<int> mouse_drag_rectangle;
+			juce::Point<int>		mouse_current_loc;
+			juce::Point<int>		mouse_previous_loc;
+			juce::Point<int>		mouse_down_loc;
+			juce::Rectangle<int>	mouse_drag_rectangle;
 
 			juce::Image cached_image;
 			bool need_to_rebuild_cache_image;

@@ -20,148 +20,134 @@ dm::DMCanvas::~DMCanvas()
 }
 
 
-void dm::DMCanvas::resized()
-{
-	// given the new size, figure out what kind of scaling we need to do for the
-	// entire image to be shown and update the titlebar to display the zoom factor
-
-	const double image_width	= original_image.cols;
-	const double image_height	= original_image.rows;
-	const double canvas_width	= getWidth();
-	const double canvas_height	= getHeight();
-
-	if (image_width		< 1.0 ||
-		image_height	< 1.0 ||
-		canvas_width	< 1.0 ||
-		canvas_height	< 1.0)
-	{
-		// window hasn't been created yet, or the image has not been loaded yet
-		return;
-	}
-
-	const double factor = std::min(canvas_width / image_width, canvas_height / image_height);
-
-	// since we're going to be messing around with the window title, make a copy of the original window name
-	static const std::string original_title = dmapp().wnd->getName().toStdString();
-
-	std::string title =
-		original_title +
-		" - "	+ std::string("barcode_3.jpg") +
-		" - "	+ std::to_string(static_cast<int>(image_width				)) +
-		"x"		+ std::to_string(static_cast<int>(image_height				)) +
-		" - "	+ std::to_string(static_cast<int>(std::round(factor * 100.0))) + "%";
-
-	dmapp().wnd->setName(title);
-
-	// now that the canvas has changed size we're going to have to rescale and rebuild the image
-	CrosshairComponent::resized();
-
-	return;
-}
-
-
 void dm::DMCanvas::rebuild_cache_image()
 {
 	Log("redrawing layers...");
 
 	//						blue   green red
-	const cv::Scalar black	(0x00, 0x00, 0x00);
-	const cv::Scalar blue	(0xff, 0x00, 0x00);
-	const cv::Scalar purple	(0xff, 0x00, 0xff);
+//	const cv::Scalar black	(0x00, 0x00, 0x00);
+//	const cv::Scalar blue	(0xff, 0x00, 0x00);
+//	const cv::Scalar purple	(0xff, 0x00, 0xff);
 	const cv::Scalar white	(0xff, 0xff, 0xff);
 
-	if (original_image.empty())
+	if (content.original_image.empty())
 	{
 		// nothing we can do
 		return;
 	}
 
-	scaled_image = resize_keeping_aspect_ratio(original_image, cv::Size(getWidth(), getHeight()));
-
-	layer_background_image = scaled_image;
-
-	cv::Mat layer_darkhelp_mask;
-	cv::Mat layer_class_names_mask;
-	layer_darkhelp = cv::Mat();
-	layer_class_names = cv::Mat();
+	content.scaled_image = resize_keeping_aspect_ratio(content.original_image, content.scaled_image_size);
 
 	if (content.marks.empty() == false)
 	{
-		layer_darkhelp			= cv::Mat::zeros(layer_background_image.size(), CV_8UC3);
-		layer_darkhelp_mask		= cv::Mat::zeros(layer_background_image.size(), CV_8UC1);
-		layer_class_names		= cv::Mat::zeros(layer_background_image.size(), CV_8UC3);
-		layer_class_names_mask	= cv::Mat::zeros(layer_background_image.size(), CV_8UC1);
-
 		const auto fontface			= cv::FONT_HERSHEY_PLAIN;
 		const auto fontscale		= 1.0;
 		const auto fontthickness	= 1;
 
-		for (auto m : content.marks)
+		for (size_t idx = 0; idx < content.marks.size(); idx ++)
 		{
-			const std::string name		= m.description;
-			const cv::Rect r			= m.get_bounding_rect(layer_background_image.size());
-			const cv::Scalar & colour	= m.colour;
+			const bool is_selected = (static_cast<int>(idx) == content.selected_mark);
 
-			cv::rectangle(layer_darkhelp		, r, colour	, 1, cv::LINE_8);
-			cv::rectangle(layer_darkhelp_mask	, r, white	, 1, cv::LINE_8);
+			Mark & m = content.marks.at(idx);
+
+			const std::string name		= m.description;
+			const cv::Rect r			= m.get_bounding_rect(content.scaled_image.size());
+			const cv::Scalar & colour	= m.colour;
+			const int thickness			= (is_selected ? 2 : 1);
+
+			cv::Mat tmp = content.scaled_image(r).clone();
+			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
+
+			double alpha = (is_selected ? 1.0 : 0.5);
+			double beta = 1.0 - alpha;
+			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
 			int baseline = 0;
 			auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
 
-			// slide the barcode to the right so it lines up with the right-hand-side border of the bounding rect
+			// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
 			const int x_offset = r.width - text_size.width - 2;
 
 			// Rectangle for the label needs the TL and BR coordinates.
 			// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
-			const cv::Point text_point = r.tl() + cv::Point(x_offset + 1, -2);
-			const cv::Rect text_rect(x_offset + r.x, r.y - text_size.height - 3, text_size.width + 2, text_size.height + 3);
-			cv::rectangle(layer_class_names, text_rect, colour, cv::FILLED, cv::LINE_8);
-			cv::rectangle(layer_class_names_mask, text_rect, white, cv::FILLED, cv::LINE_8);
-			cv::putText(layer_class_names, name, text_point, fontface, fontscale, white, fontthickness, cv::LINE_AA);
+			cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y + 2, text_size.width + 2, text_size.height + 3);
+			if (is_selected)
+			{
+				text_rect.y = r.y - text_size.height - 3;
+			}
+
+			tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
+			cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+
+			cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
 		}
 	}
 
-	cv::Mat layer_points_of_interest_mask;
-	layer_points_of_interest = cv::Mat();
-	if (not click_points.empty())
-	{
-		layer_points_of_interest		= cv::Mat::zeros(layer_background_image.size(), CV_8UC3);
-		layer_points_of_interest_mask	= cv::Mat::zeros(layer_background_image.size(), CV_8UC1);
-
-		for (const auto & p : click_points)
-		{
-			Log("adding point " + std::to_string(p.x) + "," + std::to_string(p.y) + " to the points-of-interest layer");
-			cv::circle(layer_points_of_interest		, cv::Point(p.x, p.y), 2, blue	, cv::FILLED, cv::LINE_8);
-			cv::circle(layer_points_of_interest_mask, cv::Point(p.x, p.y), 2, white	, cv::FILLED, cv::LINE_8);
-		}
-	}
-
-	// time to add all the layers together
-	composited_image = layer_background_image.clone();
-	if (layer_darkhelp.empty() == false and layer_darkhelp_mask.empty() == false)
-	{
-		Log("adding darkhelp layer to composited image");
-		layer_darkhelp.copyTo(composited_image, layer_darkhelp_mask);
-	}
-	if (layer_class_names.empty() == false and layer_class_names_mask.empty() == false)
-	{
-		Log("adding class names layer to composited image");
-
-		cv::Mat tmp = composited_image.clone();
-		layer_class_names.copyTo(tmp, layer_class_names_mask);
-
-		const double alpha = 1.0;
-		const double beta = 1.0 - alpha;
-		cv::addWeighted(tmp, alpha, composited_image, beta, 0, composited_image);
-	}
-	if (layer_points_of_interest.empty() == false and layer_points_of_interest_mask.empty() == false)
-	{
-		Log("adding points-of-interest layer to composited image");
-		layer_points_of_interest.copyTo(composited_image, layer_points_of_interest_mask);
-	}
-
-	cached_image = convert_opencv_mat_to_juce_image(composited_image);
+	cached_image = convert_opencv_mat_to_juce_image(content.scaled_image);
 	need_to_rebuild_cache_image = false;
+
+	return;
+}
+
+
+void dm::DMCanvas::mouseUp(const MouseEvent & event)
+{
+	if (mouse_drag_is_enabled == false or mouse_drag_rectangle == invalid_rectangle)
+	{
+		const auto pos = event.getPosition();
+		const cv::Point p(pos.x, pos.y);
+
+		for (size_t idx = 0; idx < content.marks.size(); idx ++)
+		{
+			Mark & m = content.marks.at(idx);
+			const cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
+			if (r.contains(p))
+			{
+				content.selected_mark = idx;
+				content.rebuild_image_and_repaint();
+				break;
+			}
+		}
+	}
+
+	CrosshairComponent::mouseUp(event);
+	return;
+}
+
+
+void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
+{
+	Log("drag has finished");
+
+	const double midx			= drag_rect.getCentreX();
+	const double midy			= drag_rect.getCentreY();
+	const double width			= drag_rect.getWidth();
+	const double height			= drag_rect.getHeight();
+	const double image_width	= cached_image.getWidth();
+	const double image_height	= cached_image.getHeight();
+
+#if 0
+	Log("mouse drag rectangle:"
+		" midx="			+ std::to_string(midx			) +
+		" midy="			+ std::to_string(midy			) +
+		" width="			+ std::to_string(width			) +
+		" height="			+ std::to_string(height			) +
+		" image_width="		+ std::to_string(image_width	) +
+		" image_height="	+ std::to_string(image_height	));
+#endif
+
+	const int class_idx = std::rand() % 30;
+	Mark m(	cv::Point2d(midx/image_width, midy/image_height),
+			cv::Size2d(width/image_width, height/image_height),
+			content.original_image.size(), class_idx);
+
+	m.colour		= content.annotation_colours.at(m.class_idx % content.annotation_colours.size());
+	m.name			= "lock";//content.names.at(m.class_idx);
+	m.description	= m.name;
+
+	content.marks.push_back(m);
+	content.selected_mark = content.marks.size() - 1;
+	content.rebuild_image_and_repaint();
 
 	return;
 }
