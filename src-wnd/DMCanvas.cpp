@@ -50,10 +50,10 @@ void dm::DMCanvas::rebuild_cache_image()
 
 			Mark & m = content.marks.at(idx);
 
-			const std::string name		= m.description;
-			const cv::Rect r			= m.get_bounding_rect(content.scaled_image.size());
-			const cv::Scalar & colour	= m.colour;
-			const int thickness			= (is_selected ? 2 : 1);
+			const std::string name	= m.description;
+			const cv::Rect r		= m.get_bounding_rect(content.scaled_image.size());
+			const cv::Scalar colour	= m.get_colour();
+			const int thickness		= (is_selected ? 2 : 1);
 
 			cv::Mat tmp = content.scaled_image(r).clone();
 			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
@@ -136,12 +136,11 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 		" image_height="	+ std::to_string(image_height	));
 #endif
 
-	const int class_idx = std::rand() % 30;
+	const int class_idx = 0;
 	Mark m(	cv::Point2d(midx/image_width, midy/image_height),
 			cv::Size2d(width/image_width, height/image_height),
 			content.original_image.size(), class_idx);
 
-	m.colour		= content.annotation_colours.at(m.class_idx % content.annotation_colours.size());
 	m.name			= "lock";//content.names.at(m.class_idx);
 	m.description	= m.name;
 

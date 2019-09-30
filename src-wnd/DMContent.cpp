@@ -165,7 +165,6 @@ void dm::DMContent::start_darknet()
 		for (auto prediction : darkhelp().prediction_results)
 		{
 			Mark m(cv::Point2d(prediction.mid_x, prediction.mid_y), cv::Size2d(prediction.width, prediction.height), cv::Size(0, 0), prediction.best_class);
-			m.colour = annotation_colours.at(m.class_idx % annotation_colours.size());
 			m.name = names.at(m.class_idx);
 			m.description = prediction.name;
 			marks.push_back(m);
@@ -214,6 +213,8 @@ void dm::DMContent::rebuild_image_and_repaint()
 
 bool dm::DMContent::keyPressed(const KeyPress &key)
 {
+	const char c = key.getTextCharacter();
+
 	if (key.getKeyCode() == KeyPress::tabKey)
 	{
 		if (marks.empty())
@@ -244,6 +245,16 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 			rebuild_image_and_repaint();
 			return true; // event has been handled
 		}
+	}
+	else if (c >= '0' and c <= '9')
+	{
+		// change the class for the selected mark
+		auto & m = marks[selected_mark];
+		m.class_idx = (c - '0');
+		m.name = names.at(m.class_idx);
+		m.description = names.at(m.class_idx);
+		rebuild_image_and_repaint();
+		return true; // event has been handled
 	}
 
 	return false;

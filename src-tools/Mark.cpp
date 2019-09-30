@@ -269,3 +269,12 @@ dm::Mark & dm::Mark::rebalance()
 
 	return *this;
 }
+
+
+cv::Scalar dm::Mark::get_colour()
+{
+	const auto v = DarkHelp::get_default_annotation_colours();
+	const auto colour = v[class_idx % v.size()];
+
+	return colour;
+}

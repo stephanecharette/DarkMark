@@ -74,6 +74,8 @@ namespace dm
 			 */
 			Mark & rebalance();
 
+			cv::Scalar get_colour();
+
 			/** Map of @em double points for each of the 4 vertices.  These points are in the range of [0...1] so they
 			 * need to be multiplied by the image width/height to get coordinates.  You typically shouldn't have to
 			 * access these points directly.  Instead, use @ref get_corner(), @ref tl(), @ref tr(), etc.  To modify
@@ -93,6 +95,6 @@ namespace dm
 			size_t class_idx;
 			std::string name;
 			std::string description;
-			cv::Scalar colour;
+//			cv::Scalar colour;
 	};
 }

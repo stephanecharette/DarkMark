@@ -139,7 +139,7 @@ void dm::DMCorner::rebuild_cache_image()
 			}
 		}
 
-		const cv::Scalar & colour = content.marks[content.selected_mark].colour;
+		const cv::Scalar colour = content.marks[content.selected_mark].get_colour();
 
 		// draw the corner cell
 		const int x = (mid_point - top_left_point).x * (cell_size + 1);
