@@ -53,7 +53,9 @@ namespace dm
 			cv::Rect get_bounding_rect(const cv::Size & new_image_dimensions);
 
 			/// Get the normalized rectangle that contains all 4 points.
-			cv::Rect2d get_normalized_bounding_rect() const;
+			cv::Rect2d get_normalized_bounding_rect();
+
+			cv::Point2d get_normalized_midpoint();
 
 			/// Convenient alias to retrieve the given non-normalized corner point.  @see @ref get_corner() @{
 			cv::Point tl() const { return get_corner(ECorner::kTL); }

@@ -144,8 +144,14 @@ cv::Rect dm::Mark::get_bounding_rect(const cv::Size & new_image_dimensions)
 }
 
 
-cv::Rect2d dm::Mark::get_normalized_bounding_rect() const
+cv::Rect2d dm::Mark::get_normalized_bounding_rect()
 {
+	if (image_dimensions.width == 0 or image_dimensions.height == 0)
+	{
+		image_dimensions.width = 640;
+		image_dimensions.height = 480;
+	}
+
 	// calling cv::boundingRect() doesn't work with doubles, so get the full bounding rect and then convert back to normalized values
 	const cv::Rect r = get_bounding_rect();
 
@@ -159,6 +165,16 @@ cv::Rect2d dm::Mark::get_normalized_bounding_rect() const
 	rd.height	= static_cast<double>(r.height)	/ ih;
 
 	return rd;
+}
+
+
+cv::Point2d dm::Mark::get_normalized_midpoint()
+{
+	cv::Rect2d r = get_normalized_bounding_rect();
+	const double x = r.x + r.width / 2.0;
+	const double y = r.y + r.height / 2.0;
+
+	return cv::Point2d(x, y);
 }
 
 
@@ -228,7 +244,6 @@ dm::Mark & dm::Mark::rebalance()
 
 	// convert the map to a vector of normalized points
 	VPoints2d points = normalized_all_points;
-
 	const cv::Rect2d bounding_rect = get_normalized_bounding_rect();
 	const MapCornerToPoint2d bounding_rect_points =
 	{

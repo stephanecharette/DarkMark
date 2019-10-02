@@ -179,14 +179,18 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 
 	if (mouse_drag_is_enabled and mouse_drag_rectangle != invalid_rectangle)
 	{
-		const auto p1 = mouse_drag_rectangle.getTopLeft();
-		const auto p2 = mouse_current_loc;
-		const auto w = p2.x - p1.x;
-		const auto h = p2.y - p1.y;
-		mouse_drag_rectangle.setWidth(w);
-		mouse_drag_rectangle.setHeight(h);
+		// re-orient the rectangle so TL is smaller than BR, otherwise we'll get a negative width/height which confuses things
+		const int x1 = mouse_drag_rectangle.getTopLeft().x;
+		const int y1 = mouse_drag_rectangle.getTopLeft().y;
+		const int x2 = mouse_current_loc.x;
+		const int y2 = mouse_current_loc.y;
 
-		if (w > 2 and h > 2)
+		mouse_drag_rectangle.setLeft	(std::min(x1, x2));
+		mouse_drag_rectangle.setTop		(std::min(y1, y2));
+		mouse_drag_rectangle.setRight	(std::max(x1, x2));
+		mouse_drag_rectangle.setBottom	(std::max(y1, y2));
+
+		if (mouse_drag_rectangle.getWidth() > 2 and mouse_drag_rectangle.getHeight() > 2)
 		{
 			mouseDragFinished(mouse_drag_rectangle);
 		}
@@ -202,8 +206,8 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 
 void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 {
-	mouse_previous_loc		= mouse_current_loc;
-	mouse_current_loc		= event.getPosition();
+	mouse_previous_loc	= mouse_current_loc;
+	mouse_current_loc	= event.getPosition();
 
 	const auto p1 = mouse_drag_rectangle.getTopLeft();
 	const auto p2 = mouse_current_loc;

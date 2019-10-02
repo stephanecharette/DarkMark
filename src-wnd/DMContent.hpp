@@ -25,12 +25,21 @@ namespace dm
 
 			virtual bool keyPressed(const KeyPress &key);
 
+			virtual DMContent & load_image(const size_t new_idx);
+
+			virtual DMContent & save_json();
+
+			virtual size_t count_marks_in_json(File & f);
+
+			virtual DMContent & load_json();
+
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
 
 			VMarks marks;
 			VStr names;
 
+			bool need_to_save;
 			int selected_mark;
 
 			DarkHelp::VColours annotation_colours;
@@ -43,5 +52,12 @@ namespace dm
 
 			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
 			double scale_factor;
+
+			File image_directory;
+			VStr image_filenames;
+			size_t image_filename_index;
+			std::string long_filename;
+			std::string short_filename;
+			std::string json_filename;
 	};
 }

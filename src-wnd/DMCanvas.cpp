@@ -22,13 +22,11 @@ dm::DMCanvas::~DMCanvas()
 
 void dm::DMCanvas::rebuild_cache_image()
 {
-	Log("redrawing layers...");
+//	Log("redrawing layers...");
 
 	//						blue   green red
-//	const cv::Scalar black	(0x00, 0x00, 0x00);
-//	const cv::Scalar blue	(0xff, 0x00, 0x00);
-//	const cv::Scalar purple	(0xff, 0x00, 0xff);
-	const cv::Scalar white	(0xff, 0xff, 0xff);
+	const cv::Scalar black	(0x00, 0x00, 0x00);
+//	const cv::Scalar white	(0xff, 0xff, 0xff);
 
 	if (content.original_image.empty())
 	{
@@ -70,16 +68,25 @@ void dm::DMCanvas::rebuild_cache_image()
 
 			// Rectangle for the label needs the TL and BR coordinates.
 			// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
-			cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y + 2, text_size.width + 2, text_size.height + 3);
+			cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + 4);
 			if (is_selected)
 			{
 				text_rect.y = r.y - text_size.height - 3;
 			}
 
 			tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
-			cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+			cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, black, fontthickness, cv::LINE_AA);
 
 			cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
+
+			if (is_selected)
+			{
+				tmp = content.scaled_image(r);
+				cv::circle(tmp, cv::Point(0				, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
+				cv::circle(tmp, cv::Point(tmp.cols - 1	, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
+				cv::circle(tmp, cv::Point(tmp.cols - 1	, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
+				cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
+			}
 		}
 	}
 
@@ -117,8 +124,6 @@ void dm::DMCanvas::mouseUp(const MouseEvent & event)
 
 void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 {
-	Log("drag has finished");
-
 	const double midx			= drag_rect.getCentreX();
 	const double midy			= drag_rect.getCentreY();
 	const double width			= drag_rect.getWidth();
@@ -141,12 +146,13 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 			cv::Size2d(width/image_width, height/image_height),
 			content.original_image.size(), class_idx);
 
-	m.name			= "lock";//content.names.at(m.class_idx);
+	m.name			= content.names.at(class_idx);
 	m.description	= m.name;
 
 	content.marks.push_back(m);
 	content.selected_mark = content.marks.size() - 1;
 	content.rebuild_image_and_repaint();
+	content.need_to_save = true;
 
 	return;
 }

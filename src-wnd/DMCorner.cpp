@@ -49,17 +49,18 @@ void dm::DMCorner::mouseDown(const MouseEvent & event)
 		const int y = event.getMouseDownY();
 		const int cell_x = x / (cell_size + 1);
 		const int cell_y = y / (cell_size + 1);
-		Log("mouse down at x=" + std::to_string(x) + " y=" + std::to_string(y) + " cell=" + std::to_string(cell_x) + "," + std::to_string(cell_y));
+//		Log("mouse down at x=" + std::to_string(x) + " y=" + std::to_string(y) + " cell=" + std::to_string(cell_x) + "," + std::to_string(cell_y));
 
 		cv::Point p = top_left_point;
 		p.x += cell_x;
 		p.y += cell_y;
 
-		Log("corner loc is: " + std::to_string(top_left_point.x) + "," + std::to_string(top_left_point.y));
-		Log("new poi loc is " + std::to_string(p.x) + "," + std::to_string(p.y));
+//		Log("corner loc is: " + std::to_string(top_left_point.x) + "," + std::to_string(top_left_point.y));
+//		Log("new poi loc is " + std::to_string(p.x) + "," + std::to_string(p.y));
 
 		content.marks[content.selected_mark].set(corner, p);
 		content.rebuild_image_and_repaint();
+		content.need_to_save = true;
 	}
 
 	return;

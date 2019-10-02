@@ -7,8 +7,11 @@
 
 dm::DMContent::DMContent() :
 	canvas(*this),
+	need_to_save(false),
 	selected_mark(-1),
-	scale_factor(1.0)
+	scale_factor(1.0),
+	image_directory(cfg().get_str("image_directory")),
+	image_filename_index(0)
 {
 	corners.push_back(new DMCorner(*this, ECorner::kTL));
 	corners.push_back(new DMCorner(*this, ECorner::kTR));
@@ -24,12 +27,32 @@ dm::DMContent::DMContent() :
 
 	setWantsKeyboardFocus(true);
 
+	const std::regex image_filename_regex(cfg().get_str("image_regex"), std::regex::icase | std::regex::nosubs | std::regex::optimize | std::regex::ECMAScript);
+
+	DirectoryIterator iter(image_directory, true, "*", File::findFiles + File::ignoreHiddenFiles);
+	while (iter.next())
+	{
+		File f = iter.getFile();
+		const std::string filename = f.getFullPathName().toStdString();
+		if (std::regex_match(filename, image_filename_regex))
+		{
+			image_filenames.push_back(filename);
+		}
+	}
+	Log("number of images found in " + image_directory.getFullPathName().toStdString() + ": " + std::to_string(image_filenames.size()));
+	std::sort(image_filenames.begin(), image_filenames.end());
+
 	return;
 }
 
 
 dm::DMContent::~DMContent(void)
 {
+	if (need_to_save)
+	{
+		save_json();
+	}
+
 	for (auto c : corners)
 	{
 		delete c;
@@ -85,8 +108,7 @@ void dm::DMContent::resized()
 	const double new_corner_height				= number_of_vertical_cells		* (pixels_per_cell + 1) - 1;
 	const double horizontal_spacer_height		= std::floor((window_height - new_corner_height * number_of_corner_windows) / (number_of_corner_windows - 1.0));
 
-#if 0
-	// enable this to debug resizing
+#if 0	// enable this to debug resizing
 	static size_t counter = 0;
 	counter ++;
 	if (counter % 10 == 0)
@@ -130,7 +152,8 @@ void dm::DMContent::resized()
 
 		std::string title =
 			original_title +
-			" - "	+ std::string("barcode_3.jpg") +
+			" - "	+ std::to_string(1 + image_filename_index) + "/" + std::to_string(image_filenames.size()) +
+			" - "	+ short_filename +
 			" - "	+ std::to_string(original_image.cols) +
 			"x"		+ std::to_string(original_image.rows) +
 			" - "	+ std::to_string(static_cast<int>(std::round(scale_factor * 100.0))) + "%";
@@ -147,50 +170,10 @@ void dm::DMContent::start_darknet()
 	Log("loading darknet neural network");
 	dmapp().darkhelp.reset(new DarkHelp(cfg().get_str("darknet_config"), cfg().get_str("darknet_weights"), cfg().get_str("darknet_names")));
 	Log("neural network loaded in " + darkhelp().duration_string());
+	names = darkhelp().names;
+	annotation_colours = darkhelp().annotation_colours;
 
-//	const std::string filename = "/home/stephane/src/DarkHelp/build/barcode_3.jpg";
-	const std::string filename = "/home/stephane/mailboxes/DSCN0435.JPG";
-	Log("calling darkhelp to process the image " + filename);
-	try
-	{
-		names = darkhelp().names;
-
-		annotation_colours = darkhelp().annotation_colours;
-
-		original_image = cv::imread(filename);
-		darkhelp().predict(original_image);
-		Log("darkhelp processed the image in " + darkhelp().duration_string());
-
-		// convert the predictions into marks
-		for (auto prediction : darkhelp().prediction_results)
-		{
-			Mark m(cv::Point2d(prediction.mid_x, prediction.mid_y), cv::Size2d(prediction.width, prediction.height), cv::Size(0, 0), prediction.best_class);
-			m.name = names.at(m.class_idx);
-			m.description = prediction.name;
-			marks.push_back(m);
-		}
-
-		if (marks.empty())
-		{
-			selected_mark = -1;
-		}
-		else
-		{
-			selected_mark = 0;
-		}
-	}
-	catch(...)
-	{
-		Log("Error: failed to process image " + filename);
-	}
-
-	canvas.need_to_rebuild_cache_image = true;
-	canvas.repaint();
-	for (size_t idx = 0; idx < 4; idx ++)
-	{
-		corners[idx]->need_to_rebuild_cache_image = true;
-		corners[idx]->repaint();
-	}
+	load_image(0);
 
 	return;
 }
@@ -213,9 +196,20 @@ void dm::DMContent::rebuild_image_and_repaint()
 
 bool dm::DMContent::keyPressed(const KeyPress &key)
 {
-	const char c = key.getTextCharacter();
+//	Log("code=" + std::to_string(key.getKeyCode()) + " char=" + std::to_string(key.getTextCharacter()) + " description=" + key.getTextDescription().toStdString());
 
-	if (key.getKeyCode() == KeyPress::tabKey)
+	const auto keycode = key.getKeyCode();
+
+	const KeyPress key0 = KeyPress::createFromDescription("0");
+	const KeyPress key9 = KeyPress::createFromDescription("9");
+
+	int digit = -1;
+	if (keycode >= key0.getKeyCode() and keycode <= key9.getKeyCode())
+	{
+		digit = keycode - key0.getKeyCode();
+	}
+
+	if (keycode == KeyPress::tabKey)
 	{
 		if (marks.empty())
 		{
@@ -246,16 +240,268 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 			return true; // event has been handled
 		}
 	}
-	else if (c >= '0' and c <= '9')
+	else if (digit >= 0 and digit <= 9)
 	{
+		if (key.getModifiers().isCtrlDown())
+		{
+			digit += 10;
+		}
+		else if (key.getModifiers().isAltDown())
+		{
+			digit += 20;
+		}
+
 		// change the class for the selected mark
 		auto & m = marks[selected_mark];
-		m.class_idx = (c - '0');
+		m.class_idx = digit;
 		m.name = names.at(m.class_idx);
 		m.description = names.at(m.class_idx);
 		rebuild_image_and_repaint();
+		need_to_save = true;
 		return true; // event has been handled
+	}
+	else if (keycode == KeyPress::homeKey)
+	{
+		load_image(0);
+		return true;
+	}
+	else if (keycode == KeyPress::endKey)
+	{
+		load_image(image_filenames.size() - 1);
+		return true;
+	}
+	else if (keycode == KeyPress::rightKey)
+	{
+		if (image_filename_index < image_filenames.size() - 1)
+		{
+			load_image(image_filename_index + 1);
+		}
+		return true;
+	}
+	else if (keycode == KeyPress::leftKey)
+	{
+		if (image_filename_index > 0)
+		{
+			load_image(image_filename_index - 1);
+		}
+		return true;
+	}
+	else if (keycode == KeyPress::pageUpKey)
+	{
+		// go to the previous available image with no marks
+		while (image_filename_index > 0)
+		{
+			File f(image_filenames[image_filename_index]);
+			f = f.withFileExtension(".json");
+			if (count_marks_in_json(f) == 0)
+			{
+				break;
+			}
+			image_filename_index --;
+		}
+		load_image(image_filename_index);
+		return true;
+
+	}
+	else if (keycode == KeyPress::pageDownKey)
+	{
+		// go to the next available image with no marks
+		while (image_filename_index < image_filenames.size() - 1)
+		{
+			File f(image_filenames[image_filename_index]);
+			f = f.withFileExtension(".json");
+			if (count_marks_in_json(f) == 0)
+			{
+				break;
+			}
+			image_filename_index ++;
+		}
+		load_image(image_filename_index);
+		return true;
+	}
+	else if (keycode == KeyPress::deleteKey or keycode == KeyPress::backspaceKey)
+	{
+		if (selected_mark >= 0)
+		{
+			auto iter = marks.begin() + selected_mark;
+			marks.erase(iter);
+			if (selected_mark >= (int)marks.size())
+			{
+				selected_mark --;
+			}
+			if (marks.empty())
+			{
+				selected_mark = -1;
+			}
+			rebuild_image_and_repaint();
+			need_to_save = true;
+			return true;
+		}
 	}
 
 	return false;
+}
+
+
+dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
+{
+	if (need_to_save)
+	{
+		save_json();
+	}
+
+	selected_mark	= -1;
+	original_image	= cv::Mat();
+	marks.clear();
+
+	if (new_idx >= image_filenames.size())
+	{
+		image_filename_index = image_filenames.size() - 1;
+	}
+	else
+	{
+		image_filename_index = new_idx;
+	}
+	long_filename	= image_filenames.at(image_filename_index);
+	short_filename	= File(long_filename).getFileName().toStdString();
+	json_filename	= File(long_filename).withFileExtension(".json").getFullPathName().toStdString();
+
+	try
+	{
+		Log("loading image " + long_filename);
+		original_image = cv::imread(image_filenames.at(image_filename_index));
+
+		load_json();
+
+		if (marks.empty())
+		{
+			darkhelp().predict(original_image);
+			Log("darkhelp processed the image in " + darkhelp().duration_string());
+
+			// convert the predictions into marks
+			for (auto prediction : darkhelp().prediction_results)
+			{
+				Mark m(cv::Point2d(prediction.mid_x, prediction.mid_y), cv::Size2d(prediction.width, prediction.height), cv::Size(0, 0), prediction.best_class);
+				m.name = names.at(m.class_idx);
+				m.description = prediction.name;
+				marks.push_back(m);
+			}
+		}
+	}
+	catch(const std::exception & e)
+	{
+		Log("Error: exception caught while loading " + long_filename + ": " + e.what());
+	}
+	catch(...)
+	{
+		Log("Error: failed to load image " + long_filename);
+	}
+
+	if (marks.size() > 0)
+	{
+		selected_mark = 0;
+	}
+
+	resized();
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::save_json()
+{
+	if (json_filename.empty() == false)
+	{
+		json root;
+		for (size_t idx = 0; idx < marks.size(); idx ++)
+		{
+			const auto & m = marks.at(idx);
+			for (size_t point_idx = 0; point_idx < m.normalized_all_points.size(); point_idx ++)
+			{
+				const cv::Point2d & p = m.normalized_all_points.at(point_idx);
+				root["mark"][idx]["points"][point_idx]["x"] = p.x;
+				root["mark"][idx]["points"][point_idx]["y"] = p.y;
+			}
+			root["mark"][idx]["class_idx"	] = m.class_idx;
+			root["mark"][idx]["name"		] = m.name;
+		}
+		root["timestamp"] = std::time(nullptr);
+		root["version"] = DARKMARK_VERSION;
+
+		std::ofstream fs(json_filename);
+		fs << root.dump(4) << std::endl;
+	}
+
+	need_to_save = false;
+
+	return *this;
+}
+
+
+size_t dm::DMContent::count_marks_in_json(File & f)
+{
+	size_t result = 0;
+
+	if (f.existsAsFile())
+	{
+		json root = json::parse(f.loadFileAsString().toStdString());
+		result = root["mark"].size();
+	}
+
+	return result;
+}
+
+
+dm::DMContent & dm::DMContent::load_json()
+{
+	File f(json_filename);
+	if (f.existsAsFile())
+	{
+		json root = json::parse(f.loadFileAsString().toStdString());
+
+		for (size_t idx = 0; idx < root["mark"].size(); idx ++)
+		{
+			Mark m;
+			m.class_idx = root["mark"][idx]["class_idx"];
+			m.name = root["mark"][idx]["name"];
+			m.description = m.name;
+			m.normalized_all_points.clear();
+			for (size_t point_idx = 0; point_idx < root["mark"][idx]["points"].size(); point_idx ++)
+			{
+				cv::Point2d p;
+				p.x = root["mark"][idx]["points"][point_idx]["x"];
+				p.y = root["mark"][idx]["points"][point_idx]["y"];
+				m.normalized_all_points.push_back(p);
+			}
+			m.rebalance();
+			marks.push_back(m);
+		}
+
+		// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
+		// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
+		std::sort(marks.begin(), marks.end(),
+			[](auto & lhs, auto & rhs)
+			{
+				const auto & p1 = lhs.get_normalized_midpoint();
+				const auto & p2 = rhs.get_normalized_midpoint();
+
+				const int y1 = std::round(15.0 * p1.y);
+				const int y2 = std::round(15.0 * p2.y);
+
+				if (y1 < y2) return true;
+				if (y2 < y1) return false;
+
+				// if we get here then y1 and y2 are the same, so now we compare x1 and x2
+
+				const int x1 = std::round(15.0 * p1.x);
+				const int x2 = std::round(15.0 * p2.x);
+
+				if (x1 < x2) return true;
+
+				return false;
+			} );
+	}
+
+	return *this;
 }

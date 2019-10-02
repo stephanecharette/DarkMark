@@ -6,9 +6,11 @@
 
 #include <ctime>
 #include <fstream>
+#include <regex>
 #include <DarkHelp.hpp>
 
 #include <JuceHeader.h>
+
 
 // forward declare a few classes
 namespace dm
@@ -24,6 +26,9 @@ namespace dm
 
 	typedef std::vector<std::string> VStr;
 }
+
+#include "json.hpp"
+using json = nlohmann::json;
 
 #include "Log.hpp"
 #include "Cfg.hpp"
