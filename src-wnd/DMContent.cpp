@@ -172,8 +172,18 @@ void dm::DMContent::resized()
 void dm::DMContent::start_darknet()
 {
 	Log("loading darknet neural network");
-	dmapp().darkhelp.reset(new DarkHelp(cfg().get_str("darknet_config"), cfg().get_str("darknet_weights"), cfg().get_str("darknet_names")));
-	Log("neural network loaded in " + darkhelp().duration_string());
+	const std::string darknet_cfg		= cfg().get_str("darknet_config"	);
+	const std::string darknet_weights	= cfg().get_str("darknet_weights"	);
+	const std::string darknet_names		= cfg().get_str("darknet_names"		);
+	try
+	{
+		dmapp().darkhelp.reset(new DarkHelp(darknet_cfg, darknet_weights, darknet_names));
+//		Log("neural network loaded in " + darkhelp().duration_string());
+	}
+	catch (const std::exception & e)
+	{
+		Log("failed to load darknet (cfg=" + darknet_cfg + ", weights=" + darknet_weights + ", names=" + darknet_names + "): " + e.what());
+	}
 	names = darkhelp().names;
 	annotation_colours = darkhelp().annotation_colours;
 
@@ -256,13 +266,16 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		}
 
 		// change the class for the selected mark
-		auto & m = marks[selected_mark];
-		m.class_idx = digit;
-		m.name = names.at(m.class_idx);
-		m.description = names.at(m.class_idx);
-		rebuild_image_and_repaint();
-		need_to_save = true;
-		return true; // event has been handled
+		if (selected_mark >= 0)
+		{
+			auto & m = marks[selected_mark];
+			m.class_idx = digit;
+			m.name = names.at(m.class_idx);
+			m.description = names.at(m.class_idx);
+			rebuild_image_and_repaint();
+			need_to_save = true;
+			return true; // event has been handled
+		}
 	}
 	else if (keycode == KeyPress::homeKey)
 	{
@@ -442,7 +455,7 @@ dm::DMContent & dm::DMContent::save_text()
 			const double h		= r.height;
 			const double x		= r.x + w / 2.0;
 			const double y		= r.y + h / 2.0;
-			fs << m.class_idx << " " << x << " " << y << " " << w << " " << h << std::endl;
+			fs << std::fixed << std::setprecision(10) << m.class_idx << " " << x << " " << y << " " << w << " " << h << std::endl;
 		}
 	}
 

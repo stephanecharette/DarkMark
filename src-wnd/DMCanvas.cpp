@@ -108,6 +108,7 @@ void dm::DMCanvas::mouseUp(const MouseEvent & event)
 	{
 		const auto pos = event.getPosition();
 		const cv::Point p(pos.x, pos.y);
+		content.selected_mark = -1;
 
 		for (size_t idx = 0; idx < content.marks.size(); idx ++)
 		{
@@ -116,13 +117,14 @@ void dm::DMCanvas::mouseUp(const MouseEvent & event)
 			if (r.contains(p))
 			{
 				content.selected_mark = idx;
-				content.rebuild_image_and_repaint();
 				break;
 			}
 		}
+		content.rebuild_image_and_repaint();
 	}
 
 	CrosshairComponent::mouseUp(event);
+
 	return;
 }
 

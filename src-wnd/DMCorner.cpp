@@ -131,8 +131,28 @@ void dm::DMCorner::rebuild_cache_image()
 		// make sure the windows don't extend beyond the edge of the image
 		if (top_left_point.y < 0) top_left_point.y = 0;
 		if (top_left_point.x < 0) top_left_point.x = 0;
-		if (top_left_point.y + rows >= content.original_image.rows) top_left_point.y = content.original_image.rows - rows;
-		if (top_left_point.x + cols >= content.original_image.cols) top_left_point.x = content.original_image.cols - cols;
+		if (top_left_point.y + rows >= content.original_image.rows) top_left_point.y = content.original_image.rows - rows - 1;
+		if (top_left_point.x + cols >= content.original_image.cols) top_left_point.x = content.original_image.cols - cols - 1;
+
+		cv::Point corner_offset = mid_point - top_left_point;
+		if (corner_offset.x >= cols)	corner_offset.x = cols - 1;
+		if (corner_offset.y >= rows)	corner_offset.y = rows - 1;
+
+		const cv::Point corner_point(corner_offset.x * (cell_size+1), corner_offset.y * (cell_size+1));
+
+#if 0
+		std::cout	<< "AFTER CORRECTION: type="	<< (int)corner << ":"													<< std::endl
+					<< "-> original image mat:  "	<< content.original_image.cols	<< "x" << content.original_image.rows	<< std::endl
+					<< "-> corner window mat:   "	<< mat.cols						<< "x" << mat.rows						<< std::endl
+					<< "-> number of cells:     "	<< cols							<< "x" << rows							<< std::endl
+					<< "-> pixels per cell:     "	<< cell_size					<< "x" << cell_size						<< std::endl
+					<< "-> top_left_point:      x="	<< top_left_point.x				<< " y=" << top_left_point.y			<< std::endl
+					<< "-> corner point:        x="	<< mid_point.x					<< " y=" << mid_point.y					<< std::endl
+					<< "-> bottom right point:  x="	<< top_left_point.x + cols		<< " y=" << top_left_point.y + rows		<< std::endl
+					<< "-> corner offset:       x=" << corner_offset.x				<< " y=" << corner_offset.y				<< std::endl
+					<< "-> corner point loc:    x=" << corner_point.x				<< " y=" << corner_point.y				<< std::endl
+					;
+#endif
 
 		// draw all the individual cells
 		cv::Mat roi(content.original_image(cv::Rect(top_left_point.x, top_left_point.y, cols, rows)));
@@ -153,15 +173,15 @@ void dm::DMCorner::rebuild_cache_image()
 		const cv::Scalar colour = content.marks[content.selected_mark].get_colour();
 
 		// draw the corner cell
-		const int x = (mid_point - top_left_point).x * (cell_size + 1);
-		const int y = (mid_point - top_left_point).y * (cell_size + 1);
-		cv::Rect r(x, y, cell_size, cell_size);
+		cv::Rect r(corner_point.x, corner_point.y, cell_size, cell_size);
 		cv::Mat overlay(cell_size, cell_size, CV_8UC3, colour);
 		double alpha = 0.60;
 		double beta = 1.0 - alpha;
 		cv::addWeighted(overlay, alpha, mat(r), beta, 0, mat(r));
 
 		// draw the larger overlay rectangle
+		const int x = corner_point.x;
+		const int y = corner_point.y;
 		switch(corner)
 		{
 			case ECorner::kTL:	r = cv::Rect(x, y, w - x, h - y);					break;

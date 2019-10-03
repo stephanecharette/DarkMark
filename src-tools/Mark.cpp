@@ -87,6 +87,14 @@ cv::Point dm::Mark::get_corner(const ECorner corner) const
 		p.y = std::round(normalized_corner_points.at(corner).y * static_cast<double>(image_dimensions.height));
 	}
 
+	const int w = image_dimensions.width - 1;
+	const int h = image_dimensions.height - 1;
+
+	if (p.x < 0) p.x = 0;
+	if (p.y < 0) p.y = 0;
+	if (p.x > w) p.x = w;
+	if (p.y > h) p.y = h;
+
 	return p;
 }
 
@@ -107,11 +115,20 @@ dm::VPoints dm::Mark::get_all_points() const
 	const double iw = static_cast<double>(image_dimensions.width);
 	const double ih = static_cast<double>(image_dimensions.height);
 
+	const int max_w = image_dimensions.width - 1;
+	const int max_h = image_dimensions.height - 1;
+
 	for (const auto & normalized_point : normalized_all_points)
 	{
 		cv::Point p;
 		p.x = std::round(normalized_point.x * iw);
 		p.y = std::round(normalized_point.y * ih);
+
+		if (p.x < 0) p.x = 0;
+		if (p.y < 0) p.y = 0;
+		if (p.x > max_w) p.x = max_w;
+		if (p.y > max_h) p.y = max_h;
+
 		v.push_back(p);
 	}
 
