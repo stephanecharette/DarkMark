@@ -23,10 +23,10 @@ dm::Mark::Mark(const cv::Point2d & midpoint, const cv::Size2d & normalized_size,
 	const double half_width		= normalized_size.width		/ 2.0;
 	const double half_height	= normalized_size.height	/ 2.0;
 
-	const double minx = midpoint.x - half_width;
-	const double miny = midpoint.y - half_height;
-	const double maxx = midpoint.x + half_width;
-	const double maxy = midpoint.y + half_height;
+	const double minx = std::max(0.0, midpoint.x - half_width);
+	const double miny = std::max(0.0, midpoint.y - half_height);
+	const double maxx = std::min(1.0, midpoint.x + half_width);
+	const double maxy = std::min(1.0, midpoint.y + half_height);
 
 	normalized_all_points =
 	{
@@ -130,7 +130,13 @@ dm::VPoints dm::Mark::get_all_points(const cv::Size & new_image_dimensions)
 cv::Rect dm::Mark::get_bounding_rect() const
 {
 	const VPoints v = get_all_points();
-	const cv::Rect r = cv::boundingRect(v);
+	cv::Rect r = cv::boundingRect(v);
+
+	// limit the rectangle to the exact size of the image
+	if (r.x < 0) r.x = 0;
+	if (r.y < 0) r.y = 0;
+	if (r.x + r.width	>= image_dimensions.width)		r.width		= image_dimensions.width	- r.x - 1;
+	if (r.y + r.height	>= image_dimensions.height)		r.height	= image_dimensions.height	- r.y - 1;
 
 	return r;
 }
@@ -144,27 +150,33 @@ cv::Rect dm::Mark::get_bounding_rect(const cv::Size & new_image_dimensions)
 }
 
 
-cv::Rect2d dm::Mark::get_normalized_bounding_rect()
+cv::Rect2d dm::Mark::get_normalized_bounding_rect() const
 {
-	if (image_dimensions.width == 0 or image_dimensions.height == 0)
+	// calling cv::boundingRect() doesn't work with cv::Point2d, so do it manually
+
+	double min_x = normalized_all_points.at(0).x;
+	double min_y = normalized_all_points.at(0).y;
+	double max_x = min_x;
+	double max_y = min_y;
+
+	for (const auto & p : normalized_all_points)
 	{
-		image_dimensions.width = 640;
-		image_dimensions.height = 480;
+		if (p.x < min_x) min_x = p.x;
+		if (p.x > max_x) max_x = p.x;
+		if (p.y < min_y) min_y = p.y;
+		if (p.y > max_y) max_y = p.y;
 	}
 
-	// calling cv::boundingRect() doesn't work with doubles, so get the full bounding rect and then convert back to normalized values
-	const cv::Rect r = get_bounding_rect();
+	// limit the rectangle to the exact size of the image
+	if (min_x < 0.0) min_x = 0.0;
+	if (min_y < 0.0) min_y = 0.0;
+	if (max_x > 1.0) max_x = 1.0;
+	if (max_y > 1.0) max_y = 1.0;
 
-	const double iw = static_cast<double>(image_dimensions.width);
-	const double ih = static_cast<double>(image_dimensions.height);
+	const cv::Point2d p1(min_x, min_y);
+	const cv::Point2d p2(max_x, max_y);
 
-	cv::Rect2d rd;
-	rd.x		= static_cast<double>(r.x)		/ iw;
-	rd.y		= static_cast<double>(r.y)		/ ih;
-	rd.width	= static_cast<double>(r.width)	/ iw;
-	rd.height	= static_cast<double>(r.height)	/ ih;
-
-	return rd;
+	return cv::Rect2d(p1, p2);
 }
 
 
@@ -240,6 +252,15 @@ dm::Mark & dm::Mark::rebalance()
 	{
 		Log("cannot rebalance mark which contains " + std::to_string(normalized_all_points.size()) + " points");
 		return *this;
+	}
+
+	// fix up any out-of-bounds points
+	for (auto & p : normalized_all_points)
+	{
+		if (p.x < 0.0) p.x = 0.0;
+		if (p.x > 1.0) p.x = 1.0;
+		if (p.y < 0.0) p.y = 0.0;
+		if (p.y > 1.0) p.y = 1.0;
 	}
 
 	// convert the map to a vector of normalized points

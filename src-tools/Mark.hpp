@@ -53,7 +53,7 @@ namespace dm
 			cv::Rect get_bounding_rect(const cv::Size & new_image_dimensions);
 
 			/// Get the normalized rectangle that contains all 4 points.
-			cv::Rect2d get_normalized_bounding_rect();
+			cv::Rect2d get_normalized_bounding_rect() const;
 
 			cv::Point2d get_normalized_midpoint();
 

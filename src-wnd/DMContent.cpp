@@ -4,6 +4,9 @@
 
 #include "DarkMark.hpp"
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 
 dm::DMContent::DMContent() :
 	canvas(*this),
@@ -51,6 +54,7 @@ dm::DMContent::~DMContent(void)
 	if (need_to_save)
 	{
 		save_json();
+		save_text();
 	}
 
 	for (auto c : corners)
@@ -338,6 +342,12 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 			return true;
 		}
 	}
+	else if (key.getTextCharacter() == 'r')
+	{
+		std::random_shuffle(image_filenames.begin(), image_filenames.end());
+		load_image(0);
+		return true;
+	}
 
 	return false;
 }
@@ -348,6 +358,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 	if (need_to_save)
 	{
 		save_json();
+		save_text();
 	}
 
 	selected_mark	= -1;
@@ -364,16 +375,26 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 	}
 	long_filename	= image_filenames.at(image_filename_index);
 	short_filename	= File(long_filename).getFileName().toStdString();
-	json_filename	= File(long_filename).withFileExtension(".json").getFullPathName().toStdString();
+	json_filename	= File(long_filename).withFileExtension(".json"	).getFullPathName().toStdString();
+	text_filename	= File(long_filename).withFileExtension(".txt"	).getFullPathName().toStdString();
 
 	try
 	{
 		Log("loading image " + long_filename);
 		original_image = cv::imread(image_filenames.at(image_filename_index));
 
-		load_json();
+		bool success = load_json();
+		if (not success)
+		{
+			success = load_text();
+			if (success)
+			{
+				Log("imported " + text_filename + " instead of " + json_filename);
+				need_to_save = true;
+			}
+		}
 
-		if (marks.empty())
+		if (not success)
 		{
 			darkhelp().predict(original_image);
 			Log("darkhelp processed the image in " + darkhelp().duration_string());
@@ -409,6 +430,26 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 }
 
 
+dm::DMContent & dm::DMContent::save_text()
+{
+	if (text_filename.empty() == false)
+	{
+		std::ofstream fs(text_filename);
+		for (const auto & m : marks)
+		{
+			const cv::Rect2d r	= m.get_normalized_bounding_rect();
+			const double w		= r.width;
+			const double h		= r.height;
+			const double x		= r.x + w / 2.0;
+			const double y		= r.y + h / 2.0;
+			fs << m.class_idx << " " << x << " " << y << " " << w << " " << h << std::endl;
+		}
+	}
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::save_json()
 {
 	if (json_filename.empty() == false)
@@ -417,20 +458,27 @@ dm::DMContent & dm::DMContent::save_json()
 		for (size_t idx = 0; idx < marks.size(); idx ++)
 		{
 			const auto & m = marks.at(idx);
+			root["mark"][idx]["class_idx"	] = m.class_idx;
+			root["mark"][idx]["name"		] = m.name;
 			for (size_t point_idx = 0; point_idx < m.normalized_all_points.size(); point_idx ++)
 			{
 				const cv::Point2d & p = m.normalized_all_points.at(point_idx);
 				root["mark"][idx]["points"][point_idx]["x"] = p.x;
 				root["mark"][idx]["points"][point_idx]["y"] = p.y;
+
+				// DarkMark doesn't use these integer values, but make them available for 3rd party software which wants to reads the .json file
+				root["mark"][idx]["points"][point_idx]["int_x"] = (int)(std::round(p.x * (double)original_image.cols));
+				root["mark"][idx]["points"][point_idx]["int_y"] = (int)(std::round(p.y * (double)original_image.rows));
 			}
-			root["mark"][idx]["class_idx"	] = m.class_idx;
-			root["mark"][idx]["name"		] = m.name;
 		}
-		root["timestamp"] = std::time(nullptr);
-		root["version"] = DARKMARK_VERSION;
+		root["image"]["scale"]	= scale_factor;
+		root["image"]["width"]	= original_image.cols;
+		root["image"]["height"]	= original_image.rows;
+		root["timestamp"]		= std::time(nullptr);
+		root["version"]			= DARKMARK_VERSION;
 
 		std::ofstream fs(json_filename);
-		fs << root.dump(4) << std::endl;
+		fs << root.dump(1, '\t') << std::endl;
 	}
 
 	need_to_save = false;
@@ -453,8 +501,41 @@ size_t dm::DMContent::count_marks_in_json(File & f)
 }
 
 
-dm::DMContent & dm::DMContent::load_json()
+bool dm::DMContent::load_text()
 {
+	bool success = false;
+
+	File f(text_filename);
+	if (f.existsAsFile())
+	{
+		success = true;
+		StringArray sa;
+		f.readLines(sa);
+		sa.removeEmptyStrings();
+		for (auto iter = sa.begin(); iter != sa.end(); iter ++)
+		{
+			std::stringstream ss(iter->toStdString());
+			int class_idx = 0;
+			double x = 0.0;
+			double y = 0.0;
+			double w = 0.0;
+			double h = 0.0;
+			ss >> class_idx >> x >> y >> w >> h;
+			Mark m(cv::Point2d(x, y), cv::Size2d(w, h), cv::Size(0, 0), class_idx);
+			m.name = names.at(class_idx);
+			m.description = m.name;
+			marks.push_back(m);
+		}
+	}
+
+	return success;
+}
+
+
+bool dm::DMContent::load_json()
+{
+	bool success = false;
+
 	File f(json_filename);
 	if (f.existsAsFile())
 	{
@@ -501,7 +582,9 @@ dm::DMContent & dm::DMContent::load_json()
 
 				return false;
 			} );
+
+		success = true;
 	}
 
-	return *this;
+	return success;
 }

@@ -27,11 +27,15 @@ namespace dm
 
 			virtual DMContent & load_image(const size_t new_idx);
 
+			virtual DMContent & save_text();
+
 			virtual DMContent & save_json();
 
 			virtual size_t count_marks_in_json(File & f);
 
-			virtual DMContent & load_json();
+			virtual bool load_text();
+
+			virtual bool load_json();
 
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
@@ -59,5 +63,6 @@ namespace dm
 			std::string long_filename;
 			std::string short_filename;
 			std::string json_filename;
+			std::string text_filename;
 	};
 }

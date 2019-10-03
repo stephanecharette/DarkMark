@@ -11,9 +11,13 @@ dm::DMCorner::DMCorner(DMContent & c, const ECorner type) :
 	cell_size(20),
 	cols(10),
 	rows(10)
-//	offset(0, 0),
-//	poi(0, 0)
 {
+	setName(type == ECorner::kTL ?	"TopLeftCorner"		:
+			type == ECorner::kTR ?	"TopRightCorner"	:
+			type == ECorner::kBR ?	"BottomRightCorner"	:
+									"BottomLeftCorner"	);
+
+
 	mouse_drag_is_enabled = false;
 
 	return;
@@ -123,6 +127,12 @@ void dm::DMCorner::rebuild_cache_image()
 				case ECorner::kBL:	top_left_point.y -= offset;	break;
 			}
 		}
+
+		// make sure the windows don't extend beyond the edge of the image
+		if (top_left_point.y < 0) top_left_point.y = 0;
+		if (top_left_point.x < 0) top_left_point.x = 0;
+		if (top_left_point.y + rows >= content.original_image.rows) top_left_point.y = content.original_image.rows - rows;
+		if (top_left_point.x + cols >= content.original_image.cols) top_left_point.x = content.original_image.cols - cols;
 
 		// draw all the individual cells
 		cv::Mat roi(content.original_image(cv::Rect(top_left_point.x, top_left_point.y, cols, rows)));

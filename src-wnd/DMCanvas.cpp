@@ -8,6 +8,8 @@
 dm::DMCanvas::DMCanvas(DMContent & c) :
 	content(c)
 {
+	setName("ImageCanvas");
+
 	mouse_drag_is_enabled = true;
 
 	return;
@@ -60,6 +62,15 @@ void dm::DMCanvas::rebuild_cache_image()
 			double beta = 1.0 - alpha;
 			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
+			if (is_selected)
+			{
+				tmp = content.scaled_image(r);
+				cv::circle(tmp, cv::Point(0				, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
+				cv::circle(tmp, cv::Point(tmp.cols - 1	, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
+				cv::circle(tmp, cv::Point(tmp.cols - 1	, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
+				cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
+			}
+
 			int baseline = 0;
 			auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
 
@@ -74,19 +85,13 @@ void dm::DMCanvas::rebuild_cache_image()
 				text_rect.y = r.y - text_size.height - 3;
 			}
 
+			if (text_rect.x < 0) text_rect.x = 0;
+			if (text_rect.y < 0) text_rect.y = 0;
+
 			tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
 			cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, black, fontthickness, cv::LINE_AA);
 
 			cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
-
-			if (is_selected)
-			{
-				tmp = content.scaled_image(r);
-				cv::circle(tmp, cv::Point(0				, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
-				cv::circle(tmp, cv::Point(tmp.cols - 1	, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
-				cv::circle(tmp, cv::Point(tmp.cols - 1	, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
-				cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
-			}
 		}
 	}
 

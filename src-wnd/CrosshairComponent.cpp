@@ -44,8 +44,17 @@ void dm::CrosshairComponent::paint(Graphics & g)
 {
 	if (need_to_rebuild_cache_image or cached_image.isNull())
 	{
-		rebuild_cache_image();
-		need_to_rebuild_cache_image = false;
+		try
+		{
+			rebuild_cache_image();
+			need_to_rebuild_cache_image = false;
+		}
+		catch (const std::exception & e)
+		{
+			cached_image = juce::Image();
+			need_to_rebuild_cache_image = true;
+			Log("Exception caught rebuilding cache image for " + this->getName().toStdString() + ": " + e.what());
+		}
 	}
 
 	g.setOpacity(1.0f);

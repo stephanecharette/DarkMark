@@ -27,9 +27,6 @@ namespace dm
 	typedef std::vector<std::string> VStr;
 }
 
-#include "json.hpp"
-using json = nlohmann::json;
-
 #include "Log.hpp"
 #include "Cfg.hpp"
 #include "Bitmaps.hpp"
