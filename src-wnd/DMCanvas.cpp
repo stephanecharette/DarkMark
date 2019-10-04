@@ -102,6 +102,21 @@ void dm::DMCanvas::rebuild_cache_image()
 }
 
 
+void dm::DMCanvas::mouseDown(const MouseEvent & event)
+{
+	CrosshairComponent::mouseDown(event);
+
+	if (event.mods.isPopupMenu())
+	{
+		PopupMenu m;
+		m.addItem("create darknet files", std::function<void()>( [=]{ content.create_darknet_files(); } ));
+		m.showMenuAsync(PopupMenu::Options());
+	}
+
+	return;
+}
+
+
 void dm::DMCanvas::mouseUp(const MouseEvent & event)
 {
 	if (mouse_drag_is_enabled == false or mouse_drag_rectangle == invalid_rectangle)

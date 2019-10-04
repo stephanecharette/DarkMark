@@ -601,3 +601,79 @@ bool dm::DMContent::load_json()
 
 	return success;
 }
+
+
+dm::DMContent & dm::DMContent::create_darknet_files()
+{
+	const std::string output_dir		= image_directory.getFullPathName().toStdString();
+	const std::string project_name		= image_directory.getFileNameWithoutExtension().toStdString();
+	const std::string data_filename		= image_directory.getChildFile(project_name				).withFileExtension(".data"	).getFullPathName().toStdString();
+	const std::string valid_filename	= image_directory.getChildFile(project_name + "_valid"	).withFileExtension(".txt"	).getFullPathName().toStdString();
+	const std::string train_filename	= image_directory.getChildFile(project_name + "_train"	).withFileExtension(".txt"	).getFullPathName().toStdString();
+	const std::string command_filename	= image_directory.getChildFile(project_name + "_train"	).withFileExtension(".sh"	).getFullPathName().toStdString();
+
+	if (true)
+	{
+		std::ofstream fs(data_filename);
+		fs	<< "classes = " << names.size()						<< std::endl
+			<< "train = " << train_filename						<< std::endl
+			<< "valid = " << valid_filename						<< std::endl
+			<< "names = " << cfg().get_str("darknet_names")		<< std::endl
+			<< "backup = " << output_dir						<< std::endl;
+	}
+
+	size_t number_of_files_train = 0;
+	size_t number_of_files_valid = 0;
+	if (true)
+	{
+		const double percentage_of_image_files_to_use_for_training = 0.85;
+		VStr v = image_filenames;
+		std::random_shuffle(v.begin(), v.end());
+		number_of_files_train = std::round(percentage_of_image_files_to_use_for_training * v.size());
+		number_of_files_valid = v.size() - number_of_files_train;
+
+		std::ofstream fs_train(train_filename);
+		std::ofstream fs_valid(valid_filename);
+
+		for (size_t idx = 0; idx < v.size(); idx ++)
+		{
+			if (idx < number_of_files_train)
+			{
+				fs_train << v[idx] << std::endl;
+			}
+			else
+			{
+				fs_valid << v[idx] << std::endl;
+			}
+		}
+	}
+
+	if (true)
+	{
+		std::stringstream ss;
+		ss	<< "#!/bin/bash"				<< std::endl
+			<< ""							<< std::endl
+			<< "cd " << output_dir			<< std::endl
+			<< ""							<< std::endl
+			<< "# other parms:  -show_imgs"	<< std::endl
+			<< "/usr/bin/time --verbose ~/darknet/darknet detector -map -mjpeg_port 8090 -dont_show train " << data_filename << " " << project_name << "_yolov3-tiny.cfg" << std::endl
+			<< ""							<< std::endl;
+		const std::string data = ss.str();
+		File f(command_filename);
+		f.replaceWithData(data.c_str(), data.size());	// do not use replaceWithText() since it converts the file to CRLF endings which confuses bash
+		f.setExecutePermission(true);
+	}
+
+	AlertWindow::showMessageBox(
+		AlertWindow::AlertIconType::InfoIcon,
+		"DarkMark",
+		"The necessary files to run darknet have been saved to " + output_dir + ".\n"
+		"\n"
+		"There are " + std::to_string(names.size()) + " classes with a total of " +
+		std::to_string(number_of_files_train) + " training files and " +
+		std::to_string(number_of_files_valid) + " validation files.\n"
+		"\n"
+		"Run " + command_filename + " to start the training.");
+
+	return *this;
+}

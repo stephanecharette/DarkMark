@@ -37,6 +37,8 @@ namespace dm
 
 			virtual bool load_json();
 
+			virtual DMContent & create_darknet_files();
+
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
 
