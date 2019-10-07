@@ -19,8 +19,6 @@ dm::CrosshairComponent::CrosshairComponent() :
 	// why does this not work?
 	setMouseCursor(MouseCursor::NoCursor);
 
-	addMouseListener(this, false);
-
 	return;
 }
 

@@ -12,6 +12,8 @@ dm::DMCanvas::DMCanvas(DMContent & c) :
 
 	mouse_drag_is_enabled = true;
 
+//	addMouseListener(this, false);
+
 	return;
 }
 
@@ -58,11 +60,17 @@ void dm::DMCanvas::rebuild_cache_image()
 			cv::Mat tmp = content.scaled_image(r).clone();
 			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
 
-			double alpha = (is_selected ? 1.0 : 0.5);
+			if (m.is_prediction)
+			{
+				cv::line(tmp, cv::Point(0, 0), cv::Point(tmp.cols, tmp.rows), colour, 1, cv::LINE_8);
+				cv::line(tmp, cv::Point(0, tmp.rows), cv::Point(tmp.cols, 0), colour, 1, cv::LINE_8);
+			}
+
+			double alpha = (is_selected ? 1.0 : content.alpha_blend_percentage);
 			double beta = 1.0 - alpha;
 			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
-			if (is_selected)
+			if (is_selected and tmp.cols >= 30 and tmp.rows >= 30)
 			{
 				tmp = content.scaled_image(r);
 				cv::circle(tmp, cv::Point(0				, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
@@ -71,27 +79,30 @@ void dm::DMCanvas::rebuild_cache_image()
 				cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
 			}
 
-			int baseline = 0;
-			auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
-
-			// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
-			const int x_offset = r.width - text_size.width - 2;
-
-			// Rectangle for the label needs the TL and BR coordinates.
-			// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
-			cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + 4);
-			if (is_selected)
+			if (content.show_labels == EToggle::kOn or (content.show_labels == EToggle::kAuto and (is_selected or (tmp.cols >= 30 and tmp.rows >= 30))))
 			{
-				text_rect.y = r.y - text_size.height - 3;
+				int baseline = 0;
+				auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
+
+				// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
+				const int x_offset = r.width - text_size.width - 2;
+
+				// Rectangle for the label needs the TL and BR coordinates.
+				// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
+				cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + 4);
+				if (is_selected)
+				{
+					text_rect.y = r.y - text_size.height - 3;
+				}
+
+				if (text_rect.x < 0) text_rect.x = 0;
+				if (text_rect.y < 0) text_rect.y = 0;
+
+				tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
+				cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, black, fontthickness, cv::LINE_AA);
+
+				cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
 			}
-
-			if (text_rect.x < 0) text_rect.x = 0;
-			if (text_rect.y < 0) text_rect.y = 0;
-
-			tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
-			cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, black, fontthickness, cv::LINE_AA);
-
-			cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
 		}
 	}
 
@@ -106,21 +117,10 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 {
 	CrosshairComponent::mouseDown(event);
 
-	if (event.mods.isPopupMenu())
+//	if (mouse_drag_rectangle == invalid_rectangle)
 	{
-		PopupMenu m;
-		m.addItem("create darknet files", std::function<void()>( [=]{ content.create_darknet_files(); } ));
-		m.showMenuAsync(PopupMenu::Options());
-	}
+		const auto previous_selected_mark = content.selected_mark;
 
-	return;
-}
-
-
-void dm::DMCanvas::mouseUp(const MouseEvent & event)
-{
-	if (mouse_drag_is_enabled == false or mouse_drag_rectangle == invalid_rectangle)
-	{
 		const auto pos = event.getPosition();
 		const cv::Point p(pos.x, pos.y);
 		content.selected_mark = -1;
@@ -132,13 +132,46 @@ void dm::DMCanvas::mouseUp(const MouseEvent & event)
 			if (r.contains(p))
 			{
 				content.selected_mark = idx;
+				content.most_recent_class_idx = m.class_idx;
 				break;
 			}
 		}
-		content.rebuild_image_and_repaint();
+
+		if (previous_selected_mark != content.selected_mark)
+		{
+			content.rebuild_image_and_repaint();
+		}
 	}
 
-	CrosshairComponent::mouseUp(event);
+	if (event.mods.isPopupMenu())
+	{
+		content.create_popup_menu().showMenuAsync(PopupMenu::Options());
+	}
+
+	return;
+}
+
+
+void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
+{
+	if (content.most_recent_size.width < 0.02 or content.most_recent_size.height < 0.02)
+	{
+		content.most_recent_size = cv::Size2d(0.02, 0.02);
+	}
+
+	const double image_width	= cached_image.getWidth();
+	const double image_height	= cached_image.getHeight();
+	const double x = double(event.x) / image_width;
+	const double y = double(event.y) / image_height;
+	Mark m(	cv::Point2d(x, y), content.most_recent_size, content.original_image.size(), content.most_recent_class_idx);
+
+	m.name			= content.names.at(content.most_recent_class_idx);
+	m.description	= m.name;
+
+	content.marks.push_back(m);
+	content.selected_mark = content.marks.size() - 1;
+	content.need_to_save = true;
+	content.rebuild_image_and_repaint();
 
 	return;
 }
@@ -163,7 +196,7 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 		" image_height="	+ std::to_string(image_height	));
 #endif
 
-	const int class_idx = 0;
+	const int class_idx = content.most_recent_class_idx;
 	Mark m(	cv::Point2d(midx/image_width, midy/image_height),
 			cv::Size2d(width/image_width, height/image_height),
 			content.original_image.size(), class_idx);
@@ -173,8 +206,9 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 
 	content.marks.push_back(m);
 	content.selected_mark = content.marks.size() - 1;
-	content.rebuild_image_and_repaint();
+	content.most_recent_size = m.get_normalized_bounding_rect().size();
 	content.need_to_save = true;
+	content.rebuild_image_and_repaint();
 
 	return;
 }

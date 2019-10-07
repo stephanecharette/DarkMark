@@ -9,7 +9,17 @@
 
 namespace dm
 {
-	class DMContent : public Component
+	/// Different ways in which the images may be sorted.
+	enum class ESort
+	{
+		kInvalid					= 0,
+		kAlphabetical				,
+		kTimestamp					,
+		kCountMarks					,
+		kRandom
+	};
+
+	class DMContent final : public Component
 	{
 		public:
 
@@ -19,25 +29,41 @@ namespace dm
 
 			virtual void resized();
 
-			virtual void start_darknet();
-
-			virtual void rebuild_image_and_repaint();
-
 			virtual bool keyPressed(const KeyPress &key);
 
-			virtual DMContent & load_image(const size_t new_idx);
+			void start_darknet();
 
-			virtual DMContent & save_text();
+			void rebuild_image_and_repaint();
 
-			virtual DMContent & save_json();
+			DMContent & set_class(size_t class_idx);
 
-			virtual size_t count_marks_in_json(File & f);
+			DMContent & set_sort_order(const ESort new_sort_order);
 
-			virtual bool load_text();
+			DMContent & set_labels(const EToggle toggle);
 
-			virtual bool load_json();
+			DMContent & load_image(const size_t new_idx);
 
-			virtual DMContent & create_darknet_files();
+			DMContent & save_text();
+
+			DMContent & save_json();
+
+			size_t count_marks_in_json(File & f);
+
+			bool load_text();
+
+			bool load_json();
+
+			DMContent & create_darknet_files();
+
+			DMContent & delete_current_image();
+
+			DMContent & accept_all_marks();
+
+			DMContent & erase_all_marks();
+
+			PopupMenu create_class_menu();
+
+			PopupMenu create_popup_menu();
 
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
@@ -45,6 +71,11 @@ namespace dm
 			VMarks marks;
 			VStr names;
 
+			ESort sort_order;
+			EToggle show_labels;
+
+			double alpha_blend_percentage;
+			bool show_predictions;
 			bool need_to_save;
 			int selected_mark;
 
@@ -55,6 +86,9 @@ namespace dm
 
 			/// The final size to which the background image needs to be resized to fit perfectly into the canvas.  @see @ref resized()
 			cv::Size scaled_image_size;
+
+			cv::Size2d most_recent_size;
+			size_t most_recent_class_idx;
 
 			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
 			double scale_factor;

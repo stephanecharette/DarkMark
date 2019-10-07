@@ -10,8 +10,13 @@ using json = nlohmann::json;
 
 dm::DMContent::DMContent() :
 	canvas(*this),
+	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
+	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
+	alpha_blend_percentage(static_cast<double>(cfg().get_int("alpha_blend_percentage")) / 100.0),
+	show_predictions(false),
 	need_to_save(false),
 	selected_mark(-1),
+	most_recent_class_idx(0),
 	scale_factor(1.0),
 	image_directory(cfg().get_str("image_directory")),
 	image_filename_index(0)
@@ -39,11 +44,14 @@ dm::DMContent::DMContent() :
 		const std::string filename = f.getFullPathName().toStdString();
 		if (std::regex_match(filename, image_filename_regex))
 		{
-			image_filenames.push_back(filename);
+			if (filename.find("chart.png") == std::string::npos)
+			{
+				image_filenames.push_back(filename);
+			}
 		}
 	}
 	Log("number of images found in " + image_directory.getFullPathName().toStdString() + ": " + std::to_string(image_filenames.size()));
-	std::sort(image_filenames.begin(), image_filenames.end());
+	set_sort_order(sort_order);
 
 	return;
 }
@@ -266,16 +274,8 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		}
 
 		// change the class for the selected mark
-		if (selected_mark >= 0)
-		{
-			auto & m = marks[selected_mark];
-			m.class_idx = digit;
-			m.name = names.at(m.class_idx);
-			m.description = names.at(m.class_idx);
-			rebuild_image_and_repaint();
-			need_to_save = true;
-			return true; // event has been handled
-		}
+		set_class(digit);
+		return true; // event has been handled
 	}
 	else if (keycode == KeyPress::homeKey)
 	{
@@ -336,7 +336,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		load_image(image_filename_index);
 		return true;
 	}
-	else if (keycode == KeyPress::deleteKey or keycode == KeyPress::backspaceKey)
+	else if (keycode == KeyPress::deleteKey or keycode == KeyPress::backspaceKey or keycode == KeyPress::numberPadDelete)
 	{
 		if (selected_mark >= 0)
 		{
@@ -350,19 +350,116 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 			{
 				selected_mark = -1;
 			}
-			rebuild_image_and_repaint();
 			need_to_save = true;
+			rebuild_image_and_repaint();
 			return true;
 		}
 	}
+	else if (keycode == KeyPress::escapeKey)
+	{
+		dmapp().quit();
+	}
 	else if (key.getTextCharacter() == 'r')
 	{
-		std::random_shuffle(image_filenames.begin(), image_filenames.end());
-		load_image(0);
+		set_sort_order(ESort::kRandom);
 		return true;
+	}
+	else if (key.getTextCharacter() == 'a')
+	{
+		accept_all_marks();
+		return true; // event has been handled
+	}
+	else if (key.getTextCharacter() == 'p')
+	{
+		show_predictions = not show_predictions;
+		load_image(image_filename_index);
 	}
 
 	return false;
+}
+
+
+dm::DMContent & dm::DMContent::set_class(size_t class_idx)
+{
+	if (selected_mark >= 0 and (size_t)selected_mark < marks.size())
+	{
+		if (class_idx >= names.size())
+		{
+			Log("class idx \"" + std::to_string(class_idx) + "\" is beyond the last index");
+			class_idx = names.size() - 1;
+		}
+
+		most_recent_class_idx = class_idx;
+
+		auto & m = marks[selected_mark];
+		m.class_idx = class_idx;
+		m.name = names.at(m.class_idx);
+		m.description = names.at(m.class_idx);
+		need_to_save = true;
+		rebuild_image_and_repaint();
+	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
+{
+	if (sort_order != new_sort_order)
+	{
+		sort_order = new_sort_order;
+		const int tmp = static_cast<int>(sort_order);
+
+		Log("changing sort order to #" + std::to_string(tmp));
+		cfg().setValue("sort_order", tmp);
+	}
+
+	switch (sort_order)
+	{
+		case ESort::kRandom:
+		{
+			std::random_shuffle(image_filenames.begin(), image_filenames.end());
+			break;
+		}
+		case ESort::kCountMarks:
+		{
+			// this one takes a while, so start a progress thread to do the work
+			DMContentImageFilenameSort helper(*this);
+			helper.runThread();
+			break;
+		}
+		case ESort::kTimestamp:
+		{
+			// this one takes a while, so start a progress thread to do the work
+			DMContentImageFilenameSort helper(*this);
+			helper.runThread();
+			break;
+		}
+		case ESort::kAlphabetical:
+		default:
+		{
+			std::sort(image_filenames.begin(), image_filenames.end());
+			break;
+		}
+	}
+
+	load_image(0);
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::set_labels(const EToggle toggle)
+{
+	if (show_labels != toggle)
+	{
+		show_labels = toggle;
+		cfg().setValue("show_labels", static_cast<int>(show_labels));
+
+		rebuild_image_and_repaint();
+	}
+
+	return *this;
 }
 
 
@@ -407,20 +504,48 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 			}
 		}
 
-		if (not success)
+		if (not success or show_predictions)
 		{
-			darkhelp().predict(original_image);
-			Log("darkhelp processed the image in " + darkhelp().duration_string());
-
-			// convert the predictions into marks
-			for (auto prediction : darkhelp().prediction_results)
+			if (dmapp().darkhelp)
 			{
-				Mark m(cv::Point2d(prediction.mid_x, prediction.mid_y), cv::Size2d(prediction.width, prediction.height), cv::Size(0, 0), prediction.best_class);
-				m.name = names.at(m.class_idx);
-				m.description = prediction.name;
-				marks.push_back(m);
+				darkhelp().predict(original_image);
+				Log("darkhelp processed the image in " + darkhelp().duration_string());
+
+				// convert the predictions into marks
+				for (auto prediction : darkhelp().prediction_results)
+				{
+					Mark m(cv::Point2d(prediction.mid_x, prediction.mid_y), cv::Size2d(prediction.width, prediction.height), cv::Size(0, 0), prediction.best_class);
+					m.name = names.at(m.class_idx);
+					m.description = prediction.name;
+					m.is_prediction = true;
+					marks.push_back(m);
+				}
 			}
 		}
+
+		// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
+		// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
+		std::sort(marks.begin(), marks.end(),
+				  [](auto & lhs, auto & rhs)
+				  {
+					  const auto & p1 = lhs.get_normalized_midpoint();
+					  const auto & p2 = rhs.get_normalized_midpoint();
+
+					  const int y1 = std::round(15.0 * p1.y);
+					  const int y2 = std::round(15.0 * p2.y);
+
+					  if (y1 < y2) return true;
+				  if (y2 < y1) return false;
+
+				  // if we get here then y1 and y2 are the same, so now we compare x1 and x2
+
+				  const int x1 = std::round(15.0 * p1.x);
+				  const int x2 = std::round(15.0 * p2.x);
+
+				  if (x1 < x2) return true;
+
+				  return false;
+				  } );
 	}
 	catch(const std::exception & e)
 	{
@@ -468,21 +593,29 @@ dm::DMContent & dm::DMContent::save_json()
 	if (json_filename.empty() == false)
 	{
 		json root;
-		for (size_t idx = 0; idx < marks.size(); idx ++)
+		size_t next_id = 0;
+		for (const auto & m : marks)
 		{
-			const auto & m = marks.at(idx);
-			root["mark"][idx]["class_idx"	] = m.class_idx;
-			root["mark"][idx]["name"		] = m.name;
+			if (m.is_prediction)
+			{
+				// skip this one since it is a prediction, not a full mark
+				continue;
+			}
+
+			root["mark"][next_id]["class_idx"	] = m.class_idx;
+			root["mark"][next_id]["name"		] = m.name;
 			for (size_t point_idx = 0; point_idx < m.normalized_all_points.size(); point_idx ++)
 			{
 				const cv::Point2d & p = m.normalized_all_points.at(point_idx);
-				root["mark"][idx]["points"][point_idx]["x"] = p.x;
-				root["mark"][idx]["points"][point_idx]["y"] = p.y;
+				root["mark"][next_id]["points"][point_idx]["x"] = p.x;
+				root["mark"][next_id]["points"][point_idx]["y"] = p.y;
 
 				// DarkMark doesn't use these integer values, but make them available for 3rd party software which wants to reads the .json file
-				root["mark"][idx]["points"][point_idx]["int_x"] = (int)(std::round(p.x * (double)original_image.cols));
-				root["mark"][idx]["points"][point_idx]["int_y"] = (int)(std::round(p.y * (double)original_image.rows));
+				root["mark"][next_id]["points"][point_idx]["int_x"] = (int)(std::round(p.x * (double)original_image.cols));
+				root["mark"][next_id]["points"][point_idx]["int_y"] = (int)(std::round(p.y * (double)original_image.rows));
 			}
+
+			next_id ++;
 		}
 		root["image"]["scale"]	= scale_factor;
 		root["image"]["width"]	= original_image.cols;
@@ -506,8 +639,20 @@ size_t dm::DMContent::count_marks_in_json(File & f)
 
 	if (f.existsAsFile())
 	{
-		json root = json::parse(f.loadFileAsString().toStdString());
-		result = root["mark"].size();
+		try
+		{
+			json root = json::parse(f.loadFileAsString().toStdString());
+			result = root["mark"].size();
+		}
+		catch (const std::exception & e)
+		{
+			AlertWindow::showMessageBox(
+				AlertWindow::AlertIconType::InfoIcon,
+				"DarkMark",
+				"Failed to read or parse the .json file " + f.getFullPathName().toStdString() + ":\n"
+				"\n" +
+				e.what());
+		}
 	}
 
 	return result;
@@ -572,30 +717,6 @@ bool dm::DMContent::load_json()
 			marks.push_back(m);
 		}
 
-		// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
-		// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
-		std::sort(marks.begin(), marks.end(),
-			[](auto & lhs, auto & rhs)
-			{
-				const auto & p1 = lhs.get_normalized_midpoint();
-				const auto & p2 = rhs.get_normalized_midpoint();
-
-				const int y1 = std::round(15.0 * p1.y);
-				const int y2 = std::round(15.0 * p2.y);
-
-				if (y1 < y2) return true;
-				if (y2 < y1) return false;
-
-				// if we get here then y1 and y2 are the same, so now we compare x1 and x2
-
-				const int x1 = std::round(15.0 * p1.x);
-				const int x2 = std::round(15.0 * p2.x);
-
-				if (x1 < x2) return true;
-
-				return false;
-			} );
-
 		success = true;
 	}
 
@@ -624,10 +745,29 @@ dm::DMContent & dm::DMContent::create_darknet_files()
 
 	size_t number_of_files_train = 0;
 	size_t number_of_files_valid = 0;
+	size_t number_of_skipped_files = 0;
+	size_t number_of_marks = 0;
 	if (true)
 	{
 		const double percentage_of_image_files_to_use_for_training = 0.85;
-		VStr v = image_filenames;
+
+		// only include the images for which we have at least 1 mark
+		VStr v;
+		for (const auto & filename : image_filenames)
+		{
+			File f = File(filename).withFileExtension(".json");
+			const size_t count = count_marks_in_json(f);
+			if (count == 0)
+			{
+				number_of_skipped_files ++;
+			}
+			else
+			{
+				number_of_marks += count;
+				v.push_back(filename);
+			}
+		}
+
 		std::random_shuffle(v.begin(), v.end());
 		number_of_files_train = std::round(percentage_of_image_files_to_use_for_training * v.size());
 		number_of_files_valid = v.size() - number_of_files_train;
@@ -664,16 +804,149 @@ dm::DMContent & dm::DMContent::create_darknet_files()
 		f.setExecutePermission(true);
 	}
 
-	AlertWindow::showMessageBox(
-		AlertWindow::AlertIconType::InfoIcon,
-		"DarkMark",
-		"The necessary files to run darknet have been saved to " + output_dir + ".\n"
-		"\n"
-		"There are " + std::to_string(names.size()) + " classes with a total of " +
-		std::to_string(number_of_files_train) + " training files and " +
-		std::to_string(number_of_files_valid) + " validation files.\n"
-		"\n"
-		"Run " + command_filename + " to start the training.");
+	if (true)
+	{
+		std::stringstream ss;
+		ss	<< "The necessary files to run darknet have been saved to " << output_dir << "." << std::endl
+			<< std::endl
+			<< "There are " << names.size() << " classes with a total of "
+			<< number_of_files_train << " training files and "
+			<< number_of_files_valid << " validation files. The average is "
+			<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
+			<< " marks per image." << std::endl
+			<< std::endl;
+
+		if (number_of_skipped_files)
+		{
+			ss	<< "IMPORTANT: " << number_of_skipped_files << " images were skipped because they have not yet been marked." << std::endl
+				<< std::endl;
+		}
+
+		ss << "Run " << command_filename << " to start the training.";
+
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
+	}
 
 	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::delete_current_image()
+{
+	if (image_filename_index < image_filenames.size())
+	{
+		File f(image_filenames[image_filename_index]);
+		Log("deleting the file at index #" + std::to_string(image_filename_index) + ": " + f.getFullPathName().toStdString());
+		f.deleteFile();
+		f.withFileExtension(".txt"	).deleteFile();
+		f.withFileExtension(".json"	).deleteFile();
+		image_filenames.erase(image_filenames.begin() + image_filename_index);
+		load_image(image_filename_index);
+	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::accept_all_marks()
+{
+	for (auto & m : marks)
+	{
+		m.is_prediction	= false;
+		m.name			= names.at(m.class_idx);
+		m.description	= names.at(m.class_idx);
+	}
+
+	need_to_save	= true;
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::erase_all_marks()
+{
+	Log("deleting all marks for " + long_filename);
+
+	marks.clear();
+	need_to_save = false;
+	File(json_filename).deleteFile();
+	File(text_filename).deleteFile();
+	load_image(image_filename_index);
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
+PopupMenu dm::DMContent::create_class_menu()
+{
+	const bool is_enabled = (selected_mark >= 0 and (size_t)selected_mark < marks.size() ? true : false);
+
+	int selected_class_idx = -1;
+	if (is_enabled)
+	{
+		const Mark & m = marks.at(selected_mark);
+		selected_class_idx = (int)m.class_idx;
+	}
+
+	PopupMenu m;
+	for (size_t idx = 0; idx < names.size(); idx ++)
+	{
+		const std::string & name = names.at(idx);
+
+		const bool is_ticked = (selected_class_idx == (int)idx ? true : false);
+
+		m.addItem(name, (is_enabled and not is_ticked), is_ticked, std::function<void()>( [&]{ this->set_class(idx); } ));
+	}
+
+	return m;
+}
+
+
+PopupMenu dm::DMContent::create_popup_menu()
+{
+	PopupMenu classMenu = create_class_menu();
+
+	PopupMenu labels;
+	labels.addItem("always show labels"	, (show_labels != EToggle::kOn	), (show_labels == EToggle::kOn		), std::function<void()>( [&]{ set_labels(EToggle::kOn);	} ));
+	labels.addItem("never show labels"	, (show_labels != EToggle::kOff	), (show_labels == EToggle::kOff	), std::function<void()>( [&]{ set_labels(EToggle::kOff);	} ));
+	labels.addItem("auto show labels"	, (show_labels != EToggle::kAuto), (show_labels == EToggle::kAuto	), std::function<void()>( [&]{ set_labels(EToggle::kAuto);	} ));
+
+	PopupMenu sort;
+	sort.addItem("sort alphabetically"								, true, (sort_order == ESort::kAlphabetical	), std::function<void()>( [&]{ set_sort_order(ESort::kAlphabetical	); } ));
+	sort.addItem("sort by modification timestamp"					, true, (sort_order == ESort::kTimestamp	), std::function<void()>( [&]{ set_sort_order(ESort::kTimestamp		); } ));
+	sort.addItem("sort by number of marks"							, true, (sort_order == ESort::kCountMarks	), std::function<void()>( [&]{ set_sort_order(ESort::kCountMarks	); } ));
+	sort.addItem("sort randomly"									, true, (sort_order == ESort::kRandom		), std::function<void()>( [&]{ set_sort_order(ESort::kRandom		); } ));
+
+	const size_t number_of_darknet_marks = [&]
+	{
+		size_t count = 0;
+		for (const auto & m : marks)
+		{
+			if (m.is_prediction)
+			{
+				count ++;
+			}
+		}
+
+		return count;
+	}();
+
+	const bool has_any_marks = (marks.size() > 0);
+
+	PopupMenu image;
+	image.addItem("accept " + std::to_string(number_of_darknet_marks) + " pending marks", (number_of_darknet_marks > 0)	, false	, std::function<void()>( [&]{ accept_all_marks();		} ));
+	image.addItem("erase all " + std::to_string(marks.size()) + " marks"		, has_any_marks							, false	, std::function<void()>( [&]{ erase_all_marks();		} ));
+	image.addItem("delete image from disk"																						, std::function<void()>( [&]{ delete_current_image();	} ));
+
+	PopupMenu m;
+	m.addSubMenu("class", classMenu, classMenu.containsAnyActiveItems());
+	m.addSubMenu("labels", labels);
+	m.addSubMenu("sort", sort);
+	m.addSubMenu("image", image);
+	m.addSeparator();
+	m.addItem("create darknet files", std::function<void()>( [&]{ create_darknet_files(); } ));
+
+	return m;
 }

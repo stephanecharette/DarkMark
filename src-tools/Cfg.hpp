@@ -8,6 +8,14 @@
 
 namespace dm
 {
+	enum class EToggle
+	{
+		kInvalid	= -1,
+		kOff		= 0,
+		kOn			= 1,
+		kAuto		= 2
+	};
+
 	class Cfg final : public PropertiesFile
 	{
 		public:

@@ -35,5 +35,6 @@ namespace dm
 #include "DMCorner.hpp"
 #include "DMCanvas.hpp"
 #include "DMContent.hpp"
+#include "DMContentImageFilenameSort.hpp"
 #include "DMWnd.hpp"
 #include "DarkMarkApp.hpp"

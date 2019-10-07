@@ -21,7 +21,7 @@ namespace dm
 
 			virtual void mouseDown(const MouseEvent & event);
 
-			virtual void mouseUp(const MouseEvent & event);
+			virtual void mouseDoubleClick(const MouseEvent & event);
 
 			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect);
 

@@ -97,6 +97,6 @@ namespace dm
 			size_t class_idx;
 			std::string name;
 			std::string description;
-//			cv::Scalar colour;
+			bool is_prediction;
 	};
 }

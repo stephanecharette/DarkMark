@@ -17,7 +17,6 @@ dm::DMCorner::DMCorner(DMContent & c, const ECorner type) :
 			type == ECorner::kBR ?	"BottomRightCorner"	:
 									"BottomLeftCorner"	);
 
-
 	mouse_drag_is_enabled = false;
 
 	return;
@@ -36,16 +35,7 @@ void dm::DMCorner::mouseDown(const MouseEvent & event)
 
 	if (event.mods.isPopupMenu())
 	{
-		PopupMenu classes;
-		classes.addItem("barcode"		, std::function<void()>( [=]{ this->set_class(0); } ));
-		classes.addItem("aisle-bay-loc"	, std::function<void()>( [=]{ this->set_class(1); } ));
-
-		PopupMenu m;
-		m.addSubMenu("classes", classes);
-
-		m.addItem("testing"	, std::function<void()>( [=]{ this->set_class(0); } ));
-		m.addItem("blah"	, std::function<void()>( [=]{ this->set_class(0); } ));
-		m.showMenuAsync(PopupMenu::Options());
+		content.create_popup_menu().showMenuAsync(PopupMenu::Options());
 	}
 	else
 	{
@@ -62,9 +52,12 @@ void dm::DMCorner::mouseDown(const MouseEvent & event)
 //		Log("corner loc is: " + std::to_string(top_left_point.x) + "," + std::to_string(top_left_point.y));
 //		Log("new poi loc is " + std::to_string(p.x) + "," + std::to_string(p.y));
 
-		content.marks[content.selected_mark].set(corner, p);
-		content.rebuild_image_and_repaint();
+		auto & m = content.marks[content.selected_mark];
+		m.set(corner, p);
+		m.is_prediction = false;
+		content.most_recent_size = m.get_normalized_bounding_rect().size();
 		content.need_to_save = true;
+		content.rebuild_image_and_repaint();
 	}
 
 	return;
@@ -175,7 +168,7 @@ void dm::DMCorner::rebuild_cache_image()
 		// draw the corner cell
 		cv::Rect r(corner_point.x, corner_point.y, cell_size, cell_size);
 		cv::Mat overlay(cell_size, cell_size, CV_8UC3, colour);
-		double alpha = 0.60;
+		double alpha = content.alpha_blend_percentage;
 		double beta = 1.0 - alpha;
 		cv::addWeighted(overlay, alpha, mat(r), beta, 0, mat(r));
 

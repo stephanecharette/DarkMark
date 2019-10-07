@@ -46,6 +46,7 @@ dm::Mark::Mark(const cv::Point2d & midpoint, const cv::Size2d & normalized_size,
 
 	image_dimensions	= image_size;
 	class_idx			= class_index;
+	is_prediction		= false;
 
 	return;
 }
