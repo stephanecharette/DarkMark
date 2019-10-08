@@ -22,6 +22,7 @@ namespace dm
 	class DMCanvas;
 	class DMContent;
 	class DMStatsWnd;
+	class DMAboutWnd;
 	class CrosshairComponent;
 	class DarkMarkApplication;
 
@@ -38,6 +39,7 @@ namespace dm
 #include "DMCanvas.hpp"
 #include "DMContent.hpp"
 #include "DMStatsWnd.hpp"
+#include "DMAboutWnd.hpp"
 #include "DMContentImageFilenameSort.hpp"
 #include "DMContentStatistics.hpp"
 #include "DMWnd.hpp"

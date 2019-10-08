@@ -24,14 +24,14 @@ dm::DMStatsWnd::DMStatsWnd(DMContent & c) :
 	tlb.getHeader().setPopupMenuActive(false);
 	tlb.setModel(this);
 
-	setResizable(true, true);
+	setResizable(true, false);
 	setContentNonOwned(&tlb, true);
 
 	auto r = dmapp().wnd->getBounds();
 	r.reduce(50, 50);
 	if (r.getWidth() < 200 or r.getHeight() < 200)
 	{
-		r = r.withSizeKeepingCentre(640, 480);
+		r = r.withSizeKeepingCentre(600, 400);
 	}
 	setBounds(r);
 

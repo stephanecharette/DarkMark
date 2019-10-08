@@ -342,14 +342,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		{
 			auto iter = marks.begin() + selected_mark;
 			marks.erase(iter);
-			if (selected_mark >= (int)marks.size())
-			{
-				selected_mark --;
-			}
-			if (marks.empty())
-			{
-				selected_mark = -1;
-			}
+			selected_mark = -1;
 			need_to_save = true;
 			rebuild_image_and_repaint();
 			return true;
@@ -358,6 +351,15 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	else if (keycode == KeyPress::escapeKey)
 	{
 		dmapp().quit();
+	}
+	else if (keycode == KeyPress::F1Key)
+	{
+		if (not dmapp().about_wnd)
+		{
+			dmapp().about_wnd.reset(new DMAboutWnd);
+		}
+		dmapp().about_wnd->toFront(true);
+		return true;
 	}
 	else if (key.getTextCharacter() == 'r')
 	{
@@ -373,6 +375,12 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	{
 		show_predictions = not show_predictions;
 		load_image(image_filename_index);
+	}
+	else if (key.getTextCharacter() == 'l')
+	{
+		EToggle toggle = static_cast<EToggle>( (int(show_labels) + 1) % 3 );
+		set_labels(toggle);
+		return true;
 	}
 
 	return false;
@@ -737,6 +745,27 @@ bool dm::DMContent::load_json()
 
 	return success;
 }
+
+
+#if 0
+bool dm::DMContent::create_darknet_YOLO_files(const bool tiny)
+{
+	const std::string darknet_dir = cfg().get_str("darknet_dir");
+	if (darknet_dir.empty())
+	{
+		// nothing we can do without the darknet directory
+		return false;
+	}
+
+	File dir(darknet_dir);
+	File cfg_dir = dir.getChildFile("cfg");
+	File yolo_template = cfg_dir.getChildFile("yolov3.cfg");
+
+	if (not cfg_dir.exists())
+	{
+		// again, without the directory, not much we can do
+}
+#endif
 
 
 dm::DMContent & dm::DMContent::create_darknet_files()

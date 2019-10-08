@@ -52,3 +52,21 @@ Image dm::convert_opencv_mat_to_juce_image(cv::Mat mat)
 
 	return image;
 }
+
+
+Image dm::AboutLogoWhiteBackground()
+{
+	return ImageCache::getFromMemory(ccr_darkmark_logo_white_background_png, sizeof(ccr_darkmark_logo_white_background_png));
+}
+
+
+Image dm::AboutLogoRedSwirl()
+{
+	return ImageCache::getFromMemory(ccr_darkmark_logo_red_swirl_png, sizeof(ccr_darkmark_logo_red_swirl_png));
+}
+
+
+Image dm::AboutLogoDarknet()
+{
+	return ImageCache::getFromMemory(ccr_darkmark_logo_darknet_png, sizeof(ccr_darkmark_logo_darknet_png));
+}

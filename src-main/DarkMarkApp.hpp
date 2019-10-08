@@ -35,6 +35,7 @@ namespace dm
 			std::unique_ptr<DMWnd>		wnd;
 			std::unique_ptr<DarkHelp>	darkhelp;
 			std::unique_ptr<DMStatsWnd>	stats_wnd;
+			std::unique_ptr<DMAboutWnd>	about_wnd;
 	};
 
 
