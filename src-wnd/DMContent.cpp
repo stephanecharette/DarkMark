@@ -465,6 +465,7 @@ dm::DMContent & dm::DMContent::set_labels(const EToggle toggle)
 
 dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 {
+//	if (marks.empty() == false)
 	if (need_to_save)
 	{
 		save_json();
@@ -497,11 +498,12 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 		if (not success)
 		{
 			success = load_text();
-			if (success)
-			{
-				Log("imported " + text_filename + " instead of " + json_filename);
-				need_to_save = true;
-			}
+		}
+
+		if (success and (File(json_filename).existsAsFile() != File(text_filename).existsAsFile()))
+		{
+			// we either have the .json without the .txt, or the other way around, in which case we need to re-save the files
+			need_to_save = true;
 		}
 
 		if (not success or show_predictions)
@@ -594,7 +596,7 @@ dm::DMContent & dm::DMContent::save_json()
 	{
 		json root;
 		size_t next_id = 0;
-		for (const auto & m : marks)
+		for (auto & m : marks)
 		{
 			if (m.is_prediction)
 			{
@@ -604,6 +606,19 @@ dm::DMContent & dm::DMContent::save_json()
 
 			root["mark"][next_id]["class_idx"	] = m.class_idx;
 			root["mark"][next_id]["name"		] = m.name;
+
+			const cv::Rect2d	r1 = m.get_normalized_bounding_rect();
+			const cv::Rect		r2 = m.get_bounding_rect(original_image.size());
+
+			root["mark"][next_id]["rect"]["x"]		= r1.x;
+			root["mark"][next_id]["rect"]["y"]		= r1.y;
+			root["mark"][next_id]["rect"]["w"]		= r1.width;
+			root["mark"][next_id]["rect"]["h"]		= r1.height;
+			root["mark"][next_id]["rect"]["int_x"]	= r2.x;
+			root["mark"][next_id]["rect"]["int_y"]	= r2.y;
+			root["mark"][next_id]["rect"]["int_w"]	= r2.width;
+			root["mark"][next_id]["rect"]["int_h"]	= r2.height;
+
 			for (size_t point_idx = 0; point_idx < m.normalized_all_points.size(); point_idx ++)
 			{
 				const cv::Point2d & p = m.normalized_all_points.at(point_idx);
@@ -946,7 +961,23 @@ PopupMenu dm::DMContent::create_popup_menu()
 	m.addSubMenu("sort", sort);
 	m.addSubMenu("image", image);
 	m.addSeparator();
-	m.addItem("create darknet files", std::function<void()>( [&]{ create_darknet_files(); } ));
+	m.addItem("gather statistics"	, std::function<void()>( [&]{ gather_statistics();		} ));
+	m.addItem("create darknet files", std::function<void()>( [&]{ create_darknet_files();	} ));
 
 	return m;
+}
+
+
+dm::DMContent & dm::DMContent::gather_statistics()
+{
+	if (need_to_save)
+	{
+		save_json();
+		save_text();
+	}
+
+	DMContentStatistics helper(*this);
+	helper.runThread();
+
+	return *this;
 }

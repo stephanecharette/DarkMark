@@ -196,11 +196,3 @@ void dm::DMCorner::rebuild_cache_image()
 
 	return;
 }
-
-
-void dm::DMCorner::set_class(size_t class_id)
-{
-	Log("CLASS=" + std::to_string(class_id));
-
-	return;
-}

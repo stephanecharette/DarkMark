@@ -65,6 +65,8 @@ namespace dm
 
 			PopupMenu create_popup_menu();
 
+			DMContent & gather_statistics();
+
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
 

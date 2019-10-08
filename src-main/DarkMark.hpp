@@ -21,10 +21,12 @@ namespace dm
 	class DMCorner;
 	class DMCanvas;
 	class DMContent;
+	class DMStatsWnd;
 	class CrosshairComponent;
 	class DarkMarkApplication;
 
 	typedef std::vector<std::string> VStr;
+	typedef std::set<std::string> SStr;
 }
 
 #include "Log.hpp"
@@ -35,6 +37,8 @@ namespace dm
 #include "DMCorner.hpp"
 #include "DMCanvas.hpp"
 #include "DMContent.hpp"
+#include "DMStatsWnd.hpp"
 #include "DMContentImageFilenameSort.hpp"
+#include "DMContentStatistics.hpp"
 #include "DMWnd.hpp"
 #include "DarkMarkApp.hpp"

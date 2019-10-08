@@ -21,8 +21,6 @@ namespace dm
 
 			virtual void rebuild_cache_image();
 
-			virtual void set_class(size_t class_id);
-
 			/// Link to the parent which manages the content, including all the marks.
 			DMContent & content;
 
