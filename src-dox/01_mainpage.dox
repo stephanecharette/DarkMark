@@ -1,0 +1,24 @@
+/** @mainpage %DarkMark
+
+The official web site for C Code Run's %DarkMark is http://www.ccoderun.ca/darkmark/. <br/>
+
+Source code for %DarkMark is available at http://www.ccoderun.ca/download/. <br/>
+
+@note %DarkMark is @em not Darknet!  %DarkMark is a C++ GUI application used to mark up images, which then may be used with Darknet to train a neural network.
+
+@image html darkmark_example.png
+
+I recommend AlexeyAB's popular fork of Darknet, available at https://github.com/AlexeyAB/darknet.
+
+The original author of the Darknet neural network framework is <a target="_blank" href="https://pjreddie.com/darknet/">Joseph Redmon</a>.  That version of Darknet hasn't been updated in several years, which is why I use AlexeyAB's port instead.
+
+<div style="padding:1em; margin:2em; border:1px solid black; display:inline-block;">
+%DarkHelp is written by <a target="_blank" href="https://www.ccoderun.ca/stephane/">Stéphane Charette d.b.a. C Code Run</a><br/>
+&copy; 2019 <a target="_blank" href="/stephane/">Stéphane Charette</a><br/>
+http://www.ccoderun.ca/darkmark/ <br/>
+stephane@ccoderun.ca <br/>
+stephane.charette@gmail.com <br/>
+Tel. +1-250-769-2759 &nbsp; <span style="font-size:80%;">[Pacific Time, PST/PDT]</span>
+</div>
+
+*/

@@ -55,7 +55,7 @@ void dm::DMCanvas::rebuild_cache_image()
 			const std::string name	= m.description;
 			const cv::Rect r		= m.get_bounding_rect(content.scaled_image.size());
 			const cv::Scalar colour	= m.get_colour();
-			const int thickness		= (is_selected ? 2 : 1);
+			const int thickness		= (is_selected or content.all_marks_are_bold ? 2 : 1);
 
 			cv::Mat tmp = content.scaled_image(r).clone();
 			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
@@ -66,8 +66,8 @@ void dm::DMCanvas::rebuild_cache_image()
 				cv::line(tmp, cv::Point(0, tmp.rows), cv::Point(tmp.cols, 0), colour, 1, cv::LINE_8);
 			}
 
-			double alpha = (is_selected ? 1.0 : content.alpha_blend_percentage);
-			double beta = 1.0 - alpha;
+			const double alpha = (is_selected or content.all_marks_are_bold ? 1.0 : content.alpha_blend_percentage);
+			const double beta = 1.0 - alpha;
 			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
 			if (is_selected and tmp.cols >= 30 and tmp.rows >= 30)
@@ -79,7 +79,7 @@ void dm::DMCanvas::rebuild_cache_image()
 				cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
 			}
 
-			if (content.show_labels == EToggle::kOn or (content.show_labels == EToggle::kAuto and (is_selected or (tmp.cols >= 30 and tmp.rows >= 30))))
+			if (content.show_labels == EToggle::kOn or content.all_marks_are_bold or (content.show_labels == EToggle::kAuto and (is_selected or (tmp.cols >= 30 and tmp.rows >= 30))))
 			{
 				int baseline = 0;
 				auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
@@ -90,13 +90,15 @@ void dm::DMCanvas::rebuild_cache_image()
 				// Rectangle for the label needs the TL and BR coordinates.
 				// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
 				cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + 4);
-				if (is_selected)
+				if (is_selected or content.all_marks_are_bold)
 				{
 					text_rect.y = r.y - text_size.height - 3;
 				}
 
-				if (text_rect.x < 0) text_rect.x = 0;
-				if (text_rect.y < 0) text_rect.y = 0;
+				// check to see if the label is going to be off-screen, and if so slide it to a better position
+				if (text_rect.x < 0) text_rect.x = r.x;				// first attempt to fix this is to make it left-aligned
+				if (text_rect.x < 0) text_rect.x = 0;				// ...and if that didn't work, slide it to the left edge
+				if (text_rect.y < 0) text_rect.y = r.y + r.height;	// vertically, we need to place the label underneath instead of above
 
 				tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
 				cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, black, fontthickness, cv::LINE_AA);

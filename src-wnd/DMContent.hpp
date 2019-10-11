@@ -41,6 +41,8 @@ namespace dm
 
 			DMContent & set_labels(const EToggle toggle);
 
+			DMContent & toggle_bold_labels();
+
 			DMContent & load_image(const size_t new_idx);
 
 			DMContent & save_text();
@@ -77,6 +79,7 @@ namespace dm
 			EToggle show_labels;
 
 			double alpha_blend_percentage;
+			bool all_marks_are_bold;
 			bool show_predictions;
 			bool need_to_save;
 			int selected_mark;

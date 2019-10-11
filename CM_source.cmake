@@ -19,5 +19,4 @@ INCLUDE_DIRECTORIES ( BEFORE src-wnd	)
 ADD_SUBDIRECTORY ( src-tools	)
 ADD_SUBDIRECTORY ( src-wnd		)
 ADD_SUBDIRECTORY ( src-main		)
-
-#ADD_SUBDIRECTORY ( doxygen		)
+ADD_SUBDIRECTORY ( src-dox		)

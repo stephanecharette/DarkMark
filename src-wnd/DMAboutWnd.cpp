@@ -42,7 +42,7 @@ void dm::DMAboutCanvas::paint(Graphics & g)
 	g.drawMultiLineText(
 		"C Code Run's DarkMark, (C) 2019 Stephane Charette\n"
 		"Application to mark up images for use with Darknet.\n"
-		"See https://www.ccoderun.ca/ for details.", 0, h + 10, w, Justification::centred);
+		"See https://www.ccoderun.ca/darkmark/ for details.", 0, h + 10, w, Justification::centred);
 
 	return;
 }
@@ -68,7 +68,7 @@ void dm::DMAboutCanvas::timerCallback()
 
 
 dm::DMAboutWnd::DMAboutWnd() :
-		DialogWindow("DarkMark by C Code Run", Colours::lightgrey, true)
+		DialogWindow("DarkMark v" DARKMARK_VERSION " by C Code Run", Colours::lightgrey, true)
 {
 	setResizable(false, false);
 	setContentNonOwned(&canvas, true);

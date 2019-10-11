@@ -1,0 +1,24 @@
+/** @page Building Building %DarkMark
+
+%DarkMark has several dependencies which must be installed:
+
+@li JUCE is a C++ framework.  It has a long list of required development libraries.  See the JUCE discussion forums for details, or below for a summary.
+@li libdarknet.so  https://www.ccoderun.ca/programming/2019-08-18_Installing_and_building_Darknet/
+@li libdarkhelp.so  https://www.ccoderun.ca/DarkHelp/api/
+
+Both @p libdarknet.so and @p libdarkhelp.so are explained on the DarkHelp page:  https://www.ccoderun.ca/DarkHelp/api/Building.html.
+
+Once you have both @p libdarknet.so and @p libdarkhelp.so built and installed, then %DarkMark may be built like this:
+
+~~~~{.sh}
+cd src/DarkMark/
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j
+make package
+~~~~
+
+Once the @p .deb package has been created, install it with @p "sudo dpkg -i darkmark*.deb".
+
+*/

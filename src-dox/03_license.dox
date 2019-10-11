@@ -1,0 +1,9 @@
+/** @page License License
+
+A copy of the license file (MIT) is included with the @p %DarkHelp source code.  The license is reproduced in its entirety here:
+
+<div style="padding:1em; margin:2em; border:1px solid black; white-space:pre-line">
+@htmlinclude "../license.txt"
+</div>
+
+*/

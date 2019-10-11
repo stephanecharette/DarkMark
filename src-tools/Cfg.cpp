@@ -46,7 +46,8 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("image_regex"			, "^.+\\.(?:(?:jpe?g)|(?:png)|(?:gif))$"	);
 	insert_if_not_exist("sort_order"			, static_cast<int>(ESort::kAlphabetical)	);
 	insert_if_not_exist("show_labels"			, static_cast<int>(EToggle::kAuto)			);
-	insert_if_not_exist("alpha_blend_percentage", 35										);
+	insert_if_not_exist("alpha_blend_percentage", 65										);
+	insert_if_not_exist("all_marks_are_bold"	, false										);
 
 	saveIfNeeded();
 

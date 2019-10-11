@@ -13,6 +13,7 @@ dm::DMContent::DMContent() :
 	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
 	alpha_blend_percentage(static_cast<double>(cfg().get_int("alpha_blend_percentage")) / 100.0),
+	all_marks_are_bold(cfg().get_bool("all_marks_are_bold")),
 	show_predictions(false),
 	need_to_save(false),
 	selected_mark(-1),
@@ -305,6 +306,12 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	}
 	else if (keycode == KeyPress::pageUpKey)
 	{
+		if (need_to_save)
+		{
+			save_json();
+			save_text();
+		}
+
 		// go to the previous available image with no marks
 		while (image_filename_index > 0)
 		{
@@ -322,6 +329,12 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	}
 	else if (keycode == KeyPress::pageDownKey)
 	{
+		if (need_to_save)
+		{
+			save_json();
+			save_text();
+		}
+
 		// go to the next available image with no marks
 		while (image_filename_index < image_filenames.size() - 1)
 		{
@@ -381,6 +394,50 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		EToggle toggle = static_cast<EToggle>( (int(show_labels) + 1) % 3 );
 		set_labels(toggle);
 		return true;
+	}
+	else if (key.getTextCharacter() == 'b')
+	{
+		toggle_bold_labels();
+		return true;
+	}
+	else if (key.getTextCharacter() == 's' or key.getTextCharacter() == 'S')
+	{
+		std::string filename = long_filename;
+		size_t pos = filename.rfind(".");
+		if (pos != std::string::npos)
+		{
+			filename.erase(pos);
+		}
+		filename += "_annotated.png";
+		FileChooser chooser("Save annotated image to...", File(filename));
+		if (chooser.browseForFileToSave(true))
+		{
+			const auto old_scaled_image_size = scaled_image_size;
+			if (key.getTextCharacter() == 'S') // uppercase 'S' means we should use the full-size image
+			{
+				// we want to save the full-size image, not the resized one we're currently viewing,
+				// so swap out a few things, re-build the annotated image, and save *those* results
+				scaled_image_size = original_image.size();
+				canvas.rebuild_cache_image();
+			}
+
+			File f = chooser.getResult();
+			if (f.hasFileExtension(".png"))
+			{
+				cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_PNG_COMPRESSION, 9});
+			}
+			else
+			{
+				cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_JPEG_OPTIMIZE, 1, CV_IMWRITE_JPEG_QUALITY, 75});
+			}
+
+			if (scaled_image_size != old_scaled_image_size)
+			{
+				// now put back the scaled image we expect to be there
+				scaled_image_size = old_scaled_image_size;
+				canvas.rebuild_cache_image();
+			}
+		}
 	}
 
 	return false;
@@ -471,6 +528,18 @@ dm::DMContent & dm::DMContent::set_labels(const EToggle toggle)
 }
 
 
+dm::DMContent & dm::DMContent::toggle_bold_labels()
+{
+	all_marks_are_bold = not all_marks_are_bold;
+
+	cfg().setValue("all_marks_are_bold", all_marks_are_bold);
+
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 {
 //	if (marks.empty() == false)
@@ -521,10 +590,12 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 				darkhelp().predict(original_image);
 				Log("darkhelp processed the image in " + darkhelp().duration_string());
 
+//				std::cout << darkhelp().prediction_results << std::endl;
+
 				// convert the predictions into marks
 				for (auto prediction : darkhelp().prediction_results)
 				{
-					Mark m(cv::Point2d(prediction.mid_x, prediction.mid_y), cv::Size2d(prediction.width, prediction.height), cv::Size(0, 0), prediction.best_class);
+					Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
 					m.name = names.at(m.class_idx);
 					m.description = prediction.name;
 					m.is_prediction = true;
@@ -956,6 +1027,8 @@ PopupMenu dm::DMContent::create_popup_menu()
 	labels.addItem("always show labels"	, (show_labels != EToggle::kOn	), (show_labels == EToggle::kOn		), std::function<void()>( [&]{ set_labels(EToggle::kOn);	} ));
 	labels.addItem("never show labels"	, (show_labels != EToggle::kOff	), (show_labels == EToggle::kOff	), std::function<void()>( [&]{ set_labels(EToggle::kOff);	} ));
 	labels.addItem("auto show labels"	, (show_labels != EToggle::kAuto), (show_labels == EToggle::kAuto	), std::function<void()>( [&]{ set_labels(EToggle::kAuto);	} ));
+	labels.addSeparator();
+	labels.addItem("bold", true, all_marks_are_bold, std::function<void()>( [&]{ toggle_bold_labels(); } ));
 
 	PopupMenu sort;
 	sort.addItem("sort alphabetically"								, true, (sort_order == ESort::kAlphabetical	), std::function<void()>( [&]{ set_sort_order(ESort::kAlphabetical	); } ));
