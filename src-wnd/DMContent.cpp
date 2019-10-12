@@ -36,6 +36,8 @@ dm::DMContent::DMContent() :
 
 	setWantsKeyboardFocus(true);
 
+	project_name = image_directory.getFileNameWithoutExtension().toStdString();
+
 	const std::regex image_filename_regex(cfg().get_str("image_regex"), std::regex::icase | std::regex::nosubs | std::regex::optimize | std::regex::ECMAScript);
 
 	DirectoryIterator iter(image_directory, true, "*", File::findFiles + File::ignoreHiddenFiles);
@@ -269,7 +271,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		{
 			digit += 10;
 		}
-		else if (key.getModifiers().isAltDown())
+		if (key.getModifiers().isAltDown())
 		{
 			digit += 20;
 		}
@@ -444,24 +446,26 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 }
 
 
-dm::DMContent & dm::DMContent::set_class(size_t class_idx)
+dm::DMContent & dm::DMContent::set_class(const size_t class_idx)
 {
 	if (selected_mark >= 0 and (size_t)selected_mark < marks.size())
 	{
 		if (class_idx >= names.size())
 		{
 			Log("class idx \"" + std::to_string(class_idx) + "\" is beyond the last index");
-			class_idx = names.size() - 1;
+			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Class id #" + std::to_string(class_idx) + " is beyond the highest class defined in " + cfg().get_str("darknet_names") + ".");
 		}
+		else
+		{
+			most_recent_class_idx = class_idx;
 
-		most_recent_class_idx = class_idx;
-
-		auto & m = marks[selected_mark];
-		m.class_idx = class_idx;
-		m.name = names.at(m.class_idx);
-		m.description = names.at(m.class_idx);
-		need_to_save = true;
-		rebuild_image_and_repaint();
+			auto & m = marks[selected_mark];
+			m.class_idx = class_idx;
+			m.name = names.at(m.class_idx);
+			m.description = names.at(m.class_idx);
+			need_to_save = true;
+			rebuild_image_and_repaint();
+		}
 	}
 
 	return *this;
@@ -741,7 +745,7 @@ size_t dm::DMContent::count_marks_in_json(File & f)
 		catch (const std::exception & e)
 		{
 			AlertWindow::showMessageBox(
-				AlertWindow::AlertIconType::InfoIcon,
+				AlertWindow::AlertIconType::WarningIcon,
 				"DarkMark",
 				"Failed to read or parse the .json file " + f.getFullPathName().toStdString() + ":\n"
 				"\n" +
@@ -818,8 +822,7 @@ bool dm::DMContent::load_json()
 }
 
 
-#if 0
-bool dm::DMContent::create_darknet_YOLO_files(const bool tiny)
+bool dm::DMContent::create_darknet_YOLO_files()
 {
 	const std::string darknet_dir = cfg().get_str("darknet_dir");
 	if (darknet_dir.empty())
@@ -830,19 +833,67 @@ bool dm::DMContent::create_darknet_YOLO_files(const bool tiny)
 
 	File dir(darknet_dir);
 	File cfg_dir = dir.getChildFile("cfg");
-	File yolo_template = cfg_dir.getChildFile("yolov3.cfg");
+	File yolo_full_template = cfg_dir.getChildFile("yolov3.cfg");
+	File yolo_tiny_template = cfg_dir.getChildFile("yolov3-tiny.cfg");
 
-	if (not cfg_dir.exists())
+	if (yolo_full_template.existsAsFile() == false or yolo_tiny_template.existsAsFile() == false)
 	{
-		// again, without the directory, not much we can do
+		// something isn't setup like we expect if the two .cfg files do not exist
+		Log("cannot find YOLO .cfg files in " + cfg_dir.getFullPathName().toStdString());
+		return false;
+	}
+
+	File yolo_full = image_directory.getChildFile(project_name + "_yolov3-full.cfg");
+	File yolo_tiny = image_directory.getChildFile(project_name + "_yolov3-tiny.cfg");
+
+	yolo_full_template.copyFileTo(yolo_full);
+	yolo_tiny_template.copyFileTo(yolo_tiny);
+
+	const size_t flip					= 1;
+	const size_t number_of_iterations	= 4000;
+	const size_t step1					= std::round(0.8 * number_of_iterations);
+	const size_t step2					= std::round(0.9 * number_of_iterations);
+	const size_t batch					= 64;
+	const size_t subdivisions			= 16;
+	const size_t filters				= names.size() * 3 + 15;
+	const size_t width					= 416;		// must be a multiple of 32 (416, 608, 832, ...)
+	const size_t height					= width;	// must be a multiple of 32
+
+	for (const std::string & cfg_filename : {yolo_full.getFullPathName().toStdString(), yolo_tiny.getFullPathName().toStdString()})
+	{
+		const VStr commands =
+		{
+			"sed --in-place \"/^hue *=/ a\\flip="					+ std::to_string(flip)									+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(names.size())							+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^max_batches *=/ c\\max_batches="	+ std::to_string(number_of_iterations)					+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^steps *=/ c\\steps="				+ std::to_string(step1) + "," + std::to_string(step2)	+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^batch *=/ c\\batch="				+ std::to_string(batch)									+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^subdivisions *=/ c\\subdivisions="	+ std::to_string(subdivisions)							+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^filters *= *255/ c\\filters="		+ std::to_string(filters)								+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^height *=/ c\\height="				+ std::to_string(width)									+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^width *=/ c\\width="				+ std::to_string(height)								+ "\" "		+ cfg_filename
+		};
+
+		for (const std::string & cmd : commands)
+		{
+			const int rc = system(cmd.c_str());
+			if (rc)
+			{
+				Log("failed to run command (rc=" + std::to_string(rc) + "): " + cmd);
+				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Command failed to run:\n\n" + cmd);
+			}
+		}
+	}
+
+	return true;
 }
-#endif
 
 
 dm::DMContent & dm::DMContent::create_darknet_files()
 {
+	create_darknet_YOLO_files();
+
 	const std::string output_dir		= image_directory.getFullPathName().toStdString();
-	const std::string project_name		= image_directory.getFileNameWithoutExtension().toStdString();
 	const std::string data_filename		= image_directory.getChildFile(project_name				).withFileExtension(".data"	).getFullPathName().toStdString();
 	const std::string valid_filename	= image_directory.getChildFile(project_name + "_valid"	).withFileExtension(".txt"	).getFullPathName().toStdString();
 	const std::string train_filename	= image_directory.getChildFile(project_name + "_train"	).withFileExtension(".txt"	).getFullPathName().toStdString();
@@ -906,12 +957,13 @@ dm::DMContent & dm::DMContent::create_darknet_files()
 	if (true)
 	{
 		std::stringstream ss;
-		ss	<< "#!/bin/bash"				<< std::endl
-			<< ""							<< std::endl
-			<< "cd " << output_dir			<< std::endl
-			<< ""							<< std::endl
-			<< "# other parms:  -show_imgs"	<< std::endl
-			<< "/usr/bin/time --verbose ~/darknet/darknet detector -map -mjpeg_port 8090 -dont_show train " << data_filename << " " << project_name << "_yolov3-tiny.cfg" << std::endl
+		ss	<< "#!/bin/bash"						<< std::endl
+			<< ""									<< std::endl
+			<< "cd " << output_dir					<< std::endl
+			<< ""									<< std::endl
+			<< "# other parms:  -show_imgs"			<< std::endl
+			<< "# other parms:  -mjpeg_port 8090"	<< std::endl
+			<< "/usr/bin/time --verbose ~/darknet/darknet detector -map -dont_show train " << data_filename << " " << project_name << "_yolov3-tiny.cfg" << std::endl
 			<< ""							<< std::endl;
 		const std::string data = ss.str();
 		File f(command_filename);
@@ -1012,7 +1064,17 @@ PopupMenu dm::DMContent::create_class_menu()
 
 		const bool is_ticked = (selected_class_idx == (int)idx ? true : false);
 
-		m.addItem(name, (is_enabled and not is_ticked), is_ticked, std::function<void()>( [&]{ this->set_class(idx); } ));
+		if (idx % 10 == 0 and names.size() > 1)
+		{
+			std::stringstream ss;
+			if (idx == 10) ss << "CTRL + ";
+			if (idx == 20) ss << "ALT + ";
+			if (idx == 30) ss << "CTRL + ALT + ";
+			ss << idx << " to " << std::min(names.size(), idx + 10);
+			m.addSectionHeader(ss.str());
+		}
+
+		m.addItem(name, (is_enabled and not is_ticked), is_ticked, std::function<void()>( [&, idx]{ this->set_class(idx); } ));
 	}
 
 	return m;

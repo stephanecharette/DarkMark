@@ -41,8 +41,8 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("darknet_config"		, ""										);
 	insert_if_not_exist("darknet_weights"		, ""										);
 	insert_if_not_exist("darknet_names"			, ""										);
-	insert_if_not_exist("darknet_dir"			, "/home/stephane/darknet/"					);
-	insert_if_not_exist("image_directory"		, "/home/stephane/mailboxes/"				);
+	insert_if_not_exist("darknet_dir"			, "darknet/"								);
+	insert_if_not_exist("image_directory"		, ""										);
 	insert_if_not_exist("image_regex"			, "^.+\\.(?:(?:jpe?g)|(?:png)|(?:gif))$"	);
 	insert_if_not_exist("sort_order"			, static_cast<int>(ESort::kAlphabetical)	);
 	insert_if_not_exist("show_labels"			, static_cast<int>(EToggle::kAuto)			);

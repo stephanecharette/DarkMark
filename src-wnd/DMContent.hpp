@@ -35,7 +35,7 @@ namespace dm
 
 			void rebuild_image_and_repaint();
 
-			DMContent & set_class(size_t class_idx);
+			DMContent & set_class(const size_t class_idx);
 
 			DMContent & set_sort_order(const ESort new_sort_order);
 
@@ -55,6 +55,7 @@ namespace dm
 
 			bool load_json();
 
+			bool create_darknet_YOLO_files();
 			DMContent & create_darknet_files();
 
 			DMContent & delete_current_image();
@@ -101,6 +102,7 @@ namespace dm
 			File image_directory;
 			VStr image_filenames;
 			size_t image_filename_index;
+			std::string project_name;
 			std::string long_filename;
 			std::string short_filename;
 			std::string json_filename;

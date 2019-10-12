@@ -69,16 +69,6 @@ void dm::DarkMarkApplication::shutdown()
 }
 
 
-void dm::DarkMarkApplication::anotherInstanceStarted(const String & commandLine)
-{
-	// When another instance of the app is launched while this one is running,
-	// this method is invoked, and the commandLine parameter tells you what
-	// the other instance's command-line arguments were.
-
-	return;
-}
-
-
 void dm::DarkMarkApplication::unhandledException(const std::exception * e, const String & sourceFilename, int lineNumber)
 {
 	std::string str = sourceFilename.toStdString();

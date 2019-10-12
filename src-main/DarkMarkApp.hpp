@@ -18,14 +18,12 @@ namespace dm
 
 			const String getApplicationName		(void) override	{ return "DarkMark";		}
 			const String getApplicationVersion	(void) override	{ return DARKMARK_VERSION;	}
-			bool moreThanOneInstanceAllowed		(void) override	{ return false;				}
+			bool moreThanOneInstanceAllowed		(void) override	{ return true;				}
 			void systemRequestedQuit			(void) override { quit();					}
 
 			void initialise(const String& commandLine) override;
 
 			void shutdown() override;
-
-			void anotherInstanceStarted (const String& commandLine) override;
 
 			void unhandledException(const std::exception *e, const String &sourceFilename, int lineNumber) override;
 

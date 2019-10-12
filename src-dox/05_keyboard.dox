@@ -2,29 +2,30 @@
 
 %DarkMark keyboard shortcuts:
 
-Key					| Saves Modified Marks First	| Description
---------------------|-------------------------------|------------
-@p LEFT				| yes							| Go to previous image.  If at the first image, do nothing.
-@p RIGHT			| yes							| Go to the next image.  If at the last image, do nothing.
-@p PAGEUP			| yes							| Go to the previous image which has not yet been marked.
-@p PAGEDOWN			| yes							| Go to the next image which has not yet been marked.
-@p HOME				| yes							| Go to the first image.
-@p END				| yes							| Go to the last image.
-@p DEL				|								| Delete the currently selected marking.
-@p BACKSPACE		|								| Same as @p DEL.
-@p ESC				| yes							| Quit from DarkMark.
-@p F1				|								| About DarkMark.
-@p TAB				|								| Move focus to the next marking.
-@p SHIFT + @p TAB	|								| Move focus to the previous marking.
-@p a				|								| Accept all Darknet predictions (if any) for the current image as actual markings.
-@p b				|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
-@p l				|								| Cycle between the various label modes (on, off, auto).
-@p p				|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)
-@p r				| yes							| Randomly sort the images and load the first image.
-@p s (lowercase)	|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".
-@p S (uppercase)	|								| Same as @p s (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
-@p 0-9				|								| Set the class ID of the currently selected mark to the specified value zero through nine.
-@p CTRL + @p 0-9	|								| Set the class ID of the currently selected mark to the value 10-19 (specified key + 10).
-@p ALT + @p 0-9		|								| Set the class ID of the currently selected mark to the value 20-29 (specified key + 20).
+Key							| Saves Modified Marks First	| Description
+----------------------------|-------------------------------|------------
+@p LEFT						| yes							| Go to previous image.  If at the first image, do nothing.
+@p RIGHT					| yes							| Go to the next image.  If at the last image, do nothing.
+@p PAGEUP					| yes							| Go to the previous image which has not yet been marked.
+@p PAGEDOWN					| yes							| Go to the next image which has not yet been marked.
+@p HOME						| yes							| Go to the first image.
+@p END						| yes							| Go to the last image.
+@p DEL						|								| Delete the currently selected marking.
+@p BACKSPACE				|								| Same as @p DEL.
+@p ESC						| yes							| Quit from DarkMark.
+@p F1						|								| About DarkMark.
+@p TAB						|								| Move focus to the next marking.
+@p SHIFT + @p TAB			|								| Move focus to the previous marking.
+@p a						|								| Accept all Darknet predictions (if any) for the current image as actual markings.
+@p b						|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
+@p l						|								| Cycle between the various label modes (on, off, auto).
+@p p						|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)
+@p r						| yes							| Randomly sort the images and load the first image.
+@p s (lowercase)			|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".
+@p S (uppercase)			|								| Same as @p s (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
+@p 0-9						|								| Set the class ID of the currently selected mark to the specified value zero through nine.
+@p CTRL + @p 0-9			|								| Set the class ID of the currently selected mark to the value 10-19 (specified key + 10).
+@p ALT + @p 0-9				|								| Set the class ID of the currently selected mark to the value 20-29 (specified key + 20).
+@p CTRL + @p ALT + @p 0-9	|								| Set the class ID of the currently selected mark to the value 30-39 (specified key + 30).
 
 */
