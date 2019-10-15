@@ -38,16 +38,32 @@ dm::Cfg::~Cfg(void)
 
 dm::Cfg & dm::Cfg::first_time_initialization(void)
 {
-	insert_if_not_exist("darknet_config"		, ""										);
-	insert_if_not_exist("darknet_weights"		, ""										);
-	insert_if_not_exist("darknet_names"			, ""										);
-	insert_if_not_exist("darknet_dir"			, "darknet/"								);
-	insert_if_not_exist("image_directory"		, ""										);
-	insert_if_not_exist("image_regex"			, "^.+\\.(?:(?:jpe?g)|(?:png)|(?:gif))$"	);
-	insert_if_not_exist("sort_order"			, static_cast<int>(ESort::kAlphabetical)	);
-	insert_if_not_exist("show_labels"			, static_cast<int>(EToggle::kAuto)			);
-	insert_if_not_exist("alpha_blend_percentage", 65										);
-	insert_if_not_exist("all_marks_are_bold"	, false										);
+	std::string home = "/tmp";
+	const char * ptr = getenv("HOME");
+	if (ptr != nullptr)
+	{
+		home = ptr;
+	}
+
+	insert_if_not_exist("darknet_config"				, ""										);
+	insert_if_not_exist("darknet_weights"				, ""										);
+	insert_if_not_exist("darknet_names"					, ""										);
+	insert_if_not_exist("darknet_dir"					, home + "/darknet"							);
+	insert_if_not_exist("image_directory"				, home + "/nn/flowers"						);
+	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:png)|(?:gif))$"	);
+	insert_if_not_exist("sort_order"					, static_cast<int>(ESort::kAlphabetical)	);
+	insert_if_not_exist("show_labels"					, static_cast<int>(EToggle::kAuto)			);
+	insert_if_not_exist("alpha_blend_percentage"		, 65										);
+	insert_if_not_exist("all_marks_are_bold"			, false										);
+	insert_if_not_exist("darknet_enable_yolov3_tiny"	, true										);
+	insert_if_not_exist("darknet_enable_yolov3_full"	, true										);
+	insert_if_not_exist("darknet_trailing_percentage"	, 85										);
+	insert_if_not_exist("darknet_image_size"			, 416										);
+	insert_if_not_exist("darknet_batch_size"			, 64										);
+	insert_if_not_exist("darknet_subdivisions"			, 8											);
+	insert_if_not_exist("darknet_iterations"			, 4000										);
+	insert_if_not_exist("darknet_enable_hue"			, true										);
+	insert_if_not_exist("darknet_enable_flip"			, true										);
 
 	saveIfNeeded();
 

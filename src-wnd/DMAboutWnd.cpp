@@ -70,8 +70,17 @@ void dm::DMAboutCanvas::timerCallback()
 dm::DMAboutWnd::DMAboutWnd() :
 		DialogWindow("DarkMark v" DARKMARK_VERSION " by C Code Run", Colours::lightgrey, true)
 {
-	setResizable(false, false);
-	setContentNonOwned(&canvas, true);
+	setContentNonOwned		(&canvas, true	);
+	setUsingNativeTitleBar	(true			);
+	setResizable			(false, false	);
+	setDropShadowEnabled	(true			);
+
+	setIcon(DarkMarkLogo());
+	ComponentPeer *peer = getPeer();
+	if (peer)
+	{
+		peer->setIcon(DarkMarkLogo());
+	}
 
 	auto r = dmapp().wnd->getBounds();
 	r = r.withSizeKeepingCentre(400, 400 + 50);

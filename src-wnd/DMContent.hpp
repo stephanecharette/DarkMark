@@ -55,8 +55,7 @@ namespace dm
 
 			bool load_json();
 
-			bool create_darknet_YOLO_files();
-			DMContent & create_darknet_files();
+			DMContent & show_darknet_window();
 
 			DMContent & delete_current_image();
 
@@ -90,22 +89,23 @@ namespace dm
 			cv::Mat original_image;
 			cv::Mat scaled_image;
 
+			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
+			double scale_factor;
+
 			/// The final size to which the background image needs to be resized to fit perfectly into the canvas.  @see @ref resized()
 			cv::Size scaled_image_size;
 
 			cv::Size2d most_recent_size;
 			size_t most_recent_class_idx;
 
-			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
-			double scale_factor;
-
-			File image_directory;
 			VStr image_filenames;
 			size_t image_filename_index;
-			std::string project_name;
+
 			std::string long_filename;
 			std::string short_filename;
 			std::string json_filename;
 			std::string text_filename;
+
+			ProjectInfo project_info;
 	};
 }

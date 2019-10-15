@@ -17,10 +17,10 @@ dm::DMContent::DMContent() :
 	show_predictions(false),
 	need_to_save(false),
 	selected_mark(-1),
-	most_recent_class_idx(0),
 	scale_factor(1.0),
-	image_directory(cfg().get_str("image_directory")),
-	image_filename_index(0)
+	most_recent_class_idx(0),
+	image_filename_index(0),
+	project_info(cfg().get_str("image_directory"))
 {
 	corners.push_back(new DMCorner(*this, ECorner::kTL));
 	corners.push_back(new DMCorner(*this, ECorner::kTR));
@@ -36,11 +36,9 @@ dm::DMContent::DMContent() :
 
 	setWantsKeyboardFocus(true);
 
-	project_name = image_directory.getFileNameWithoutExtension().toStdString();
-
 	const std::regex image_filename_regex(cfg().get_str("image_regex"), std::regex::icase | std::regex::nosubs | std::regex::optimize | std::regex::ECMAScript);
 
-	DirectoryIterator iter(image_directory, true, "*", File::findFiles + File::ignoreHiddenFiles);
+	DirectoryIterator iter(File(project_info.project_dir), true, "*", File::findFiles + File::ignoreHiddenFiles);
 	while (iter.next())
 	{
 		File f = iter.getFile();
@@ -53,7 +51,7 @@ dm::DMContent::DMContent() :
 			}
 		}
 	}
-	Log("number of images found in " + image_directory.getFullPathName().toStdString() + ": " + std::to_string(image_filenames.size()));
+	Log("number of images found in " + project_info.project_dir + ": " + std::to_string(image_filenames.size()));
 	set_sort_order(sort_order);
 
 	return;
@@ -186,16 +184,38 @@ void dm::DMContent::start_darknet()
 	const std::string darknet_cfg		= cfg().get_str("darknet_config"	);
 	const std::string darknet_weights	= cfg().get_str("darknet_weights"	);
 	const std::string darknet_names		= cfg().get_str("darknet_names"		);
-	try
+
+	if (darknet_cfg		.empty() == false and
+		darknet_weights	.empty() == false)
 	{
-		dmapp().darkhelp.reset(new DarkHelp(darknet_cfg, darknet_weights, darknet_names));
-//		Log("neural network loaded in " + darkhelp().duration_string());
+		try
+		{
+			dmapp().darkhelp.reset(new DarkHelp(darknet_cfg, darknet_weights, darknet_names));
+			Log("neural network loaded in " + darkhelp().duration_string());
+		}
+		catch (const std::exception & e)
+		{
+			dmapp().darkhelp.reset(nullptr);
+			Log("failed to load darknet (cfg=" + darknet_cfg + ", weights=" + darknet_weights + ", names=" + darknet_names + "): " + e.what());
+		}
+		names = darkhelp().names;
 	}
-	catch (const std::exception & e)
+	else if (not darknet_names.empty())
 	{
-		Log("failed to load darknet (cfg=" + darknet_cfg + ", weights=" + darknet_weights + ", names=" + darknet_names + "): " + e.what());
+		names.clear();
+
+		std::ifstream ifs(darknet_names);
+		std::string line;
+		while (std::getline(ifs, line))
+		{
+			if (line.empty())
+			{
+				break;
+			}
+			names.push_back(line);
+		}
 	}
-	names = darkhelp().names;
+
 	annotation_colours = darkhelp().annotation_colours;
 
 	load_image(0);
@@ -822,177 +842,13 @@ bool dm::DMContent::load_json()
 }
 
 
-bool dm::DMContent::create_darknet_YOLO_files()
+dm::DMContent & dm::DMContent::show_darknet_window()
 {
-	const std::string darknet_dir = cfg().get_str("darknet_dir");
-	if (darknet_dir.empty())
+	if (not dmapp().darknet_wnd)
 	{
-		// nothing we can do without the darknet directory
-		return false;
+		dmapp().darknet_wnd.reset(new DarknetWnd(*this));
 	}
-
-	File dir(darknet_dir);
-	File cfg_dir = dir.getChildFile("cfg");
-	File yolo_full_template = cfg_dir.getChildFile("yolov3.cfg");
-	File yolo_tiny_template = cfg_dir.getChildFile("yolov3-tiny.cfg");
-
-	if (yolo_full_template.existsAsFile() == false or yolo_tiny_template.existsAsFile() == false)
-	{
-		// something isn't setup like we expect if the two .cfg files do not exist
-		Log("cannot find YOLO .cfg files in " + cfg_dir.getFullPathName().toStdString());
-		return false;
-	}
-
-	File yolo_full = image_directory.getChildFile(project_name + "_yolov3-full.cfg");
-	File yolo_tiny = image_directory.getChildFile(project_name + "_yolov3-tiny.cfg");
-
-	yolo_full_template.copyFileTo(yolo_full);
-	yolo_tiny_template.copyFileTo(yolo_tiny);
-
-	const size_t flip					= 1;
-	const size_t number_of_iterations	= 4000;
-	const size_t step1					= std::round(0.8 * number_of_iterations);
-	const size_t step2					= std::round(0.9 * number_of_iterations);
-	const size_t batch					= 64;
-	const size_t subdivisions			= 16;
-	const size_t filters				= names.size() * 3 + 15;
-	const size_t width					= 416;		// must be a multiple of 32 (416, 608, 832, ...)
-	const size_t height					= width;	// must be a multiple of 32
-
-	for (const std::string & cfg_filename : {yolo_full.getFullPathName().toStdString(), yolo_tiny.getFullPathName().toStdString()})
-	{
-		const VStr commands =
-		{
-			"sed --in-place \"/^hue *=/ a\\flip="					+ std::to_string(flip)									+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(names.size())							+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^max_batches *=/ c\\max_batches="	+ std::to_string(number_of_iterations)					+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^steps *=/ c\\steps="				+ std::to_string(step1) + "," + std::to_string(step2)	+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^batch *=/ c\\batch="				+ std::to_string(batch)									+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^subdivisions *=/ c\\subdivisions="	+ std::to_string(subdivisions)							+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^filters *= *255/ c\\filters="		+ std::to_string(filters)								+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^height *=/ c\\height="				+ std::to_string(width)									+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^width *=/ c\\width="				+ std::to_string(height)								+ "\" "		+ cfg_filename
-		};
-
-		for (const std::string & cmd : commands)
-		{
-			const int rc = system(cmd.c_str());
-			if (rc)
-			{
-				Log("failed to run command (rc=" + std::to_string(rc) + "): " + cmd);
-				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Command failed to run:\n\n" + cmd);
-			}
-		}
-	}
-
-	return true;
-}
-
-
-dm::DMContent & dm::DMContent::create_darknet_files()
-{
-	create_darknet_YOLO_files();
-
-	const std::string output_dir		= image_directory.getFullPathName().toStdString();
-	const std::string data_filename		= image_directory.getChildFile(project_name				).withFileExtension(".data"	).getFullPathName().toStdString();
-	const std::string valid_filename	= image_directory.getChildFile(project_name + "_valid"	).withFileExtension(".txt"	).getFullPathName().toStdString();
-	const std::string train_filename	= image_directory.getChildFile(project_name + "_train"	).withFileExtension(".txt"	).getFullPathName().toStdString();
-	const std::string command_filename	= image_directory.getChildFile(project_name + "_train"	).withFileExtension(".sh"	).getFullPathName().toStdString();
-
-	if (true)
-	{
-		std::ofstream fs(data_filename);
-		fs	<< "classes = " << names.size()						<< std::endl
-			<< "train = " << train_filename						<< std::endl
-			<< "valid = " << valid_filename						<< std::endl
-			<< "names = " << cfg().get_str("darknet_names")		<< std::endl
-			<< "backup = " << output_dir						<< std::endl;
-	}
-
-	size_t number_of_files_train = 0;
-	size_t number_of_files_valid = 0;
-	size_t number_of_skipped_files = 0;
-	size_t number_of_marks = 0;
-	if (true)
-	{
-		const double percentage_of_image_files_to_use_for_training = 0.85;
-
-		// only include the images for which we have at least 1 mark
-		VStr v;
-		for (const auto & filename : image_filenames)
-		{
-			File f = File(filename).withFileExtension(".json");
-			const size_t count = count_marks_in_json(f);
-			if (count == 0)
-			{
-				number_of_skipped_files ++;
-			}
-			else
-			{
-				number_of_marks += count;
-				v.push_back(filename);
-			}
-		}
-
-		std::random_shuffle(v.begin(), v.end());
-		number_of_files_train = std::round(percentage_of_image_files_to_use_for_training * v.size());
-		number_of_files_valid = v.size() - number_of_files_train;
-
-		std::ofstream fs_train(train_filename);
-		std::ofstream fs_valid(valid_filename);
-
-		for (size_t idx = 0; idx < v.size(); idx ++)
-		{
-			if (idx < number_of_files_train)
-			{
-				fs_train << v[idx] << std::endl;
-			}
-			else
-			{
-				fs_valid << v[idx] << std::endl;
-			}
-		}
-	}
-
-	if (true)
-	{
-		std::stringstream ss;
-		ss	<< "#!/bin/bash"						<< std::endl
-			<< ""									<< std::endl
-			<< "cd " << output_dir					<< std::endl
-			<< ""									<< std::endl
-			<< "# other parms:  -show_imgs"			<< std::endl
-			<< "# other parms:  -mjpeg_port 8090"	<< std::endl
-			<< "/usr/bin/time --verbose ~/darknet/darknet detector -map -dont_show train " << data_filename << " " << project_name << "_yolov3-tiny.cfg" << std::endl
-			<< ""							<< std::endl;
-		const std::string data = ss.str();
-		File f(command_filename);
-		f.replaceWithData(data.c_str(), data.size());	// do not use replaceWithText() since it converts the file to CRLF endings which confuses bash
-		f.setExecutePermission(true);
-	}
-
-	if (true)
-	{
-		std::stringstream ss;
-		ss	<< "The necessary files to run darknet have been saved to " << output_dir << "." << std::endl
-			<< std::endl
-			<< "There are " << names.size() << " classes with a total of "
-			<< number_of_files_train << " training files and "
-			<< number_of_files_valid << " validation files. The average is "
-			<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
-			<< " marks per image." << std::endl
-			<< std::endl;
-
-		if (number_of_skipped_files)
-		{
-			ss	<< "IMPORTANT: " << number_of_skipped_files << " images were skipped because they have not yet been marked." << std::endl
-				<< std::endl;
-		}
-
-		ss << "Run " << command_filename << " to start the training.";
-
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
-	}
+	dmapp().darknet_wnd->toFront(true);
 
 	return *this;
 }
@@ -1125,8 +981,8 @@ PopupMenu dm::DMContent::create_popup_menu()
 	m.addSubMenu("sort", sort);
 	m.addSubMenu("image", image);
 	m.addSeparator();
-	m.addItem("gather statistics"	, std::function<void()>( [&]{ gather_statistics();		} ));
-	m.addItem("create darknet files", std::function<void()>( [&]{ create_darknet_files();	} ));
+	m.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();		} ));
+	m.addItem("create darknet files..."	, std::function<void()>( [&]{ show_darknet_window();	} ));
 
 	return m;
 }

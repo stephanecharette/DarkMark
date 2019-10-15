@@ -6,7 +6,7 @@
 
 
 dm::DMStatsWnd::DMStatsWnd(DMContent & c) :
-		DocumentWindow("DarkMark Statistics", Colours::lightgrey, TitleBarButtons::closeButton),
+		DocumentWindow("DarkMark v" DARKMARK_VERSION " Statistics", Colours::lightgrey, TitleBarButtons::closeButton),
 		content(c)
 {
 	tlb.getHeader().addColumn("class id"	, 1, 100, 30, -1, TableHeaderComponent::notSortable);
@@ -24,8 +24,17 @@ dm::DMStatsWnd::DMStatsWnd(DMContent & c) :
 	tlb.getHeader().setPopupMenuActive(false);
 	tlb.setModel(this);
 
-	setResizable(true, false);
-	setContentNonOwned(&tlb, true);
+	setContentNonOwned		(&tlb, true	);
+	setUsingNativeTitleBar	(true		);
+	setResizable			(true, false);
+	setDropShadowEnabled	(true		);
+
+	setIcon(DarkMarkLogo());
+	ComponentPeer *peer = getPeer();
+	if (peer)
+	{
+		peer->setIcon(DarkMarkLogo());
+	}
 
 	auto r = dmapp().wnd->getBounds();
 	r.reduce(50, 50);

@@ -70,6 +70,7 @@ void dm::DMCanvas::rebuild_cache_image()
 			const double beta = 1.0 - alpha;
 			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
+			// draw the drag corners
 			if (is_selected and tmp.cols >= 30 and tmp.rows >= 30)
 			{
 				tmp = content.scaled_image(r);
@@ -79,6 +80,7 @@ void dm::DMCanvas::rebuild_cache_image()
 				cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
 			}
 
+			// draw the label (if the area is large enough to warrant a label)
 			if (content.show_labels == EToggle::kOn or content.all_marks_are_bold or (content.show_labels == EToggle::kAuto and (is_selected or (tmp.cols >= 30 and tmp.rows >= 30))))
 			{
 				int baseline = 0;
@@ -89,10 +91,11 @@ void dm::DMCanvas::rebuild_cache_image()
 
 				// Rectangle for the label needs the TL and BR coordinates.
 				// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
-				cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + 4);
+				cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + baseline + 2);
 				if (is_selected or content.all_marks_are_bold)
 				{
-					text_rect.y = r.y - text_size.height - 3;
+					// move the text label above the rectangle
+					text_rect.y = r.y - text_size.height - baseline;
 				}
 
 				// check to see if the label is going to be off-screen, and if so slide it to a better position
@@ -101,7 +104,7 @@ void dm::DMCanvas::rebuild_cache_image()
 				if (text_rect.y < 0) text_rect.y = r.y + r.height;	// vertically, we need to place the label underneath instead of above
 
 				tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
-				cv::putText(tmp, name, cv::Point(1, tmp.rows - 2), fontface, fontscale, black, fontthickness, cv::LINE_AA);
+				cv::putText(tmp, name, cv::Point(1, tmp.rows - 5), fontface, fontscale, black, fontthickness, cv::LINE_AA);
 
 				cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
 			}
