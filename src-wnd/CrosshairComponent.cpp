@@ -19,6 +19,8 @@ dm::CrosshairComponent::CrosshairComponent() :
 	// why does this not work?
 	setMouseCursor(MouseCursor::NoCursor);
 
+	setRepaintsOnMouseActivity(true);
+
 	return;
 }
 

@@ -184,9 +184,12 @@ void dm::DMContent::start_darknet()
 	const std::string darknet_cfg		= cfg().get_str("darknet_config"	);
 	const std::string darknet_weights	= cfg().get_str("darknet_weights"	);
 	const std::string darknet_names		= cfg().get_str("darknet_names"		);
+	names.clear();
 
-	if (darknet_cfg		.empty() == false and
-		darknet_weights	.empty() == false)
+	if (darknet_cfg		.empty() == false	and
+		darknet_weights	.empty() == false	and
+		File(darknet_cfg).existsAsFile()	and
+		File(darknet_weights).existsAsFile())
 	{
 		try
 		{
@@ -200,10 +203,14 @@ void dm::DMContent::start_darknet()
 		}
 		names = darkhelp().names;
 	}
-	else if (not darknet_names.empty())
+	else
 	{
-		names.clear();
+		Log("skipped loading darknet due to missing or invalid .cfg or .weights filenames");
+	}
 
+	if (names.empty() and darknet_names.empty() == false)
+	{
+		Log("manually parsing " + darknet_names);
 		std::ifstream ifs(darknet_names);
 		std::string line;
 		while (std::getline(ifs, line))
@@ -215,8 +222,15 @@ void dm::DMContent::start_darknet()
 			names.push_back(line);
 		}
 	}
+	if (names.empty())
+	{
+		Log("classes/names is empty -- creating some dummy entries");
+		names = { "car", "person", "bicycle", "dog", "cat" };
+	}
 
-	annotation_colours = darkhelp().annotation_colours;
+	Log("number of name entries: " + std::to_string(names.size()));
+
+	annotation_colours = DarkHelp::get_default_annotation_colours();
 
 	load_image(0);
 
@@ -424,14 +438,11 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	}
 	else if (key.getTextCharacter() == 's' or key.getTextCharacter() == 'S')
 	{
-		std::string filename = long_filename;
-		size_t pos = filename.rfind(".");
-		if (pos != std::string::npos)
-		{
-			filename.erase(pos);
-		}
+		std::string filename = File(long_filename).getFileNameWithoutExtension().toStdString();
 		filename += "_annotated.png";
-		FileChooser chooser("Save annotated image to...", File(filename));
+		File f = File::getSpecialLocation(File::SpecialLocationType::userDesktopDirectory).getChildFile(filename);
+
+		FileChooser chooser("Save annotated image to...", f, "*.png,*.jpg,*.jpeg");
 		if (chooser.browseForFileToSave(true))
 		{
 			const auto old_scaled_image_size = scaled_image_size;

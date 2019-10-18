@@ -16,16 +16,14 @@ namespace dm
 			DarkMarkApplication(void);
 			virtual ~DarkMarkApplication(void);
 
-			const String getApplicationName		(void) override	{ return "DarkMark";		}
-			const String getApplicationVersion	(void) override	{ return DARKMARK_VERSION;	}
-			bool moreThanOneInstanceAllowed		(void) override	{ return true;				}
-			void systemRequestedQuit			(void) override { quit();					}
+			virtual const String getApplicationName		(void)	override	{ return "DarkMark";		}
+			virtual const String getApplicationVersion	(void)	override	{ return DARKMARK_VERSION;	}
+			virtual bool moreThanOneInstanceAllowed		(void)	override	{ return true;				}
+			virtual void systemRequestedQuit			(void)	override	{ quit();					}
+			virtual void initialise(const String & commandLine)	override;
+			virtual void shutdown() override;
 
-			void initialise(const String& commandLine) override;
-
-			void shutdown() override;
-
-			void unhandledException(const std::exception *e, const String &sourceFilename, int lineNumber) override;
+			void unhandledException(const std::exception * e, const String &sourceFilename, int lineNumber) override;
 
 			TooltipWindow tool_tip;
 
@@ -35,6 +33,7 @@ namespace dm
 			std::unique_ptr<DMStatsWnd>	stats_wnd;
 			std::unique_ptr<DMAboutWnd>	about_wnd;
 			std::unique_ptr<DarknetWnd>	darknet_wnd;
+			std::unique_ptr<StartupWnd>	startup_wnd;
 	};
 
 
@@ -42,9 +41,18 @@ namespace dm
 	 * app somehow does not exist, such as early in the startup process, or late
 	 * in the shutdown sequence.
 	 */
-	inline DarkMarkApplication & dmapp(void)
+	inline DarkMarkApplication & dmapp()
 	{
-		DarkMarkApplication * app = dynamic_cast<dm::DarkMarkApplication*>(JUCEApplication::getInstance());
+		#if 0
+			/* I'd rather use this next line, but it is causing a strange typeinfo error during linking that I don't understand,
+			 * so we'll have to do the reinterpret cast instead.  This should be fine since in this case the problem isn't that
+			 * getInstance() will return a different pointer type; either the JUCE app exists, or it hasn't yet been created in
+			 * which case we'll still get back a NULL pointer.
+			 */
+			DarkMarkApplication * app = dynamic_cast<DarkMarkApplication*>(JUCEApplication::getInstance());
+		#else
+			DarkMarkApplication * app = reinterpret_cast<DarkMarkApplication*>(JUCEApplication::getInstance());
+		#endif
 		if (app == nullptr)
 		{
 			throw std::runtime_error("failed to find an active application pointer");
@@ -53,14 +61,14 @@ namespace dm
 		return *app;
 	}
 
-
 	/// Quick and easy access to configuration.  Will throw if the application does not exist.
-	inline Cfg & cfg(void)
+	inline Cfg & cfg()
 	{
 		return *dmapp().cfg;
 	}
 
-	inline DarkHelp & darkhelp(void)
+	/// Quick and easy access to DarkHelp (darknet).  Will throw if the application does not exist.
+	inline DarkHelp & darkhelp()
 	{
 		return *dmapp().darkhelp;
 	}
