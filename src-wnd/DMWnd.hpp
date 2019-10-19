@@ -19,8 +19,6 @@ namespace dm
 
 			virtual void closeButtonPressed();
 
-			virtual bool keyPressed(const KeyPress &key);
-
 			DMContent content;
 	};
 }

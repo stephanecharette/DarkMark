@@ -55,7 +55,6 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 
 	cfg.reset(new Cfg);
 	startup_wnd.reset(new StartupWnd);
-//	wnd.reset(new DMWnd);
 
 	return;
 }

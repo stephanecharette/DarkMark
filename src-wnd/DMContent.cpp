@@ -399,7 +399,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	}
 	else if (keycode == KeyPress::escapeKey)
 	{
-		dmapp().quit();
+		dmapp().wnd->closeButtonPressed();
 	}
 	else if (keycode == KeyPress::F1Key)
 	{

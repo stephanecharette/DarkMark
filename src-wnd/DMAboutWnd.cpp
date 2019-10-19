@@ -82,9 +82,7 @@ dm::DMAboutWnd::DMAboutWnd() :
 		peer->setIcon(DarkMarkLogo());
 	}
 
-	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 400 + 50);
-	setBounds(r);
+	centreWithSize(400, 400 + 50);	// logo needs 400x400, but we also want to print a few lines of text at the bottom
 
 	setVisible(true);
 

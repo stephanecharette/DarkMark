@@ -24,6 +24,8 @@ namespace dm
 
 			virtual void buttonClicked(Button * button);
 
+			virtual bool keyPressed(const KeyPress & key);
+
 			Component canvas;
 			Notebook notebook;
 			TextButton add_button;

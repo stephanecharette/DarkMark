@@ -6,7 +6,7 @@
 
 
 dm::StartupWnd::StartupWnd() :
-		DocumentWindow("DarkMark v" DARKMARK_VERSION, Colours::darkgrey, TitleBarButtons::closeButton),
+		DocumentWindow("DarkMark v" DARKMARK_VERSION " Launcher", Colours::darkgrey, TitleBarButtons::allButtons),
 		add_button("Add..."),
 		ok_button("OK"),
 		cancel_button("Cancel")
@@ -102,7 +102,9 @@ void dm::StartupWnd::closeButtonPressed()
 {
 	// close button
 
+	setVisible(false);
 	dmapp().startup_wnd.reset(nullptr);
+	dmapp().quit();
 
 	return;
 }
@@ -112,7 +114,7 @@ void dm::StartupWnd::userTriedToCloseWindow()
 {
 	// ALT+F4
 
-	dmapp().startup_wnd.reset(nullptr);
+	closeButtonPressed();
 
 	return;
 }
@@ -150,9 +152,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 {
 	if (button == &cancel_button)
 	{
-		canvas.setEnabled(false);
 		closeButtonPressed();
-		dmapp().quit();
 	}
 	else if (button == &add_button)
 	{
@@ -202,8 +202,10 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				cfg().setValue("project_" + key + "_cfg"		, notebook_canvas->darknet_configuration_filename	);
 				cfg().setValue("project_" + key + "_weights"	, notebook_canvas->darknet_weights_filename			);
 				cfg().setValue("project_" + key + "_names"		, notebook_canvas->darknet_names_filename			);
+
+				setVisible(false);
 				dmapp().wnd.reset(new DMWnd);
-				closeButtonPressed();
+				dmapp().startup_wnd.reset(nullptr);
 			}
 			else
 			{
@@ -213,4 +215,26 @@ void dm::StartupWnd::buttonClicked(Button * button)
 	}
 
 	return;
+}
+
+
+bool dm::StartupWnd::keyPressed(const KeyPress & key)
+{
+	if (key.getKeyCode() == KeyPress::F1Key)
+	{
+		if (not dmapp().about_wnd)
+		{
+			dmapp().about_wnd.reset(new DMAboutWnd);
+		}
+		dmapp().about_wnd->toFront(true);
+		return true; // key has been handled
+	}
+
+	if (key.getKeyCode() == KeyPress::escapeKey)
+	{
+		closeButtonPressed();
+		return true; // key has been handled
+	}
+
+	return false; // false == keystroke not handled
 }

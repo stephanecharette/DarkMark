@@ -92,16 +92,37 @@ void dm::DMCanvas::rebuild_cache_image()
 				// Rectangle for the label needs the TL and BR coordinates.
 				// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
 				cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + baseline + 2);
-				if (is_selected or content.all_marks_are_bold)
+				if (is_selected or content.all_marks_are_bold or text_rect.br().y >= content.scaled_image.rows)
 				{
 					// move the text label above the rectangle
 					text_rect.y = r.y - text_size.height - baseline;
 				}
 
+#if 0
+				Log("scaled image cols=" + std::to_string(content.scaled_image.cols) + " rows=" + std::to_string(content.scaled_image.rows));
+				Log("mark rectangle:  "
+					" x=" + std::to_string(r.x) +
+					" y=" + std::to_string(r.y) +
+					" w=" + std::to_string(r.width) +
+					" h=" + std::to_string(r.height));
+				Log("text_rect before:"
+					" x=" + std::to_string(text_rect.x) +
+					" y=" + std::to_string(text_rect.y) +
+					" w=" + std::to_string(text_rect.width) +
+					" h=" + std::to_string(text_rect.height));
+#endif
 				// check to see if the label is going to be off-screen, and if so slide it to a better position
 				if (text_rect.x < 0) text_rect.x = r.x;				// first attempt to fix this is to make it left-aligned
 				if (text_rect.x < 0) text_rect.x = 0;				// ...and if that didn't work, slide it to the left edge
 				if (text_rect.y < 0) text_rect.y = r.y + r.height;	// vertically, we need to place the label underneath instead of above
+
+#if 0
+				Log("text_rect after: "
+					" x=" + std::to_string(text_rect.x) +
+					" y=" + std::to_string(text_rect.y) +
+					" w=" + std::to_string(text_rect.width) +
+					" h=" + std::to_string(text_rect.height));
+#endif
 
 				tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
 				cv::putText(tmp, name, cv::Point(1, tmp.rows - 5), fontface, fontscale, black, fontthickness, cv::LINE_AA);

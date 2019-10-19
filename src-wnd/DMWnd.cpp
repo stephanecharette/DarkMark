@@ -51,32 +51,8 @@ dm::DMWnd::~DMWnd(void)
 void dm::DMWnd::closeButtonPressed(void)
 {
 	setVisible(false);
-	JUCEApplication::getInstance()->systemRequestedQuit();
+	dmapp().startup_wnd.reset(new StartupWnd);
+	dmapp().wnd.reset(nullptr);
 
 	return;
-}
-
-
-bool dm::DMWnd::keyPressed(const KeyPress &key)
-{
-	const ModifierKeys modifiers = key.getModifiers();
-	if (key.isKeyCode(KeyPress::F1Key))
-	{
-		// ...todo
-		return true; // true == consume the keystroke
-	}
-	else if (key.isKeyCode(KeyPress::F2Key) && modifiers.isShiftDown())
-	{
-//		File f = cfg().getFile();
-//		f.revealToUser();
-		return true; // true == consume the keystroke
-	}
-	else if (key.isKeyCode(KeyPress::F4Key) && modifiers.isShiftDown())
-	{
-//		File f( get_log_filename() );
-//		f.startAsProcess();
-		return true; // true == consume the keystroke
-	}
-
-	return false; // false == keystroke not handled
 }
