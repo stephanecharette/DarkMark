@@ -21,4 +21,6 @@ make package
 
 Once the @p .deb package has been created, install it with @p "sudo dpkg -i darkmark*.deb".
 
+@todo Document exactly how to build DarkMark from scratch on a new VM.
+
 */
