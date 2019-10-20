@@ -8,6 +8,7 @@
 dm::StartupWnd::StartupWnd() :
 		DocumentWindow("DarkMark v" DARKMARK_VERSION " Launcher", Colours::darkgrey, TitleBarButtons::allButtons),
 		add_button("Add..."),
+		delete_button("Delete..."),
 		ok_button("OK"),
 		cancel_button("Cancel")
 {
@@ -18,6 +19,7 @@ dm::StartupWnd::StartupWnd() :
 
 	canvas.addAndMakeVisible(notebook);
 	canvas.addAndMakeVisible(add_button);
+	canvas.addAndMakeVisible(delete_button);
 	canvas.addAndMakeVisible(ok_button);
 	canvas.addAndMakeVisible(cancel_button);
 
@@ -53,11 +55,9 @@ dm::StartupWnd::StartupWnd() :
 	notebook.setCurrentTabIndex(0);
 
 	add_button		.addListener(this);
+	delete_button	.addListener(this);
 	ok_button		.addListener(this);
 	cancel_button	.addListener(this);
-
-	/// @todo add button not yet supported
-	add_button.setEnabled(false);
 
 	setIcon(DarkMarkLogo());
 	ComponentPeer *peer = getPeer();
@@ -131,6 +131,7 @@ void dm::StartupWnd::resized()
 	button_row.flexDirection = FlexBox::Direction::row;
 	button_row.justifyContent = FlexBox::JustifyContent::flexEnd;
 	button_row.items.add(FlexItem(add_button)	.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+	button_row.items.add(FlexItem(delete_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 	button_row.items.add(FlexItem()				.withFlex(1.0));
 	button_row.items.add(FlexItem(cancel_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 	button_row.items.add(FlexItem(ok_button)	.withWidth(100.0));
@@ -156,7 +157,139 @@ void dm::StartupWnd::buttonClicked(Button * button)
 	}
 	else if (button == &add_button)
 	{
-		/// @todo
+		File home = File::getSpecialLocation(File::SpecialLocationType::userHomeDirectory);
+		File dir = home;
+
+		// attempt to default to the parent directory of the active tab (if we have a tab)
+		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
+		if (notebook_canvas)
+		{
+			dir = File(notebook_canvas->project_directory.toString()).getParentDirectory();
+		}
+
+		FileChooser chooser("Select the new project directory...", dir);
+		bool result = chooser.browseForDirectory();
+		if (result)
+		{
+			dir = chooser.getResult();
+
+			// loop through the existing tabs and make sure this directory doesn't already show up
+			bool ok = true;
+			for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
+			{
+				notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
+				if (notebook_canvas)
+				{
+					File path(notebook_canvas->project_directory.toString());
+					if (dir == path or dir.isAChildOf(path) or path.isAChildOf(dir))
+					{
+						notebook.setCurrentTabIndex(idx);
+						AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark Project", "The new project path " + dir.getFullPathName().toStdString() + " conflicts with an existing project located at " + path.getFullPathName().toStdString() + ".", "Cancel");
+						ok = false;
+						break;
+					}
+				}
+			}
+
+			if (ok)
+			{
+				const std::string project_name = dir.getFileNameWithoutExtension().toStdString();
+				const std::string names = dir.getChildFile(project_name).withFileExtension(".names").getFullPathName().toStdString();
+				const bool need_to_create_new_names_file = (File(names).existsAsFile() == false);
+				if (need_to_create_new_names_file)
+				{
+					std::ofstream ofs(names);
+					ofs	<< "bicycle"	<< std::endl
+						<< "car"		<< std::endl
+						<< "truck"		<< std::endl
+						<< "person"		<< std::endl;
+				}
+
+				// find a key that isn't used yet
+				String key;
+				while (true)
+				{
+					key = String(std::rand());
+					if (cfg().containsKey("project_" + key + "_dir") == false)
+					{
+						break;
+					}
+				}
+
+				cfg().setValue("project_" + key + "_dir"		, dir.getFullPathName());
+				cfg().setValue("project_" + key + "_timestamp"	, (int)std::time(nullptr));
+				cfg().setValue("project_" + key + "_names"		, names.c_str());
+
+				notebook.addTab(project_name, Colours::darkgrey, new StartupCanvas(key.toStdString(), dir.getFullPathName().toStdString()), true, 0);
+				notebook.setCurrentTabIndex(0);
+
+				AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark Project", "Successfully added the new project " + dir.getFullPathName() + ".");
+				if (need_to_create_new_names_file)
+				{
+					File(names).revealToUser();
+				}
+			}
+		}
+	}
+	else if (button == &delete_button)
+	{
+		const int tab_index = notebook.getCurrentTabIndex();
+		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(tab_index));
+		if (notebook_canvas)
+		{
+			File dir(notebook_canvas->project_directory.toString());
+
+			int result = AlertWindow::showYesNoCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark Project Deletion",
+					"Project directory: " + dir.getFullPathName().toStdString() + "\n"
+					"\n"
+					"Do you want to remove the project from DarkMark but keep the files, or remove the project and also delete all the files?",
+					"Remove Project Only", "Remove Project And Delete Files", "Cancel");
+
+			if (result > 0)
+			{
+				// need to remove the project from DarkMark, which means we must go through all of the keys
+				// and delete all the ones that match the name "project_0123_..."
+
+				const String name = "project_" + notebook_canvas->cfg_key + "_";
+				notebook.removeTab(tab_index);
+				notebook_canvas = nullptr;
+
+				SStr keys_to_delete;
+				for (const String k : cfg().getAllProperties().getAllKeys())
+				{
+					if (k.startsWith(name))
+					{
+						keys_to_delete.insert(k.toStdString());
+					}
+				}
+				for (const std::string k : keys_to_delete)
+				{
+					Log(dir.getFullPathName().toStdString() + ": removing key from configuration: " + k);
+					cfg().removeValue(k);
+				}
+				notebook.setCurrentTabIndex(std::max(0, tab_index - 1));
+			}
+
+			if (result == 2)
+			{
+				// delete all of the source files!?
+				result = AlertWindow::showOkCancelBox(
+						AlertWindow::AlertIconType::QuestionIcon,
+						"DarkMark Project Deletion",
+						"Project directory: " + dir.getFullPathName().toStdString() + "\n"
+						"\n"
+						"The project has been removed from DarkMark.\n"
+						"\n"
+						"Please confirm you also want to delete all the images, configuration, weights, etc., contained in this directory.",
+						"Delete All Files", "Cancel");
+
+				if (result == 1)
+				{
+					Log("user has chosen to delete all of the files in " + dir.getFullPathName().toStdString());
+					dir.deleteRecursively();
+				}
+			}
+		}
 	}
 	else if (button == &ok_button)
 	{
@@ -170,24 +303,37 @@ void dm::StartupWnd::buttonClicked(Button * button)
 			const String cfg_filename		= notebook_canvas->darknet_configuration_filename	.toString();
 			const String weights_filename	= notebook_canvas->darknet_weights_filename			.toString();
 			const String names_filename		= notebook_canvas->darknet_names_filename			.toString();
+			const int image_count			= notebook_canvas->number_of_images					.getValue();
 
 			const bool dir_exists			= File(notebook_canvas->project_directory.toString()).exists();
 			const bool cfg_exists			= cfg_filename		.isEmpty()	or File(cfg_filename		).existsAsFile();
 			const bool weights_exits		= weights_filename	.isEmpty()	or File(weights_filename	).existsAsFile();
 			const bool names_exists			= names_filename	.isEmpty()	or File(names_filename		).existsAsFile();
 
-			size_t error_count = 0;
+			size_t warning_count	= 0;
+			size_t error_count		= 0;
+
 			std::stringstream ss;
 			ss << std::endl << std::endl;
-			if (dir_exists		== false)	{ ss << "- The project directory does not exist."	<< std::endl;	error_count ++; }
-			if (cfg_exists		== false)	{ ss << "- The .cfg file does not exist."			<< std::endl;	error_count ++; }
-			if (weights_exits	== false)	{ ss << "- The .weights file does not exist."		<< std::endl;	error_count ++; }
-			if (names_exists	== false)	{ ss << "- The .names file does not exist."			<< std::endl;	error_count ++; }
+			if (image_count		< 1)		{ ss << "- There are no images in the project directory."	<< std::endl;	error_count		++; }
+			if (dir_exists		== false)	{ ss << "- The project directory does not exist."			<< std::endl;	error_count		++; }
+			if (cfg_exists		== false)	{ ss << "- The .cfg file does not exist."					<< std::endl;	warning_count	++; }
+			if (weights_exits	== false)	{ ss << "- The .weights file does not exist."				<< std::endl;	warning_count	++; }
+			if (names_exists	== false)	{ ss << "- The .names file does not exist."					<< std::endl;	error_count		++; }
+
+			const size_t message_count = warning_count + error_count;
 			if (error_count > 0)
 			{
+				const String title = "DarkMark Project Error" + String(message_count == 1 ? "" : "s") + " Detected";
+				const String msg = "Please note the following error message" + String(message_count == 1 ? "" : "s") + ":" + ss.str();
+				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, title, msg);
+				load_project = false;
+			}
+			else if (warning_count > 0)
+			{
 				ss << std::endl << "Continue to load this project?";
-				const String title = "DarkMark Project Error" + String(error_count == 1 ? "" : "s") + " Detected";
-				const String msg = "Please note the following error message" + String(error_count == 1 ? "" : "s") + ":" + ss.str();
+				const String title = "DarkMark Project Warning" + String(message_count == 1 ? "" : "s") + " Detected";
+				const String msg = "Please note the following warning message" + String(message_count == 1 ? "" : "s") + ":" + ss.str();
 				const int result = AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, title, msg, "Load", "Cancel");
 				load_project = (result == 1 ? true : false);
 			}

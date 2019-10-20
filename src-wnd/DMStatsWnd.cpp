@@ -199,7 +199,8 @@ void dm::DMStatsWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 
 	// draw the text and the right-hand-side dividing line between cells
 	g.setColour( Colours::black );
-	g.drawFittedText(ss.str(), 0, 0, width, height, Justification::centredLeft, 1 );
+	Rectangle<int> r(0, 0, width, height);
+	g.drawFittedText(ss.str(), r.reduced(2), Justification::centredLeft, 1 );
 
 	// draw the divider on the right side of the column
 	g.setColour( Colours::black.withAlpha( 0.5f ) );

@@ -29,6 +29,7 @@ namespace dm
 			Component canvas;
 			Notebook notebook;
 			TextButton add_button;
+			TextButton delete_button;
 			TextButton ok_button;
 			TextButton cancel_button;
 	};

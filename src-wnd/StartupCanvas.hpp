@@ -64,6 +64,10 @@ namespace dm
 		Value project_directory;	///< full path where this project is located
 		Value number_of_images;
 		Value number_of_json;
+		Value number_of_classes;
+		Value number_of_marks;
+		Value newest_markup;
+		Value oldest_markup;
 		Value darknet_configuration_filename;
 		Value darknet_weights_filename;
 		Value darknet_names_filename;

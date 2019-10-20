@@ -4,6 +4,9 @@
 
 #include "DarkMark.hpp"
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 
 dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & dir) :
 	Component("Startup Notebook Canvas"),
@@ -30,6 +33,10 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	project_directory	= dir.c_str();
 	number_of_images	= "...";
 	number_of_json		= "...";
+	number_of_classes	= "...";
+	number_of_marks		= "...";
+	newest_markup		= "...";
+	oldest_markup		= "...";
 
 	darknet_configuration_filename	= cfg().getValue("project_" + key + "_cfg"		);
 	darknet_weights_filename		= cfg().getValue("project_" + key + "_weights"	);
@@ -44,6 +51,10 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	properties.add(new TextPropertyComponent(project_directory				, "project directory"		, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_images				, "image files"				, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_json					, "markup files"			, 1000, false, false));
+	properties.add(new TextPropertyComponent(number_of_classes				, "number of classes"		, 1000, false, false));
+	properties.add(new TextPropertyComponent(number_of_marks				, "number of marks"			, 1000, false, false));
+	properties.add(new TextPropertyComponent(newest_markup					, "newest markup"			, 1000, false, false));
+	properties.add(new TextPropertyComponent(oldest_markup					, "oldest markup"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(darknet_configuration_filename	, "darknet configuration"	, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_weights_filename		, "darknet weights"			, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_names_filename			, "classes/names"			, 1000, false, true));
@@ -72,7 +83,7 @@ dm::StartupCanvas::~StartupCanvas()
 void dm::StartupCanvas::resized()
 {
 	const int margin_size		= 5;
-	const int number_of_lines	= 6;
+	const int number_of_lines	= 10;
 	const int height_per_line	= 25;
 	const int total_pp_height	= number_of_lines * height_per_line;
 
@@ -120,7 +131,7 @@ void dm::StartupCanvas::initialize_on_thread()
 		const size_t json_counter	= json_filenames.size();
 
 		number_of_images	= String(image_counter);
-		number_of_json		= String(json_counter) + " (" + String(std::round(100.0 * json_counter / image_counter)) + "%)";
+		number_of_json		= String(json_counter) + " (" + String(std::round(100.0 * json_counter / (image_counter == 0 ? 1 : image_counter))) + "%)";
 	}
 
 	if (image_filenames.empty() == false)
@@ -129,11 +140,67 @@ void dm::StartupCanvas::initialize_on_thread()
 		thumbnail.setImage(image, RectanglePlacement::xLeft);
 	}
 
-	// we're done with the image filenames, so free the memory this this can be significant
-	image_filenames.clear();
-	json_filenames.clear();
-
 	find_all_darknet_files();
+
+	try
+	{
+		// look for newest and oldest timestamp
+		std::time_t oldest = 0;
+		std::time_t newest = 0;
+		std::size_t count = 0;
+
+		for (const auto & filename : json_filenames)
+		{
+			if (done)
+			{
+				break;
+			}
+
+			json j = json::parse(File(filename).loadFileAsString().toStdString());
+			count += j["mark"].size();
+			std::time_t timestamp = j["timestamp"].get<std::time_t>();
+			if (oldest == 0 || timestamp < oldest)
+			{
+				oldest = timestamp;
+			}
+			if (newest == 0 || timestamp > newest)
+			{
+				newest = timestamp;
+			}
+		}
+
+		char buffer[50] = "";
+		if (oldest > 0)
+		{
+			auto tm = localtime(&oldest);
+			std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
+		}
+		oldest_markup = buffer;
+
+		buffer[0] = '\0';
+		if (newest > 0)
+		{
+			auto tm = localtime(&newest);
+			std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
+		}
+		newest_markup = buffer;
+
+		const int classes = number_of_classes.getValue();
+		std::stringstream ss;
+		ss << count;
+		if (classes > 0)
+		{
+			ss << " (average of " << (count/classes) << " marks per class)";
+		}
+		number_of_marks = ss.str().c_str();
+	}
+	catch (const std::exception & e)
+	{
+		Log(dir.getFullPathName().toStdString() + ": error while reading JSON: " + e.what());
+		oldest_markup	= "(error reading markup .json file)";
+		newest_markup	= oldest_markup.toString();
+		number_of_marks	= oldest_markup.toString();
+	}
 
 	return;
 }
@@ -251,6 +318,27 @@ void dm::StartupCanvas::find_all_darknet_files()
 		}
 	}
 
+	const String fn = darknet_names_filename.toString();
+	if (File(fn).existsAsFile())
+	{
+		VStr v;
+		std::ifstream ifs(fn.toStdString());
+		std::string line;
+		while (std::getline(ifs, line))
+		{
+			if (line.empty())
+			{
+				break;
+			}
+			v.push_back(line);
+		}
+		number_of_classes = String(v.size());
+	}
+	else
+	{
+		number_of_classes = "?";
+	}
+
 	return;
 }
 
@@ -349,7 +437,8 @@ void dm::StartupCanvas::paintCell(Graphics & g, int rowNumber, int columnId, int
 
 	// draw the text and the right-hand-side dividing line between cells
 	g.setColour( Colours::black );
-	g.drawFittedText(str, 0, 0, width, height, Justification::centredLeft, 1 );
+	Rectangle<int> r(0, 0, width, height);
+	g.drawFittedText(str, r.reduced(2), Justification::centredLeft, 1 );
 
 	// draw the divider on the right side of the column
 	g.setColour( Colours::black.withAlpha( 0.5f ) );
