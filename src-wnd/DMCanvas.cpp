@@ -165,8 +165,7 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 				const double len = std::round(std::hypot(corner_point.x - p.x, corner_point.y - p.y));
 				if (len < 10)
 				{
-					// we're clicking on a corner!
-					Log("corner click detected, type=" + std::to_string((int)type));
+					// we've clicked on a corner!
 
 					const auto opposite_corner = static_cast<ECorner>((static_cast<int>(type) + 2) % 4);
 					const cv::Point corner_point = m.get_corner(opposite_corner);
