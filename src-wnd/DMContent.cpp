@@ -282,6 +282,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 				selected_mark --;
 				if (selected_mark < 0)
 				{
+					// wrap back around to the last mark
 					selected_mark = marks.size() - 1;
 				}
 			}
@@ -291,9 +292,15 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 				selected_mark ++;
 				if (selected_mark >= (int)marks.size())
 				{
+					// wrap back around to the very first mark
 					selected_mark = 0;
 				}
 			}
+
+			// remember the class and size of this mark in case the user wants to double-click and create a similar one
+			const Mark & m = marks.at(selected_mark);
+			most_recent_class_idx = m.class_idx;
+			most_recent_size = m.get_normalized_bounding_rect().size();
 
 			rebuild_image_and_repaint();
 			return true; // event has been handled

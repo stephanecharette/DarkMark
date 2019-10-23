@@ -1,9 +1,33 @@
 /** @page Summary Summary
 
+@section DarkMarkLauncher DarkMark Launcher
+
+You first choose which project DarkMark needs to load.  This is the DarkMark Launcher window:
+
+@image html darkmark_launcher.png
+
+Projects are simple:  each neural network "project" is a directory.  These directories store the images, darknet configuration files, weight files, and the @p .txt files that darknet needs for labels.  Tabs at the top represent each unique project ("directory") that DarkMark knows about.
+
+Once you select a tab and click on @p "Load...", the launcher window is hidden and the DarkMark editor window is shown instead.
+
+@section DarkMarkEditor DarkMark Editor
+
+The editor is the main window for the DarkMark application.  This is where you can browse through all the images located within that project and create, edit, or delete individual marks:
+
+@image html darkmark_editor.png
+
+You click-and-drag the mouse to create or modify marks.  Use the cursor keys, @p PGUP, @p PGDOWN, @p HOME, or @p END to change the image, the number keys to change the class of a mark, etc.  See @ref Keyboard for additional hints.  Right-mouse-click in the editor window will provide many other options, including generating all of the darknet configuration files needed to train a new network.
+
+When you quit from the DarkMark Editor window, it will bring you back to the DarkMark Launcher window.
+
+----
+
+
+This video briefly shows how to use DarkMark:
+
 @htmlonly[block]
 <iframe width="560" height="315" src="https://www.youtube.com/embed/GK1QhOMI7O0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 @endhtmlonly
 
-@todo Write a "Summary" page.
 
 */

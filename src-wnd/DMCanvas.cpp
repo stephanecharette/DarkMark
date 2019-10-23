@@ -184,6 +184,7 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 					smallest_area = area;
 					content.selected_mark = idx;
 					content.most_recent_class_idx = m.class_idx;
+					content.most_recent_size = m.get_normalized_bounding_rect().size();
 				}
 			}
 		}
