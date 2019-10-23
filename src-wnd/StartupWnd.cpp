@@ -9,7 +9,7 @@ dm::StartupWnd::StartupWnd() :
 		DocumentWindow("DarkMark v" DARKMARK_VERSION " Launcher", Colours::darkgrey, TitleBarButtons::allButtons),
 		add_button("Add..."),
 		delete_button("Delete..."),
-		ok_button("OK"),
+		ok_button("Load..."),
 		cancel_button("Cancel")
 {
 	setContentNonOwned		(&canvas, true	);

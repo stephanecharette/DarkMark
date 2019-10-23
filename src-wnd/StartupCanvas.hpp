@@ -58,10 +58,13 @@ namespace dm
 		void find_all_darknet_files();
 		void filter_out_extra_weight_files();
 
+		void calculate_size_of_directory();
+
 		std::string cfg_key;
 
 		PropertyPanel pp;
 		Value project_directory;	///< full path where this project is located
+		Value size_of_directory;
 		Value number_of_images;
 		Value number_of_json;
 		Value number_of_classes;

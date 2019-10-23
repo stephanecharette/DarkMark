@@ -31,6 +31,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	table.setModel(this);
 
 	project_directory	= dir.c_str();
+	size_of_directory	= "...";
 	number_of_images	= "...";
 	number_of_json		= "...";
 	number_of_classes	= "...";
@@ -49,6 +50,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	Array<PropertyComponent *> properties;
 
 	properties.add(new TextPropertyComponent(project_directory				, "project directory"		, 1000, false, false));
+	properties.add(new TextPropertyComponent(size_of_directory				, "size of directory"		, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_images				, "image files"				, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_json					, "markup files"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_classes				, "number of classes"		, 1000, false, false));
@@ -83,7 +85,7 @@ dm::StartupCanvas::~StartupCanvas()
 void dm::StartupCanvas::resized()
 {
 	const int margin_size		= 5;
-	const int number_of_lines	= 10;
+	const int number_of_lines	= 11;
 	const int height_per_line	= 25;
 	const int total_pp_height	= number_of_lines * height_per_line;
 
@@ -118,7 +120,7 @@ void dm::StartupCanvas::initialize_on_thread()
 	table.repaint();
 
 	// give the main window a chance to start up completely before we start pounding the drive looking for files
-	std::this_thread::sleep_for(std::chrono::milliseconds(250));
+	std::this_thread::sleep_for(std::chrono::milliseconds(100 + std::rand() % 250));
 
 	File dir(project_directory.toString());
 
@@ -141,6 +143,8 @@ void dm::StartupCanvas::initialize_on_thread()
 	}
 
 	find_all_darknet_files();
+
+	calculate_size_of_directory();
 
 	try
 	{
@@ -187,10 +191,16 @@ void dm::StartupCanvas::initialize_on_thread()
 
 		const int classes = number_of_classes.getValue();
 		std::stringstream ss;
+		ss << std::fixed << std::setprecision(1);
 		ss << count;
-		if (classes > 0)
+		if (classes > 0 and count > 0)
 		{
-			ss << " (average of " << (count/classes) << " marks per class)";
+			const double average_marks_per_class = static_cast<double>(count) / static_cast<double>(classes);
+			const double average_marks_per_image = static_cast<double>(count) / static_cast<double>(json_filenames.size());
+
+			ss	<< " (average of "
+				<< average_marks_per_class << " mark" << (average_marks_per_class == 1.0 ? "" : "s") << " per class or "
+				<< average_marks_per_image << " mark" << (average_marks_per_image == 1.0 ? "" : "s") << " per image)";
 		}
 		number_of_marks = ss.str().c_str();
 	}
@@ -505,6 +515,8 @@ void dm::StartupCanvas::delete_extra_weights_files()
 		File(filename).deleteFile();
 	}
 
+	calculate_size_of_directory();
+
 	if (extra_weights_files.empty() == false)
 	{
 		const size_t count = extra_weights_files.size();
@@ -604,6 +616,26 @@ void dm::StartupCanvas::filter_out_extra_weight_files()
 	table.updateContent();
 
 	Log(project_directory.toString().toStdString() + ": number of .weights files to skip: " + std::to_string(extra_weights_files.size()));
+
+	return;
+}
+
+
+void dm::StartupCanvas::calculate_size_of_directory()
+{
+	int64_t bytes = 0;
+	File dir(project_directory.toString());
+	DirectoryIterator iter(dir, true, "*", File::findFiles);
+	while (iter.next() && done == false)
+	{
+		File f = iter.getFile();
+		bytes += f.getSize();
+	}
+
+	if (not done)
+	{
+		size_of_directory = String(File::descriptionOfSizeInBytes(bytes));
+	}
 
 	return;
 }

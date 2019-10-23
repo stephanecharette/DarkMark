@@ -12,8 +12,6 @@ dm::DMCanvas::DMCanvas(DMContent & c) :
 
 	mouse_drag_is_enabled = true;
 
-//	addMouseListener(this, false);
-
 	return;
 }
 
@@ -143,30 +141,67 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 {
 	CrosshairComponent::mouseDown(event);
 
-//	if (mouse_drag_rectangle == invalid_rectangle)
+	const auto previous_selected_mark = content.selected_mark;
+
+	const auto pos = event.getPosition();
+	const cv::Point p(pos.x, pos.y);
+	content.selected_mark = -1;
+
+	int index_to_delete = -1;
+
+	// find all of the marks beneath the mouse location, and remember the one with the *smallest* area so
+	// that if we have a tiny mark within a larger mark, this will select the smaller (harder to click) mark
+	int smallest_area = INT_MAX;
+	for (size_t idx = 0; index_to_delete == -1 and idx < content.marks.size(); idx ++)
 	{
-		const auto previous_selected_mark = content.selected_mark;
-
-		const auto pos = event.getPosition();
-		const cv::Point p(pos.x, pos.y);
-		content.selected_mark = -1;
-
-		for (size_t idx = 0; idx < content.marks.size(); idx ++)
+		Mark & m = content.marks.at(idx);
+		const cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
+		if (r.contains(p))
 		{
-			Mark & m = content.marks.at(idx);
-			const cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
-			if (r.contains(p))
+			// check to see if this mouse click is within 10 pixels from the corner
+			for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
 			{
-				content.selected_mark = idx;
-				content.most_recent_class_idx = m.class_idx;
-				break;
+				cv::Point corner_point = m.get_corner(type);
+				const double len = std::round(std::hypot(corner_point.x - p.x, corner_point.y - p.y));
+				if (len < 10)
+				{
+					// we're clicking on a corner!
+					Log("corner click detected, type=" + std::to_string((int)type));
+
+					const auto opposite_corner = static_cast<ECorner>((static_cast<int>(type) + 2) % 4);
+					const cv::Point corner_point = m.get_corner(opposite_corner);
+					mouse_drag_rectangle.setPosition(corner_point.x, corner_point.y);
+					index_to_delete = static_cast<int>(idx);
+					break;
+				}
+			}
+
+			// if this isn't a corner click, see if we've clicked inside a mark
+			if (index_to_delete == -1)
+			{
+				const int area = r.area();
+				if (area < smallest_area)
+				{
+					smallest_area = area;
+					content.selected_mark = idx;
+					content.most_recent_class_idx = m.class_idx;
+				}
 			}
 		}
+	}
 
-		if (previous_selected_mark != content.selected_mark)
-		{
-			content.rebuild_image_and_repaint();
-		}
+	if (index_to_delete >= 0)
+	{
+		content.most_recent_class_idx = content.marks[index_to_delete].class_idx;
+		content.marks.erase(content.marks.begin() + index_to_delete);
+		content.selected_mark = -1;
+		content.need_to_save = true;
+		mouseDrag(event);
+	}
+
+	if (previous_selected_mark != content.selected_mark)
+	{
+		content.rebuild_image_and_repaint();
 	}
 
 	if (event.mods.isPopupMenu())
