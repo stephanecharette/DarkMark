@@ -28,7 +28,7 @@ void dm::DMCanvas::rebuild_cache_image()
 
 	//						blue   green red
 	const cv::Scalar black	(0x00, 0x00, 0x00);
-//	const cv::Scalar white	(0xff, 0xff, 0xff);
+	const cv::Scalar white	(0xff, 0xff, 0xff);
 
 	if (content.original_image.empty())
 	{
@@ -43,6 +43,11 @@ void dm::DMCanvas::rebuild_cache_image()
 		const auto fontface			= cv::FONT_HERSHEY_PLAIN;
 		const auto fontscale		= 1.0;
 		const auto fontthickness	= 1;
+
+		if (content.show_processing_time and content.darknet_image_processing_time.empty() == false)
+		{
+			cv::putText(content.scaled_image, content.darknet_image_processing_time, cv::Point(10, 25), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+		}
 
 		for (size_t idx = 0; idx < content.marks.size(); idx ++)
 		{
@@ -124,7 +129,6 @@ void dm::DMCanvas::rebuild_cache_image()
 
 				tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
 				cv::putText(tmp, name, cv::Point(1, tmp.rows - 5), fontface, fontscale, black, fontthickness, cv::LINE_AA);
-
 				cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
 			}
 		}

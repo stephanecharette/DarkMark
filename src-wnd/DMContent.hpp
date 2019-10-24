@@ -43,6 +43,10 @@ namespace dm
 
 			DMContent & toggle_bold_labels();
 
+			DMContent & toggle_show_predictions(const EToggle toggle);
+
+			DMContent & toggle_show_processing_time();
+
 			DMContent & load_image(const size_t new_idx);
 
 			DMContent & save_text();
@@ -77,12 +81,15 @@ namespace dm
 
 			ESort sort_order;
 			EToggle show_labels;
+			EToggle show_predictions;
 
 			double alpha_blend_percentage;
 			bool all_marks_are_bold;
-			bool show_predictions;
+			bool show_processing_time;
 			bool need_to_save;
 			int selected_mark;
+
+			std::string darknet_image_processing_time;	///< How long it took darknet to make predictions for the current image.
 
 			DarkHelp::VColours annotation_colours;
 

@@ -12,9 +12,10 @@ dm::DMContent::DMContent() :
 	canvas(*this),
 	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
+	show_predictions(static_cast<EToggle>(cfg().get_int("show_predictions"))),
 	alpha_blend_percentage(static_cast<double>(cfg().get_int("alpha_blend_percentage")) / 100.0),
 	all_marks_are_bold(cfg().get_bool("all_marks_are_bold")),
-	show_predictions(false),
+	show_processing_time(cfg().get_bool("show_processing_time")),
 	need_to_save(false),
 	selected_mark(-1),
 	scale_factor(1.0),
@@ -429,8 +430,9 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	}
 	else if (key.getTextCharacter() == 'p')
 	{
-		show_predictions = not show_predictions;
-		load_image(image_filename_index);
+		EToggle toggle = static_cast<EToggle>( (int(show_predictions) + 1) % 3 );
+		toggle_show_predictions(toggle);
+		return true;
 	}
 	else if (key.getTextCharacter() == 'l')
 	{
@@ -582,6 +584,33 @@ dm::DMContent & dm::DMContent::toggle_bold_labels()
 }
 
 
+dm::DMContent & dm::DMContent::toggle_show_predictions(const EToggle toggle)
+{
+	if (show_predictions != toggle)
+	{
+		show_predictions = toggle;
+		cfg().setValue("show_predictions", static_cast<int>(show_predictions));
+	}
+
+	// rebuilding the cache image isn't enough here, we need to completely reload the image so darknet can process the image
+	load_image(image_filename_index);
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::toggle_show_processing_time()
+{
+	show_processing_time = not show_processing_time;
+
+	cfg().setValue("show_processing_time", show_processing_time);
+
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 {
 //	if (marks.empty() == false)
@@ -591,6 +620,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 		save_text();
 	}
 
+	darknet_image_processing_time = "";
 	selected_mark	= -1;
 	original_image	= cv::Mat();
 	marks.clear();
@@ -625,23 +655,27 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 			need_to_save = true;
 		}
 
-		if (not success or show_predictions)
+		if (show_predictions != EToggle::kOff)
 		{
-			if (dmapp().darkhelp)
+			if (not success or show_predictions == EToggle::kOn or (marks.empty() and show_predictions == EToggle::kAuto))
 			{
-				darkhelp().predict(original_image);
-				Log("darkhelp processed the image in " + darkhelp().duration_string());
-
-//				std::cout << darkhelp().prediction_results << std::endl;
-
-				// convert the predictions into marks
-				for (auto prediction : darkhelp().prediction_results)
+				if (dmapp().darkhelp)
 				{
-					Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
-					m.name = names.at(m.class_idx);
-					m.description = prediction.name;
-					m.is_prediction = true;
-					marks.push_back(m);
+					darkhelp().predict(original_image);
+					darknet_image_processing_time = darkhelp().duration_string();
+					Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
+
+	//				std::cout << darkhelp().prediction_results << std::endl;
+
+					// convert the predictions into marks
+					for (auto prediction : darkhelp().prediction_results)
+					{
+						Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
+						m.name = names.at(m.class_idx);
+						m.description = prediction.name;
+						m.is_prediction = true;
+						marks.push_back(m);
+					}
 				}
 			}
 		}
@@ -972,6 +1006,14 @@ PopupMenu dm::DMContent::create_popup_menu()
 	sort.addItem("sort by number of marks"							, true, (sort_order == ESort::kCountMarks	), std::function<void()>( [&]{ set_sort_order(ESort::kCountMarks	); } ));
 	sort.addItem("sort randomly"									, true, (sort_order == ESort::kRandom		), std::function<void()>( [&]{ set_sort_order(ESort::kRandom		); } ));
 
+	PopupMenu view;
+	view.addItem("always show darknet predictions"	, (show_predictions != EToggle::kOn		), (show_predictions == EToggle::kOn	), std::function<void()>( [&]{ toggle_show_predictions(EToggle::kOn);	} ));
+	view.addItem("never show darknet predictions"	, (show_predictions != EToggle::kOff	), (show_predictions == EToggle::kOff	), std::function<void()>( [&]{ toggle_show_predictions(EToggle::kOff);	} ));
+	view.addItem("auto show darknet predictions"	, (show_predictions != EToggle::kAuto	), (show_predictions == EToggle::kAuto	), std::function<void()>( [&]{ toggle_show_predictions(EToggle::kAuto);	} ));
+	view.addSeparator();
+	view.addItem("show darknet processing time"		, (show_predictions != EToggle::kOff	), (show_processing_time				), std::function<void()>( [&]{ toggle_show_processing_time();			} ));
+//	view.addItem("show coordinates"					, (false								), (false								), std::function<void()>( [&]{ toggle_show_coordinates();				} ));
+
 	const size_t number_of_darknet_marks = [&]
 	{
 		size_t count = 0;
@@ -997,6 +1039,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	m.addSubMenu("class", classMenu, classMenu.containsAnyActiveItems());
 	m.addSubMenu("labels", labels);
 	m.addSubMenu("sort", sort);
+	m.addSubMenu("view", view);
 	m.addSubMenu("image", image);
 	m.addSeparator();
 	m.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();		} ));
