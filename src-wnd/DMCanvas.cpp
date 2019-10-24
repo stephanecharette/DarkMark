@@ -103,6 +103,7 @@ void dm::DMCanvas::rebuild_cache_image()
 
 #if 0
 				Log("scaled image cols=" + std::to_string(content.scaled_image.cols) + " rows=" + std::to_string(content.scaled_image.rows));
+				Log("text size for " + name + ": w=" + std::to_string(text_size.width) + " h=" + std::to_string(text_size.height) + " baseline=" + std::to_string(baseline));
 				Log("mark rectangle:  "
 					" x=" + std::to_string(r.x) +
 					" y=" + std::to_string(r.y) +
@@ -118,6 +119,10 @@ void dm::DMCanvas::rebuild_cache_image()
 				if (text_rect.x < 0) text_rect.x = r.x;				// first attempt to fix this is to make it left-aligned
 				if (text_rect.x < 0) text_rect.x = 0;				// ...and if that didn't work, slide it to the left edge
 				if (text_rect.y < 0) text_rect.y = r.y + r.height;	// vertically, we need to place the label underneath instead of above
+
+				// if the mark is from the top of the image to the bottom of the image, then we still haven't
+				// found a good place to put the label, in which case we'll move it to a spot inside the mark
+				if (text_rect.y + r.height >= content.scaled_image.rows) text_rect.y = r.y + 2;
 
 #if 0
 				Log("text_rect after: "
