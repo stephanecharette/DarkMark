@@ -83,8 +83,28 @@ namespace dm
 
 			ESort sort_order;
 			EToggle show_labels;
+
+			/// Toggle in configuration that determines if darknet predictions are hidden, shown, or automatic (meaning shown only if there are no "real" marks).
 			EToggle show_predictions;
+
+			/// Boolean switch in configuration that determines if real marks are shown or hidden.
 			bool show_marks;
+
+			/** Not in configuration, but instead a runtime setting that is a combination of @ref show_marks and @ref marks not
+			 * empty.  Used to indicate whether the user is interacting primarily with marks or predictions on the screen.
+			 */
+			bool marks_are_shown;
+
+			/** Not in configuration, but instead a runtime setting that is a combination of @ref show_marks, @ref show_predictions,
+			 * and whether or not there are predictions to show on the screen.
+			 */
+			bool predictions_are_shown;
+
+			/// Not all objects stored in @ref marks are user-defined marks, some are predictions.  This counts the number of user-defined marks.
+			size_t number_of_marks;
+
+			/// Not all objects stored in @ref marks are predictions, some are user-defined marks.  This counts the number of predictions.
+			size_t number_of_predictions;
 
 			double alpha_blend_percentage;
 			bool all_marks_are_bold;

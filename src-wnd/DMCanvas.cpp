@@ -44,17 +44,25 @@ void dm::DMCanvas::rebuild_cache_image()
 		const auto fontscale		= 1.0;
 		const auto fontthickness	= 1;
 
-		const bool show_marks = content.show_marks;
-		bool show_predictions = content.show_predictions != EToggle::kOff;
+		content.marks_are_shown			= content.show_marks;
+		content.predictions_are_shown	= content.show_predictions != EToggle::kOff;
+		content.number_of_marks			= 0;
+		content.number_of_predictions	= 0;
 
 		// Do we have any actual marks or should we show predictions?
 		// If we show predictions, we should also let the user know how many "real" marks are hidden.
 		size_t number_of_hidden_marks = 0;
 		for (const auto & m : content.marks)
 		{
-			if (m.is_prediction == false)
+			if (m.is_prediction == true)
 			{
-				if (show_marks == false)
+				content.number_of_predictions ++;
+			}
+			else
+			{
+				content.number_of_marks ++;
+
+				if (content.marks_are_shown == false)
 				{
 					// this is a real mark which will be hidden from view
 					number_of_hidden_marks ++;
@@ -62,17 +70,23 @@ void dm::DMCanvas::rebuild_cache_image()
 				else if (content.show_predictions == EToggle::kAuto)
 				{
 					// this is a real mark which will be shown, so turn off predictions
-					show_predictions = false;
+					content.predictions_are_shown = false;
 				}
 			}
 		}
 
-		if (show_predictions and content.show_processing_time and content.darknet_image_processing_time.empty() == false)
+		if (content.number_of_marks == 0)
+		{
+			content.marks_are_shown = false;
+		}
+
+		if (content.predictions_are_shown and content.show_processing_time and content.darknet_image_processing_time.empty() == false)
 		{
 			cv::putText(content.scaled_image, content.darknet_image_processing_time, cv::Point(10, 25), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+			cv::putText(content.scaled_image, "predictions: " + std::to_string(content.number_of_predictions), cv::Point(10, 40), fontface, fontscale, white, fontthickness, cv::LINE_AA);
 			if (number_of_hidden_marks)
 			{
-				cv::putText(content.scaled_image, "hidden marks: " + std::to_string(number_of_hidden_marks), cv::Point(10, 40), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+				cv::putText(content.scaled_image, "user marks: " + std::to_string(number_of_hidden_marks), cv::Point(10, 55), fontface, fontscale, white, fontthickness, cv::LINE_AA);
 			}
 		}
 
@@ -82,12 +96,12 @@ void dm::DMCanvas::rebuild_cache_image()
 
 			Mark & m = content.marks.at(idx);
 
-			if (m.is_prediction == false and show_marks == false)
+			if (m.is_prediction == false and content.marks_are_shown == false)
 			{
 				continue;
 			}
 
-			if (m.is_prediction == true and show_predictions == false)
+			if (m.is_prediction == true and content.predictions_are_shown == false)
 			{
 				continue;
 			}
@@ -204,33 +218,41 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 		const cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
 		if (r.contains(p))
 		{
-			// check to see if this mouse click is within 10 pixels from the corner
-			for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
+			// corner dragging should only be done on "real" marks, not predictions
+			if (m.is_prediction == false)
 			{
-				cv::Point corner_point = m.get_corner(type);
-				const double len = std::round(std::hypot(corner_point.x - p.x, corner_point.y - p.y));
-				if (len < 10)
+				// check to see if this mouse click is within 10 pixels from the corner
+				for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
 				{
-					// we've clicked on a corner!
+					cv::Point corner_point = m.get_corner(type);
+					const double len = std::round(std::hypot(corner_point.x - p.x, corner_point.y - p.y));
+					if (len < 10)
+					{
+						// we've clicked on a corner!
 
-					const auto opposite_corner = static_cast<ECorner>((static_cast<int>(type) + 2) % 4);
-					const cv::Point corner_point = m.get_corner(opposite_corner);
-					mouse_drag_rectangle.setPosition(corner_point.x, corner_point.y);
-					index_to_delete = static_cast<int>(idx);
-					break;
+						const auto opposite_corner = static_cast<ECorner>((static_cast<int>(type) + 2) % 4);
+						const cv::Point corner_point = m.get_corner(opposite_corner);
+						mouse_drag_rectangle.setPosition(corner_point.x, corner_point.y);
+						index_to_delete = static_cast<int>(idx);
+						break;
+					}
 				}
 			}
 
 			// if this isn't a corner click, see if we've clicked inside a mark
 			if (index_to_delete == -1)
 			{
-				const int area = r.area();
-				if (area < smallest_area)
+				if ((content.marks_are_shown and m.is_prediction == false) or
+					(content.predictions_are_shown and m.is_prediction))
 				{
-					smallest_area = area;
-					content.selected_mark = idx;
-					content.most_recent_class_idx = m.class_idx;
-					content.most_recent_size = m.get_normalized_bounding_rect().size();
+					const int area = r.area();
+					if (area < smallest_area)
+					{
+						smallest_area = area;
+						content.selected_mark = idx;
+						content.most_recent_class_idx = m.class_idx;
+						content.most_recent_size = m.get_normalized_bounding_rect().size();
+					}
 				}
 			}
 		}

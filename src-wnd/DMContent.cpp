@@ -14,6 +14,10 @@ dm::DMContent::DMContent() :
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
 	show_predictions(static_cast<EToggle>(cfg().get_int("show_predictions"))),
 	show_marks(cfg().get_bool("show_marks")),
+	marks_are_shown(false),
+	predictions_are_shown(false),
+	number_of_marks(0),
+	number_of_predictions(0),
 	alpha_blend_percentage(static_cast<double>(cfg().get_int("alpha_blend_percentage")) / 100.0),
 	all_marks_are_bold(cfg().get_bool("all_marks_are_bold")),
 	show_processing_time(cfg().get_bool("show_processing_time")),
@@ -272,7 +276,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 
 	if (keycode == KeyPress::tabKey)
 	{
-		if (marks.empty() or show_marks == false)
+		if (marks.empty())
 		{
 			selected_mark = -1;
 		}
@@ -303,13 +307,14 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 				}
 
 				const auto & m = marks.at(selected_mark);
-				if (m.is_prediction == false)
+				if ((marks_are_shown and m.is_prediction == false) or
+					(predictions_are_shown and m.is_prediction))
 				{
-					// we found one that isn't a prediction!  keep it!
+					// we found one that works!  keep it!
 					break;
 				}
 
-				// try again to find a mark that isn't a prediction
+				// try again to find a mark that is shown on the screen
 				attempt --;
 			}
 			if (attempt < 0)
@@ -631,11 +636,6 @@ dm::DMContent & dm::DMContent::toggle_show_marks()
 	show_marks = not show_marks;
 
 	cfg().setValue("show_marks", show_marks);
-
-	if (show_marks == false)
-	{
-		selected_mark = -1;
-	}
 
 	rebuild_image_and_repaint();
 
