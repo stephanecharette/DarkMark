@@ -340,6 +340,8 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 			if (load_project)
 			{
+				setVisible(false);
+
 				cfg().setValue("darknet_config"					, notebook_canvas->darknet_configuration_filename	);
 				cfg().setValue("darknet_weights"				, notebook_canvas->darknet_weights_filename			);
 				cfg().setValue("darknet_names"					, notebook_canvas->darknet_names_filename			);
@@ -349,7 +351,37 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				cfg().setValue("project_" + key + "_weights"	, notebook_canvas->darknet_weights_filename			);
 				cfg().setValue("project_" + key + "_names"		, notebook_canvas->darknet_names_filename			);
 
-				setVisible(false);
+				// see if we can import a few of the critical .cfg settings so that when the user re-creates the darknet
+				// configuration files we can do it with the exact same values (or as close as conveniently possible)
+				if (File(cfg_filename).existsAsFile())
+				{
+					// regex to find keyword/value pairs such as:   width=416
+					const std::regex rgx("^(\\w+)[ \t]*=[ \t]*([0-9.]+)$");
+
+					std::ifstream ifs(cfg_filename.toStdString());
+					std::string line;
+					size_t line_count = 0; // we'll only read the first few lines of the .cfg file
+					while (line_count < 50 and std::getline(ifs, line))
+					{
+						line_count ++;
+						std::smatch matches;
+						if (std::regex_match(line, matches, rgx))
+						{
+							const std::string keyword = matches[1].str();
+							const float value_float = std::atof(matches[2].str().c_str());
+							const bool value_bool = (value_float == 0.0 ? false : true);
+							const int value_int = static_cast<int>(value_float);
+
+							if (keyword == "batch"			) cfg().setValue("darknet_batch_size"	, value_int);
+							if (keyword == "subdivisions"	) cfg().setValue("darknet_subdivisions"	, value_int);
+							if (keyword == "width"			) cfg().setValue("darknet_image_size"	, value_int);
+							if (keyword == "max_batches"	) cfg().setValue("darknet_iterations"	, value_int);
+							if (keyword == "hue"			) cfg().setValue("darknet_enable_hue"	, value_bool);
+							if (keyword == "flip"			) cfg().setValue("darknet_enable_flip"	, value_bool);
+						}
+					}
+				}
+
 				dmapp().wnd.reset(new DMWnd);
 				dmapp().startup_wnd.reset(nullptr);
 			}

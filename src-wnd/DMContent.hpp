@@ -45,6 +45,8 @@ namespace dm
 
 			DMContent & toggle_show_predictions(const EToggle toggle);
 
+			DMContent & toggle_show_marks();
+
 			DMContent & toggle_show_processing_time();
 
 			DMContent & load_image(const size_t new_idx);
@@ -82,6 +84,7 @@ namespace dm
 			ESort sort_order;
 			EToggle show_labels;
 			EToggle show_predictions;
+			bool show_marks;
 
 			double alpha_blend_percentage;
 			bool all_marks_are_bold;

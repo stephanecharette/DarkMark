@@ -19,10 +19,11 @@ Key							| Saves Modified Marks First	| Description
 @p a						|								| Accept all Darknet predictions (if any) for the current image as actual markings.
 @p b						|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
 @p l						|								| Cycle between the various label modes (on, off, auto).
+@p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).
 @p p						|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)
 @p r						| yes							| Randomly sort the images and load the first image.
 @p s (lowercase)			|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".  Screenshots must be saved in either @p .jpg or @p .png file format (default is @p PNG).
-@p S (uppercase)			|								| Same as @p s (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
+@p S (uppercase)			|								| Same as @p 's' (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
 @p 0-9						|								| Set the class ID of the currently selected mark to the specified value zero through nine.
 @p CTRL + @p 0-9			|								| Set the class ID of the currently selected mark to the value 10-19 (specified key + 10).
 @p ALT + @p 0-9				|								| Set the class ID of the currently selected mark to the value 20-29 (specified key + 20).

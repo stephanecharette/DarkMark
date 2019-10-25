@@ -44,9 +44,36 @@ void dm::DMCanvas::rebuild_cache_image()
 		const auto fontscale		= 1.0;
 		const auto fontthickness	= 1;
 
-		if (content.show_processing_time and content.darknet_image_processing_time.empty() == false)
+		const bool show_marks = content.show_marks;
+		bool show_predictions = content.show_predictions != EToggle::kOff;
+
+		// Do we have any actual marks or should we show predictions?
+		// If we show predictions, we should also let the user know how many "real" marks are hidden.
+		size_t number_of_hidden_marks = 0;
+		for (const auto & m : content.marks)
+		{
+			if (m.is_prediction == false)
+			{
+				if (show_marks == false)
+				{
+					// this is a real mark which will be hidden from view
+					number_of_hidden_marks ++;
+				}
+				else if (content.show_predictions == EToggle::kAuto)
+				{
+					// this is a real mark which will be shown, so turn off predictions
+					show_predictions = false;
+				}
+			}
+		}
+
+		if (show_predictions and content.show_processing_time and content.darknet_image_processing_time.empty() == false)
 		{
 			cv::putText(content.scaled_image, content.darknet_image_processing_time, cv::Point(10, 25), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+			if (number_of_hidden_marks)
+			{
+				cv::putText(content.scaled_image, "hidden marks: " + std::to_string(number_of_hidden_marks), cv::Point(10, 40), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+			}
 		}
 
 		for (size_t idx = 0; idx < content.marks.size(); idx ++)
@@ -54,6 +81,16 @@ void dm::DMCanvas::rebuild_cache_image()
 			const bool is_selected = (static_cast<int>(idx) == content.selected_mark);
 
 			Mark & m = content.marks.at(idx);
+
+			if (m.is_prediction == false and show_marks == false)
+			{
+				continue;
+			}
+
+			if (m.is_prediction == true and show_predictions == false)
+			{
+				continue;
+			}
 
 			const std::string name	= m.description;
 			const cv::Rect r		= m.get_bounding_rect(content.scaled_image.size());

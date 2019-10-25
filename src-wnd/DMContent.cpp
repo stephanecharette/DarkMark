@@ -13,6 +13,7 @@ dm::DMContent::DMContent() :
 	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
 	show_predictions(static_cast<EToggle>(cfg().get_int("show_predictions"))),
+	show_marks(cfg().get_bool("show_marks")),
 	alpha_blend_percentage(static_cast<double>(cfg().get_int("alpha_blend_percentage")) / 100.0),
 	all_marks_are_bold(cfg().get_bool("all_marks_are_bold")),
 	show_processing_time(cfg().get_bool("show_processing_time")),
@@ -271,41 +272,62 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 
 	if (keycode == KeyPress::tabKey)
 	{
-		if (marks.empty())
+		if (marks.empty() or show_marks == false)
 		{
 			selected_mark = -1;
 		}
 		else
 		{
-			if (key.getModifiers().isShiftDown())
+			int attempt = 10;
+			while (attempt >= 0)
 			{
-				// select previous mark
-				selected_mark --;
-				if (selected_mark < 0)
+				if (key.getModifiers().isShiftDown())
 				{
-					// wrap back around to the last mark
-					selected_mark = marks.size() - 1;
+					// select previous mark
+					selected_mark --;
+					if (selected_mark < 0 or selected_mark >= (int)marks.size())
+					{
+						// wrap back around to the last mark
+						selected_mark = marks.size() - 1;
+					}
 				}
-			}
-			else
-			{
-				// select next mark
-				selected_mark ++;
-				if (selected_mark >= (int)marks.size())
+				else
 				{
-					// wrap back around to the very first mark
-					selected_mark = 0;
+					// select next mark
+					selected_mark ++;
+					if (selected_mark < 0 or selected_mark >= (int)marks.size())
+					{
+						// wrap back around to the very first mark
+						selected_mark = 0;
+					}
 				}
-			}
 
+				const auto & m = marks.at(selected_mark);
+				if (m.is_prediction == false)
+				{
+					// we found one that isn't a prediction!  keep it!
+					break;
+				}
+
+				// try again to find a mark that isn't a prediction
+				attempt --;
+			}
+			if (attempt < 0)
+			{
+				selected_mark = -1;
+			}
+		}
+
+		if (selected_mark >= 0)
+		{
 			// remember the class and size of this mark in case the user wants to double-click and create a similar one
 			const Mark & m = marks.at(selected_mark);
 			most_recent_class_idx = m.class_idx;
 			most_recent_size = m.get_normalized_bounding_rect().size();
-
-			rebuild_image_and_repaint();
-			return true; // event has been handled
 		}
+
+		rebuild_image_and_repaint();
+		return true; // event has been handled
 	}
 	else if (digit >= 0 and digit <= 9)
 	{
@@ -432,6 +454,11 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_predictions) + 1) % 3 );
 		toggle_show_predictions(toggle);
+		return true;
+	}
+	else if (key.getTextCharacter() == 'm')
+	{
+		toggle_show_marks();
 		return true;
 	}
 	else if (key.getTextCharacter() == 'l')
@@ -599,6 +626,23 @@ dm::DMContent & dm::DMContent::toggle_show_predictions(const EToggle toggle)
 }
 
 
+dm::DMContent & dm::DMContent::toggle_show_marks()
+{
+	show_marks = not show_marks;
+
+	cfg().setValue("show_marks", show_marks);
+
+	if (show_marks == false)
+	{
+		selected_mark = -1;
+	}
+
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::toggle_show_processing_time()
 {
 	show_processing_time = not show_processing_time;
@@ -646,6 +690,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 		bool success = load_json();
 		if (not success)
 		{
+			// only attempt to load the .txt file if there was no .json file to process
 			success = load_text();
 		}
 
@@ -657,25 +702,22 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 
 		if (show_predictions != EToggle::kOff)
 		{
-			if (not success or show_predictions == EToggle::kOn or (marks.empty() and show_predictions == EToggle::kAuto))
+			if (dmapp().darkhelp)
 			{
-				if (dmapp().darkhelp)
+				darkhelp().predict(original_image);
+				darknet_image_processing_time = darkhelp().duration_string();
+				Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
+
+//				std::cout << darkhelp().prediction_results << std::endl;
+
+				// convert the predictions into marks
+				for (auto prediction : darkhelp().prediction_results)
 				{
-					darkhelp().predict(original_image);
-					darknet_image_processing_time = darkhelp().duration_string();
-					Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
-
-	//				std::cout << darkhelp().prediction_results << std::endl;
-
-					// convert the predictions into marks
-					for (auto prediction : darkhelp().prediction_results)
-					{
-						Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
-						m.name = names.at(m.class_idx);
-						m.description = prediction.name;
-						m.is_prediction = true;
-						marks.push_back(m);
-					}
+					Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
+					m.name = names.at(m.class_idx);
+					m.description = prediction.name;
+					m.is_prediction = true;
+					marks.push_back(m);
 				}
 			}
 		}
@@ -732,6 +774,12 @@ dm::DMContent & dm::DMContent::save_text()
 		std::ofstream fs(text_filename);
 		for (const auto & m : marks)
 		{
+			if (m.is_prediction)
+			{
+				// skip this one since it is a prediction, not a full mark
+				continue;
+			}
+
 			const cv::Rect2d r	= m.get_normalized_bounding_rect();
 			const double w		= r.width;
 			const double h		= r.height;
@@ -1012,7 +1060,8 @@ PopupMenu dm::DMContent::create_popup_menu()
 	view.addItem("auto show darknet predictions"	, (show_predictions != EToggle::kAuto	), (show_predictions == EToggle::kAuto	), std::function<void()>( [&]{ toggle_show_predictions(EToggle::kAuto);	} ));
 	view.addSeparator();
 	view.addItem("show darknet processing time"		, (show_predictions != EToggle::kOff	), (show_processing_time				), std::function<void()>( [&]{ toggle_show_processing_time();			} ));
-//	view.addItem("show coordinates"					, (false								), (false								), std::function<void()>( [&]{ toggle_show_coordinates();				} ));
+	view.addSeparator();
+	view.addItem("show marks"						, true									, show_marks							,  std::function<void()>( [&]{ toggle_show_marks();						} ));
 
 	const size_t number_of_darknet_marks = [&]
 	{

@@ -36,13 +36,14 @@ dm::DMStatsWnd::DMStatsWnd(DMContent & c) :
 		peer->setIcon(DarkMarkLogo());
 	}
 
-	auto r = dmapp().wnd->getBounds();
-	r.reduce(50, 50);
-	if (r.getWidth() < 200 or r.getHeight() < 200)
+	if (cfg().containsKey("StatsWnd"))
 	{
-		r = r.withSizeKeepingCentre(600, 400);
+		restoreWindowStateFromString( cfg().getValue("StatsWnd") );
 	}
-	setBounds(r);
+	else
+	{
+		centreWithSize(600, 200);
+	}
 
 	setVisible(true);
 
@@ -52,6 +53,8 @@ dm::DMStatsWnd::DMStatsWnd(DMContent & c) :
 
 dm::DMStatsWnd::~DMStatsWnd()
 {
+	cfg().setValue("StatsWnd", getWindowStateAsString());
+
 	return;
 }
 
