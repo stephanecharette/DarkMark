@@ -1091,6 +1091,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	m.addSubMenu("view", view);
 	m.addSubMenu("image", image);
 	m.addSeparator();
+	m.addItem("review marks..."			, std::function<void()>( [&]{ review_marks();			} ));
 	m.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();		} ));
 	m.addItem("create darknet files..."	, std::function<void()>( [&]{ show_darknet_window();	} ));
 
@@ -1107,6 +1108,21 @@ dm::DMContent & dm::DMContent::gather_statistics()
 	}
 
 	DMContentStatistics helper(*this);
+	helper.runThread();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::review_marks()
+{
+	if (need_to_save)
+	{
+		save_json();
+		save_text();
+	}
+
+	DMContentReview helper(*this);
 	helper.runThread();
 
 	return *this;

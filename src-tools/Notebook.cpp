@@ -32,5 +32,3 @@ void dm::Notebook::currentTabChanged(int newCurrentTabIndex, const String & newC
 
 	return;
 }
-
-

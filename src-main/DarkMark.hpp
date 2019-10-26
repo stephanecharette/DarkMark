@@ -30,8 +30,13 @@ namespace dm
 	class StartupWnd;
 	class StartupCanvas;
 	class ProjectInfo;
+	class DMContentReview;
+	class DMReviewWnd;
+	class DMReviewCanvas;
 	class CrosshairComponent;
 	class DarkMarkApplication;
+
+	struct ReviewInfo;
 
 	typedef std::vector<std::string> VStr;
 	typedef std::set<std::string> SStr;
@@ -50,10 +55,13 @@ namespace dm
 #include "DMContent.hpp"
 #include "DMStatsWnd.hpp"
 #include "DMAboutWnd.hpp"
+#include "DMReviewWnd.hpp"
+#include "DMReviewCanvas.hpp"
 #include "DarknetWnd.hpp"
 #include "StartupWnd.hpp"
 #include "StartupCanvas.hpp"
 #include "DMContentImageFilenameSort.hpp"
 #include "DMContentStatistics.hpp"
+#include "DMContentReview.hpp"
 #include "DMWnd.hpp"
 #include "DarkMarkApp.hpp"

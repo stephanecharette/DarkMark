@@ -67,6 +67,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("darknet_iterations"			, 4000										);
 	insert_if_not_exist("darknet_enable_hue"			, true										);
 	insert_if_not_exist("darknet_enable_flip"			, true										);
+	insert_if_not_exist("review_table_row_height"		, 75										);
 
 	saveIfNeeded();
 

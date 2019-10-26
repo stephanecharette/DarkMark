@@ -44,6 +44,11 @@ dm::DMWnd::~DMWnd(void)
 {
 	cfg().setValue("DMWnd", getWindowStateAsString());
 
+	dmapp().review_wnd	.reset(nullptr);
+	dmapp().stats_wnd	.reset(nullptr);
+	dmapp().darknet_wnd	.reset(nullptr);
+	dmapp().darkhelp	.reset(nullptr);
+
 	return;
 }
 

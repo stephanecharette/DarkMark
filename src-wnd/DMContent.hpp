@@ -75,6 +75,8 @@ namespace dm
 
 			DMContent & gather_statistics();
 
+			DMContent & review_marks();
+
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
 

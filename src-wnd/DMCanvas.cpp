@@ -38,155 +38,152 @@ void dm::DMCanvas::rebuild_cache_image()
 
 	content.scaled_image = resize_keeping_aspect_ratio(content.original_image, content.scaled_image_size);
 
-	if (content.marks.empty() == false)
+	const auto fontface			= cv::FONT_HERSHEY_PLAIN;
+	const auto fontscale		= 1.0;
+	const auto fontthickness	= 1;
+
+	content.marks_are_shown			= content.show_marks;
+	content.predictions_are_shown	= content.show_predictions != EToggle::kOff;
+	content.number_of_marks			= 0;
+	content.number_of_predictions	= 0;
+
+	// Do we have any actual marks or should we show predictions?
+	// If we show predictions, we should also let the user know how many "real" marks are hidden.
+	size_t number_of_hidden_marks = 0;
+	for (const auto & m : content.marks)
 	{
-		const auto fontface			= cv::FONT_HERSHEY_PLAIN;
-		const auto fontscale		= 1.0;
-		const auto fontthickness	= 1;
-
-		content.marks_are_shown			= content.show_marks;
-		content.predictions_are_shown	= content.show_predictions != EToggle::kOff;
-		content.number_of_marks			= 0;
-		content.number_of_predictions	= 0;
-
-		// Do we have any actual marks or should we show predictions?
-		// If we show predictions, we should also let the user know how many "real" marks are hidden.
-		size_t number_of_hidden_marks = 0;
-		for (const auto & m : content.marks)
+		if (m.is_prediction == true)
 		{
-			if (m.is_prediction == true)
-			{
-				content.number_of_predictions ++;
-			}
-			else
-			{
-				content.number_of_marks ++;
+			content.number_of_predictions ++;
+		}
+		else
+		{
+			content.number_of_marks ++;
 
-				if (content.marks_are_shown == false)
-				{
-					// this is a real mark which will be hidden from view
-					number_of_hidden_marks ++;
-				}
-				else if (content.show_predictions == EToggle::kAuto)
-				{
-					// this is a real mark which will be shown, so turn off predictions
-					content.predictions_are_shown = false;
-				}
+			if (content.marks_are_shown == false)
+			{
+				// this is a real mark which will be hidden from view
+				number_of_hidden_marks ++;
+			}
+			else if (content.show_predictions == EToggle::kAuto)
+			{
+				// this is a real mark which will be shown, so turn off predictions
+				content.predictions_are_shown = false;
 			}
 		}
+	}
 
-		if (content.number_of_marks == 0)
+	if (content.number_of_marks == 0)
+	{
+		content.marks_are_shown = false;
+	}
+
+	if (content.predictions_are_shown and content.show_processing_time and content.darknet_image_processing_time.empty() == false)
+	{
+		cv::putText(content.scaled_image, content.darknet_image_processing_time, cv::Point(10, 25), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+		cv::putText(content.scaled_image, "predictions: " + std::to_string(content.number_of_predictions), cv::Point(10, 40), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+		if (number_of_hidden_marks)
 		{
-			content.marks_are_shown = false;
+			cv::putText(content.scaled_image, "user marks: " + std::to_string(number_of_hidden_marks), cv::Point(10, 55), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+		}
+	}
+
+	for (size_t idx = 0; idx < content.marks.size(); idx ++)
+	{
+		const bool is_selected = (static_cast<int>(idx) == content.selected_mark);
+
+		Mark & m = content.marks.at(idx);
+
+		if (m.is_prediction == false and content.marks_are_shown == false)
+		{
+			continue;
 		}
 
-		if (content.predictions_are_shown and content.show_processing_time and content.darknet_image_processing_time.empty() == false)
+		if (m.is_prediction == true and content.predictions_are_shown == false)
 		{
-			cv::putText(content.scaled_image, content.darknet_image_processing_time, cv::Point(10, 25), fontface, fontscale, white, fontthickness, cv::LINE_AA);
-			cv::putText(content.scaled_image, "predictions: " + std::to_string(content.number_of_predictions), cv::Point(10, 40), fontface, fontscale, white, fontthickness, cv::LINE_AA);
-			if (number_of_hidden_marks)
-			{
-				cv::putText(content.scaled_image, "user marks: " + std::to_string(number_of_hidden_marks), cv::Point(10, 55), fontface, fontscale, white, fontthickness, cv::LINE_AA);
-			}
+			continue;
 		}
 
-		for (size_t idx = 0; idx < content.marks.size(); idx ++)
+		const std::string name	= m.description;
+		const cv::Rect r		= m.get_bounding_rect(content.scaled_image.size());
+		const cv::Scalar colour	= m.get_colour();
+		const int thickness		= (is_selected or content.all_marks_are_bold ? 2 : 1);
+
+		cv::Mat tmp = content.scaled_image(r).clone();
+		cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
+
+		if (m.is_prediction)
 		{
-			const bool is_selected = (static_cast<int>(idx) == content.selected_mark);
+			cv::line(tmp, cv::Point(0, 0), cv::Point(tmp.cols, tmp.rows), colour, 1, cv::LINE_8);
+			cv::line(tmp, cv::Point(0, tmp.rows), cv::Point(tmp.cols, 0), colour, 1, cv::LINE_8);
+		}
 
-			Mark & m = content.marks.at(idx);
+		const double alpha = (is_selected or content.all_marks_are_bold ? 1.0 : content.alpha_blend_percentage);
+		const double beta = 1.0 - alpha;
+		cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
-			if (m.is_prediction == false and content.marks_are_shown == false)
+		// draw the drag corners
+		if (is_selected and tmp.cols >= 30 and tmp.rows >= 30)
+		{
+			tmp = content.scaled_image(r);
+			cv::circle(tmp, cv::Point(0				, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
+			cv::circle(tmp, cv::Point(tmp.cols - 1	, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
+			cv::circle(tmp, cv::Point(tmp.cols - 1	, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
+			cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
+		}
+
+		// draw the label (if the area is large enough to warrant a label)
+		if (content.show_labels == EToggle::kOn or content.all_marks_are_bold or (content.show_labels == EToggle::kAuto and (is_selected or (tmp.cols >= 30 and tmp.rows >= 30))))
+		{
+			int baseline = 0;
+			auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
+
+			// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
+			const int x_offset = r.width - text_size.width - 2;
+
+			// Rectangle for the label needs the TL and BR coordinates.
+			// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
+			cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + baseline + 2);
+			if (is_selected or content.all_marks_are_bold or text_rect.br().y >= content.scaled_image.rows)
 			{
-				continue;
+				// move the text label above the rectangle
+				text_rect.y = r.y - text_size.height - baseline;
 			}
-
-			if (m.is_prediction == true and content.predictions_are_shown == false)
-			{
-				continue;
-			}
-
-			const std::string name	= m.description;
-			const cv::Rect r		= m.get_bounding_rect(content.scaled_image.size());
-			const cv::Scalar colour	= m.get_colour();
-			const int thickness		= (is_selected or content.all_marks_are_bold ? 2 : 1);
-
-			cv::Mat tmp = content.scaled_image(r).clone();
-			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
-
-			if (m.is_prediction)
-			{
-				cv::line(tmp, cv::Point(0, 0), cv::Point(tmp.cols, tmp.rows), colour, 1, cv::LINE_8);
-				cv::line(tmp, cv::Point(0, tmp.rows), cv::Point(tmp.cols, 0), colour, 1, cv::LINE_8);
-			}
-
-			const double alpha = (is_selected or content.all_marks_are_bold ? 1.0 : content.alpha_blend_percentage);
-			const double beta = 1.0 - alpha;
-			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
-
-			// draw the drag corners
-			if (is_selected and tmp.cols >= 30 and tmp.rows >= 30)
-			{
-				tmp = content.scaled_image(r);
-				cv::circle(tmp, cv::Point(0				, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
-				cv::circle(tmp, cv::Point(tmp.cols - 1	, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
-				cv::circle(tmp, cv::Point(tmp.cols - 1	, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
-				cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
-			}
-
-			// draw the label (if the area is large enough to warrant a label)
-			if (content.show_labels == EToggle::kOn or content.all_marks_are_bold or (content.show_labels == EToggle::kAuto and (is_selected or (tmp.cols >= 30 and tmp.rows >= 30))))
-			{
-				int baseline = 0;
-				auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
-
-				// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
-				const int x_offset = r.width - text_size.width - 2;
-
-				// Rectangle for the label needs the TL and BR coordinates.
-				// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
-				cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + baseline + 2);
-				if (is_selected or content.all_marks_are_bold or text_rect.br().y >= content.scaled_image.rows)
-				{
-					// move the text label above the rectangle
-					text_rect.y = r.y - text_size.height - baseline;
-				}
 
 #if 0
-				Log("scaled image cols=" + std::to_string(content.scaled_image.cols) + " rows=" + std::to_string(content.scaled_image.rows));
-				Log("text size for " + name + ": w=" + std::to_string(text_size.width) + " h=" + std::to_string(text_size.height) + " baseline=" + std::to_string(baseline));
-				Log("mark rectangle:  "
-					" x=" + std::to_string(r.x) +
-					" y=" + std::to_string(r.y) +
-					" w=" + std::to_string(r.width) +
-					" h=" + std::to_string(r.height));
-				Log("text_rect before:"
-					" x=" + std::to_string(text_rect.x) +
-					" y=" + std::to_string(text_rect.y) +
-					" w=" + std::to_string(text_rect.width) +
-					" h=" + std::to_string(text_rect.height));
+			Log("scaled image cols=" + std::to_string(content.scaled_image.cols) + " rows=" + std::to_string(content.scaled_image.rows));
+			Log("text size for " + name + ": w=" + std::to_string(text_size.width) + " h=" + std::to_string(text_size.height) + " baseline=" + std::to_string(baseline));
+			Log("mark rectangle:  "
+				" x=" + std::to_string(r.x) +
+				" y=" + std::to_string(r.y) +
+				" w=" + std::to_string(r.width) +
+				" h=" + std::to_string(r.height));
+			Log("text_rect before:"
+				" x=" + std::to_string(text_rect.x) +
+				" y=" + std::to_string(text_rect.y) +
+				" w=" + std::to_string(text_rect.width) +
+				" h=" + std::to_string(text_rect.height));
 #endif
-				// check to see if the label is going to be off-screen, and if so slide it to a better position
-				if (text_rect.x < 0) text_rect.x = r.x;				// first attempt to fix this is to make it left-aligned
-				if (text_rect.x < 0) text_rect.x = 0;				// ...and if that didn't work, slide it to the left edge
-				if (text_rect.y < 0) text_rect.y = r.y + r.height;	// vertically, we need to place the label underneath instead of above
+			// check to see if the label is going to be off-screen, and if so slide it to a better position
+			if (text_rect.x < 0) text_rect.x = r.x;				// first attempt to fix this is to make it left-aligned
+			if (text_rect.x < 0) text_rect.x = 0;				// ...and if that didn't work, slide it to the left edge
+			if (text_rect.y < 0) text_rect.y = r.y + r.height;	// vertically, we need to place the label underneath instead of above
 
-				// if the mark is from the top of the image to the bottom of the image, then we still haven't
-				// found a good place to put the label, in which case we'll move it to a spot inside the mark
-				if (text_rect.y + r.height >= content.scaled_image.rows) text_rect.y = r.y + 2;
+			// if the mark is from the top of the image to the bottom of the image, then we still haven't
+			// found a good place to put the label, in which case we'll move it to a spot inside the mark
+			if (text_rect.y + r.height >= content.scaled_image.rows) text_rect.y = r.y + 2;
 
 #if 0
-				Log("text_rect after: "
-					" x=" + std::to_string(text_rect.x) +
-					" y=" + std::to_string(text_rect.y) +
-					" w=" + std::to_string(text_rect.width) +
-					" h=" + std::to_string(text_rect.height));
+			Log("text_rect after: "
+				" x=" + std::to_string(text_rect.x) +
+				" y=" + std::to_string(text_rect.y) +
+				" w=" + std::to_string(text_rect.width) +
+				" h=" + std::to_string(text_rect.height));
 #endif
 
-				tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
-				cv::putText(tmp, name, cv::Point(1, tmp.rows - 5), fontface, fontscale, black, fontthickness, cv::LINE_AA);
-				cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
-			}
+			tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
+			cv::putText(tmp, name, cv::Point(1, tmp.rows - 5), fontface, fontscale, black, fontthickness, cv::LINE_AA);
+			cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
 		}
 	}
 

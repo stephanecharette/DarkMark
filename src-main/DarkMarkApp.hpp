@@ -27,13 +27,14 @@ namespace dm
 
 			TooltipWindow tool_tip;
 
-			std::unique_ptr<Cfg>		cfg;
-			std::unique_ptr<DMWnd>		wnd;
-			std::unique_ptr<DarkHelp>	darkhelp;
-			std::unique_ptr<DMStatsWnd>	stats_wnd;
-			std::unique_ptr<DMAboutWnd>	about_wnd;
-			std::unique_ptr<DarknetWnd>	darknet_wnd;
-			std::unique_ptr<StartupWnd>	startup_wnd;
+			std::unique_ptr<Cfg>			cfg;
+			std::unique_ptr<DMWnd>			wnd;
+			std::unique_ptr<DarkHelp>		darkhelp;
+			std::unique_ptr<DMStatsWnd>		stats_wnd;
+			std::unique_ptr<DMAboutWnd>		about_wnd;
+			std::unique_ptr<DMReviewWnd>	review_wnd;
+			std::unique_ptr<DarknetWnd>		darknet_wnd;
+			std::unique_ptr<StartupWnd>		startup_wnd;
 	};
 
 
