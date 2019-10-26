@@ -377,22 +377,17 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	}
 	else if (keycode == KeyPress::pageUpKey)
 	{
-		if (need_to_save)
-		{
-			save_json();
-			save_text();
-		}
-
 		// go to the previous available image with no marks
 		while (image_filename_index > 0)
 		{
+			image_filename_index --;
+
 			File f(image_filenames[image_filename_index]);
 			f = f.withFileExtension(".json");
 			if (count_marks_in_json(f) == 0)
 			{
 				break;
 			}
-			image_filename_index --;
 		}
 		load_image(image_filename_index);
 		return true;
@@ -400,22 +395,17 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	}
 	else if (keycode == KeyPress::pageDownKey)
 	{
-		if (need_to_save)
-		{
-			save_json();
-			save_text();
-		}
-
 		// go to the next available image with no marks
 		while (image_filename_index < image_filenames.size() - 1)
 		{
+			image_filename_index ++;
+
 			File f(image_filenames[image_filename_index]);
 			f = f.withFileExtension(".json");
 			if (count_marks_in_json(f) == 0)
 			{
 				break;
 			}
-			image_filename_index ++;
 		}
 		load_image(image_filename_index);
 		return true;

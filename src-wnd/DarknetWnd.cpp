@@ -66,7 +66,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 85% of the images for training, and 15% for validation.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_image_size, "image size", 320.0, 1024.0, 32.0);
+	s = new SliderPropertyComponent(v_image_size, "image size", 32.0, 2048.0, 32.0);
 	s->setTooltip("Image size. Must be a multiple of 32. Default is 416x416.");
 	properties.add(s);
 
