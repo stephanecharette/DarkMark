@@ -1,0 +1,31 @@
+#!/bin/bash
+# DarkMark (C) 2019 Stephane Charette <stephanecharette@gmail.com>
+# $Id$
+
+
+echo "Postinst: $@"
+
+
+if [ -x "$(which xdg-icon-resource)" ]; then
+	xdg-icon-resource install --noupdate --context apps --mode system --size 256 /usr/share/doc/DarkMark/darkmark_logo_256.png DarkMark-Logo
+	xdg-icon-resource install --noupdate --context apps --mode system --size 128 /usr/share/doc/DarkMark/darkmark_logo_128.png DarkMark-Logo
+	xdg-icon-resource install --noupdate --context apps --mode system --size 64  /usr/share/doc/DarkMark/darkmark_logo_064.png DarkMark-Logo
+	xdg-icon-resource install --noupdate --context apps --mode system --size 48  /usr/share/doc/DarkMark/darkmark_logo_048.png DarkMark-Logo
+	xdg-icon-resource install --noupdate --context apps --mode system --size 32  /usr/share/doc/DarkMark/darkmark_logo_032.png DarkMark-Logo
+	xdg-icon-resource install --noupdate --context apps --mode system --size 22  /usr/share/doc/DarkMark/darkmark_logo_022.png DarkMark-Logo
+	xdg-icon-resource install --noupdate --context apps --mode system --size 16  /usr/share/doc/DarkMark/darkmark_logo_016.png DarkMark-Logo
+	xdg-icon-resource forceupdate --mode system
+fi
+
+if [ -x "$(which xdg-desktop-menu)" ]; then
+	xdg-desktop-menu install --mode system /usr/share/applications/ccoderun-darkmark.desktop
+fi
+
+if [ -x "$(which xdg-desktop-icon)" ]; then
+	if [ "$SUDO_USER" != "" ]; then
+		sudo -u $SUDO_USER xdg-desktop-icon install /usr/share/applications/ccoderun-darkmark.desktop
+		chmod a+x "/home/$SUDO_USER/Desktop/ccoderun-darkmark.desktop"
+	fi
+fi
+
+exit 0

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.1
+Name=DarkMark v${DM_VERSION}
+GenericName=Image Markup
+Comment=Mark images to training an artificial neural network.
+Icon=DarkMark-Logo
+Exec=/usr/bin/DarkMark
+Terminal=false
+Categories=2DGraphics
+Keywords=darknet;yolo;image;
+
