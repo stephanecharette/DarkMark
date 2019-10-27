@@ -141,12 +141,15 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 
 	if (columnId == 2)
 	{
-		// draw a thumbnail of the image
-		auto image = convert_opencv_mat_to_juce_image(review_info.mat);
-		g.drawImageWithin(image, 0, 0, width, height,
-				RectanglePlacement::xLeft				|
-				RectanglePlacement::yMid				|
-				RectanglePlacement::onlyReduceInSize	);
+		if (review_info.mat.empty() == false)
+		{
+			// draw a thumbnail of the image
+			auto image = convert_opencv_mat_to_juce_image(review_info.mat);
+			g.drawImageWithin(image, 0, 0, width, height,
+					RectanglePlacement::xLeft				|
+					RectanglePlacement::yMid				|
+					RectanglePlacement::onlyReduceInSize	);
+		}
 	}
 	else
 	{

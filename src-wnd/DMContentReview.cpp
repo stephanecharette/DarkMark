@@ -42,13 +42,15 @@ void dm::DMContentReview::run()
 		}
 
 		json root;
+		cv::Mat mat;
 		try
 		{
 			root = json::parse(f.loadFileAsString().toStdString());
+			mat = cv::imread(fn);
 		}
 		catch(const std::exception & e)
 		{
-			Log("failed to read or parse json: " + f.getFullPathName().toStdString());
+			Log("failed to read image " + fn + " or parse json " + f.getFullPathName().toStdString());
 			continue;
 		}
 
@@ -58,8 +60,6 @@ void dm::DMContentReview::run()
 			continue;
 		}
 
-		cv::Mat mat = cv::imread(fn);
-
 		for (auto mark : root["mark"])
 		{
 			if (threadShouldExit())
@@ -68,10 +68,10 @@ void dm::DMContentReview::run()
 			}
 
 			const size_t class_idx = mark["class_idx"].get<size_t>();
-			const int x = mark["rect"]["int_x"].get<int>();
-			const int y = mark["rect"]["int_y"].get<int>();
-			const int w = mark["rect"]["int_w"].get<int>();
-			const int h = mark["rect"]["int_h"].get<int>();
+			const int x = std::round(mat.cols * mark["rect"]["x"].get<double>());
+			const int y = std::round(mat.rows * mark["rect"]["y"].get<double>());
+			const int w = std::round(mat.cols * mark["rect"]["w"].get<double>());
+			const int h = std::round(mat.rows * mark["rect"]["h"].get<double>());
 			const cv::Rect r(x, y, w, h);
 
 			ReviewInfo review_info;
