@@ -17,6 +17,12 @@ dm::DMContentStatistics::DMContentStatistics(dm::DMContent & c) :
 }
 
 
+dm::DMContentStatistics::~DMContentStatistics()
+{
+	return;
+}
+
+
 void dm::DMContentStatistics::run()
 {
 	const double max_work = content.image_filenames.size();

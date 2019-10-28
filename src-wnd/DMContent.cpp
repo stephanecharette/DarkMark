@@ -745,11 +745,6 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 		Log("Error: failed to load image " + long_filename);
 	}
 
-	if (marks.size() > 0)
-	{
-		selected_mark = 0;
-	}
-
 	resized();
 	rebuild_image_and_repaint();
 
@@ -1070,9 +1065,11 @@ PopupMenu dm::DMContent::create_popup_menu()
 	const bool has_any_marks = (marks.size() > 0);
 
 	PopupMenu image;
-	image.addItem("accept " + std::to_string(number_of_darknet_marks) + " pending marks", (number_of_darknet_marks > 0)	, false	, std::function<void()>( [&]{ accept_all_marks();		} ));
-	image.addItem("erase all " + std::to_string(marks.size()) + " marks"		, has_any_marks							, false	, std::function<void()>( [&]{ erase_all_marks();		} ));
-	image.addItem("delete image from disk"																						, std::function<void()>( [&]{ delete_current_image();	} ));
+	image.addItem("accept " + std::to_string(number_of_darknet_marks) + " pending marks", (number_of_darknet_marks > 0)	, false	, std::function<void()>( [&]{ accept_all_marks();			} ));
+	image.addItem("erase all " + std::to_string(marks.size()) + " marks"		, has_any_marks							, false	, std::function<void()>( [&]{ erase_all_marks();			} ));
+	image.addItem("delete image from disk"																						, std::function<void()>( [&]{ delete_current_image();		} ));
+	image.addSeparator();
+	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
 
 	PopupMenu m;
 	m.addSubMenu("class", classMenu, classMenu.containsAnyActiveItems());
@@ -1113,6 +1110,15 @@ dm::DMContent & dm::DMContent::review_marks()
 	}
 
 	DMContentReview helper(*this);
+	helper.runThread();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::reload_resave_every_image()
+{
+	DMContentReloadResave helper(*this);
 	helper.runThread();
 
 	return *this;

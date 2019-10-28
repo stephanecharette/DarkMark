@@ -60,6 +60,7 @@ namespace dm
 #include "DarknetWnd.hpp"
 #include "StartupWnd.hpp"
 #include "StartupCanvas.hpp"
+#include "DMContentReloadResave.hpp"
 #include "DMContentImageFilenameSort.hpp"
 #include "DMContentStatistics.hpp"
 #include "DMContentReview.hpp"

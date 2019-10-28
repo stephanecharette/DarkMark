@@ -15,6 +15,8 @@ namespace dm
 
 			DMContentReview(dm::DMContent & c);
 
+			virtual ~DMContentReview();
+
 			virtual void run();
 
 			DMContent & content;

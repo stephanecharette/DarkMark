@@ -77,6 +77,8 @@ namespace dm
 
 			DMContent & review_marks();
 
+			DMContent & reload_resave_every_image();
+
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
 

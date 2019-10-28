@@ -17,6 +17,11 @@ dm::DMContentReview::DMContentReview(dm::DMContent & c) :
 }
 
 
+dm::DMContentReview::~DMContentReview()
+{
+}
+
+
 void dm::DMContentReview::run()
 {
 	const double max_work = content.image_filenames.size();

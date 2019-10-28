@@ -9,13 +9,13 @@
 
 namespace dm
 {
-	class DMContentStatistics : public ThreadWithProgressWindow
+	class DMContentReloadResave : public ThreadWithProgressWindow
 	{
 		public:
 
-			DMContentStatistics(dm::DMContent & c);
+			DMContentReloadResave(dm::DMContent & c);
 
-			virtual ~DMContentStatistics();
+			virtual ~DMContentReloadResave();
 
 			virtual void run();
 
