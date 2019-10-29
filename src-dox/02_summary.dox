@@ -50,7 +50,7 @@ Right-mouse-click in the DarkMark Editor window to view statistics on all the ma
 
 @image html darkmark_statistics.png
 
-This can help identify which classes need better representation, or if any marks have been incorrectly set on unusually small or unusually large images.
+This can help identify which classes need better representation, or if any marks have been incorrectly set on unusually small or unusually large images.  Double-click on the "min size" or "max size" cell to immediately open that image in the DarkMark Editor window.
 
 ----
 

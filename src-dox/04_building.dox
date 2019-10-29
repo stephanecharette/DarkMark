@@ -42,7 +42,7 @@ sudo ldconfig
 @endcode
 
 @subsection BuildingDarkHelp DarkHelp
-Do this second:
+Do this second.  <a target="_blank" href="https://www.ccoderun.ca/download/">Download</a> and install the pre-built package of DarkHelp, or build it from source:
 @code{.sh}
 sudo apt-get install libtclap-dev
 # download the DarkHelp source code from https://www.ccoderun.ca/download/
@@ -55,7 +55,7 @@ sudo dpkg -i darkhelp-*-Linux.deb
 @endcode
 
 @subsection BuildingDarkMark DarkMark
-Do this third:
+Do this third.  <a target="_blank" href="https://www.ccoderun.ca/download/">Download</a> and install the pre-built package of DarkMark, or build it from source:
 @code{.sh}
 sudo apt-get install libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev
 # download the DarkMark source code from https://www.ccoderun.ca/download/
