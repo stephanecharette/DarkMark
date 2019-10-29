@@ -16,12 +16,43 @@ The editor is the main window for the DarkMark application.  This is where you c
 
 @image html darkmark_editor.png
 
-You click-and-drag the mouse to create or modify marks.  Use the cursor keys, @p PGUP, @p PGDOWN, @p HOME, or @p END to change the image, the number keys to change the class of a mark, etc.  See @ref Keyboard for additional hints.  Right-mouse-click in the editor window will provide many other options, including generating all of the darknet configuration files needed to train a new network.
+You click-and-drag the mouse to create or modify marks.  Use the cursor keys, @p PGUP, @p PGDOWN, @p HOME, or @p END to change the image, the number keys to change the class of a mark, etc.  See @ref Keyboard for additional hints.  Right-mouse-click in the editor window will provide many other options.
 
 When you quit from the DarkMark Editor window, it will bring you back to the DarkMark Launcher window.
 
-----
+@section DarkMarkDarknet DarkMark Darknet Options
 
+Right-mouse-click in the DarkMark Editor window to create all of the required Darknet files:
+
+@image html darknet_options.png
+
+This will create the following required text files which Darknet uses when training a new artificial neural network:
+
+filename					| description
+----------------------------|------------
+@p project_name.cfg			| YOLOv3 configuration file
+@p project_name.data		| references the other files
+@p project_name_train.txt	| list of images to use for training
+@p project_name_valid.txt	| list of images to use for validation
+@p project_name_train.sh	| bash script to start the darknet training
+
+@section DarkMarkReview DarkMark Review
+
+Right-mouse-click in the DarkMark Editor window to easily review all the image markup:
+
+@image html darkmark_review.png
+
+This will help ensure your network is trained correctly.  Quickly scroll through all of the similar images from the same class to ensure a mark hasn't been labelled incorrectly.  Double-click on that row to immediately open that image in the DarkMark Editor window.
+
+@section DarkMarkStatistics DarkMark Statistics
+
+Right-mouse-click in the DarkMark Editor window to view statistics on all the marks:
+
+@image html darkmark_statistics.png
+
+This can help identify which classes need better representation, or if any marks have been incorrectly set on unusually small or unusually large images.
+
+----
 
 This video briefly shows how to use DarkMark:
 
