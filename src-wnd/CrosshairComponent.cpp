@@ -16,8 +16,10 @@ dm::CrosshairComponent::CrosshairComponent() :
 	mouse_drag_rectangle(invalid_rectangle),
 	need_to_rebuild_cache_image(true)
 {
-	// why does this not work?
+	// why does this sometimes not work?
 	setMouseCursor(MouseCursor::NoCursor);
+
+	setBufferedToImage(false);
 
 	setRepaintsOnMouseActivity(true);
 

@@ -49,7 +49,7 @@ namespace dm
 
 			DMContent & toggle_show_processing_time();
 
-			DMContent & load_image(const size_t new_idx);
+			DMContent & load_image(const size_t new_idx, const bool full_load = true);
 
 			DMContent & save_text();
 
@@ -78,6 +78,8 @@ namespace dm
 			DMContent & review_marks();
 
 			DMContent & reload_resave_every_image();
+
+			DMContent & show_jump_wnd();
 
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;

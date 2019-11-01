@@ -32,6 +32,7 @@ namespace dm
 			std::unique_ptr<DarkHelp>		darkhelp;
 			std::unique_ptr<DMStatsWnd>		stats_wnd;
 			std::unique_ptr<DMAboutWnd>		about_wnd;
+			std::unique_ptr<DMJumpWnd>		jump_wnd;
 			std::unique_ptr<DMReviewWnd>	review_wnd;
 			std::unique_ptr<DarknetWnd>		darknet_wnd;
 			std::unique_ptr<StartupWnd>		startup_wnd;

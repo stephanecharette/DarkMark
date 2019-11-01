@@ -467,6 +467,16 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		toggle_bold_labels();
 		return true;
 	}
+	else if (key.getTextCharacter() == 'c' or keycode == KeyPress::returnKey)
+	{
+		create_class_menu().showMenuAsync(PopupMenu::Options());
+		return true;
+	}
+	else if (key.getTextCharacter() == 'j')
+	{
+		show_jump_wnd();
+		return true;
+	}
 	else if (key.getTextCharacter() == 's' or key.getTextCharacter() == 'S')
 	{
 		std::string filename = File(long_filename).getFileNameWithoutExtension().toStdString();
@@ -645,7 +655,7 @@ dm::DMContent & dm::DMContent::toggle_show_processing_time()
 }
 
 
-dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
+dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_load)
 {
 //	if (marks.empty() == false)
 	if (need_to_save)
@@ -672,69 +682,78 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx)
 	json_filename	= File(long_filename).withFileExtension(".json"	).getFullPathName().toStdString();
 	text_filename	= File(long_filename).withFileExtension(".txt"	).getFullPathName().toStdString();
 
+	if (dmapp().jump_wnd)
+	{
+		Slider & slider = dmapp().jump_wnd->slider;
+		slider.setValue(image_filename_index + 1);//, NotificationType::dontSendNotification);
+	}
+
 	try
 	{
 		Log("loading image " + long_filename);
 		original_image = cv::imread(image_filenames.at(image_filename_index));
 
-		bool success = load_json();
-		if (not success)
+		if (full_load)
 		{
-			// only attempt to load the .txt file if there was no .json file to process
-			success = load_text();
-		}
-
-		if (success and (File(json_filename).existsAsFile() != File(text_filename).existsAsFile()))
-		{
-			// we either have the .json without the .txt, or the other way around, in which case we need to re-save the files
-			need_to_save = true;
-		}
-
-		if (show_predictions != EToggle::kOff)
-		{
-			if (dmapp().darkhelp)
+			bool success = load_json();
+			if (not success)
 			{
-				darkhelp().predict(original_image);
-				darknet_image_processing_time = darkhelp().duration_string();
-				Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
+				// only attempt to load the .txt file if there was no .json file to process
+				success = load_text();
+			}
 
-//				std::cout << darkhelp().prediction_results << std::endl;
+			if (success and (File(json_filename).existsAsFile() != File(text_filename).existsAsFile()))
+			{
+				// we either have the .json without the .txt, or the other way around, in which case we need to re-save the files
+				need_to_save = true;
+			}
 
-				// convert the predictions into marks
-				for (auto prediction : darkhelp().prediction_results)
+			if (show_predictions != EToggle::kOff)
+			{
+				if (dmapp().darkhelp)
 				{
-					Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
-					m.name = names.at(m.class_idx);
-					m.description = prediction.name;
-					m.is_prediction = true;
-					marks.push_back(m);
+					darkhelp().predict(original_image);
+					darknet_image_processing_time = darkhelp().duration_string();
+					Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
+
+	//				std::cout << darkhelp().prediction_results << std::endl;
+
+					// convert the predictions into marks
+					for (auto prediction : darkhelp().prediction_results)
+					{
+						Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
+						m.name = names.at(m.class_idx);
+						m.description = prediction.name;
+						m.is_prediction = true;
+						marks.push_back(m);
+					}
 				}
 			}
+
+			// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
+			// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
+			std::sort(marks.begin(), marks.end(),
+					[](auto & lhs, auto & rhs)
+					{
+						const auto & p1 = lhs.get_normalized_midpoint();
+						const auto & p2 = rhs.get_normalized_midpoint();
+
+						const int y1 = std::round(15.0 * p1.y);
+						const int y2 = std::round(15.0 * p2.y);
+
+						if (y1 < y2) return true;
+					if (y2 < y1) return false;
+
+					// if we get here then y1 and y2 are the same, so now we compare x1 and x2
+
+					const int x1 = std::round(15.0 * p1.x);
+					const int x2 = std::round(15.0 * p2.x);
+
+					if (x1 < x2) return true;
+
+					return false;
+					} );
 		}
-
-		// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
-		// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
-		std::sort(marks.begin(), marks.end(),
-				  [](auto & lhs, auto & rhs)
-				  {
-					  const auto & p1 = lhs.get_normalized_midpoint();
-					  const auto & p2 = rhs.get_normalized_midpoint();
-
-					  const int y1 = std::round(15.0 * p1.y);
-					  const int y2 = std::round(15.0 * p2.y);
-
-					  if (y1 < y2) return true;
-				  if (y2 < y1) return false;
-
-				  // if we get here then y1 and y2 are the same, so now we compare x1 and x2
-
-				  const int x1 = std::round(15.0 * p1.x);
-				  const int x2 = std::round(15.0 * p2.x);
-
-				  if (x1 < x2) return true;
-
-				  return false;
-				  } );
 	}
 	catch(const std::exception & e)
 	{
@@ -1001,7 +1020,7 @@ PopupMenu dm::DMContent::create_class_menu()
 	PopupMenu m;
 	for (size_t idx = 0; idx < names.size(); idx ++)
 	{
-		const std::string & name = names.at(idx);
+		const std::string & name = std::to_string(idx) + " - " + names.at(idx);
 
 		const bool is_ticked = (selected_class_idx == (int)idx ? true : false);
 
@@ -1011,7 +1030,12 @@ PopupMenu dm::DMContent::create_class_menu()
 			if (idx == 10) ss << "CTRL + ";
 			if (idx == 20) ss << "ALT + ";
 			if (idx == 30) ss << "CTRL + ALT + ";
-			ss << idx << " to " << std::min(names.size(), idx + 10);
+			ss << "0";
+			const size_t max_val = std::min(names.size() - 1, idx + 9) - idx;
+			if (max_val > 0)
+			{
+				ss << " to " << max_val;
+			}
 			m.addSectionHeader(ss.str());
 		}
 
@@ -1066,8 +1090,16 @@ PopupMenu dm::DMContent::create_popup_menu()
 
 	PopupMenu image;
 	image.addItem("accept " + std::to_string(number_of_darknet_marks) + " pending marks", (number_of_darknet_marks > 0)	, false	, std::function<void()>( [&]{ accept_all_marks();			} ));
-	image.addItem("erase all " + std::to_string(marks.size()) + " marks"		, has_any_marks							, false	, std::function<void()>( [&]{ erase_all_marks();			} ));
+
+	std::string text = "erase 1 mark";
+	if (marks.size() != 1)
+	{
+		text = "erase all " + std::to_string(marks.size()) + " marks";
+	}
+	image.addItem(text																					, has_any_marks, false	, std::function<void()>( [&]{ erase_all_marks();			} ));
 	image.addItem("delete image from disk"																						, std::function<void()>( [&]{ delete_current_image();		} ));
+	image.addSeparator();
+	image.addItem("jump..."																										, std::function<void()>( [&]{ show_jump_wnd();				} ));
 	image.addSeparator();
 	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
 
@@ -1120,6 +1152,18 @@ dm::DMContent & dm::DMContent::reload_resave_every_image()
 {
 	DMContentReloadResave helper(*this);
 	helper.runThread();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::show_jump_wnd()
+{
+	if (not dmapp().jump_wnd)
+	{
+		dmapp().jump_wnd.reset(new DMJumpWnd(*this));
+	}
+	dmapp().jump_wnd->toFront(true);
 
 	return *this;
 }

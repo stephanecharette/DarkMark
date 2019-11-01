@@ -10,6 +10,7 @@ Key							| Saves Modified Marks First	| Description
 @p PAGEDOWN					| yes							| Go to the next image which has not yet been marked.
 @p HOME						| yes							| Go to the first image.
 @p END						| yes							| Go to the last image.
+@p ENTER (or @p RETURN)		|								| Display the 'class' menu (see @p 'c' key).
 @p DEL						|								| Delete the currently selected marking.
 @p BACKSPACE				|								| Same as @p DEL.
 @p ESC						| yes							| Quit from DarkMark.
@@ -18,6 +19,8 @@ Key							| Saves Modified Marks First	| Description
 @p SHIFT + @p TAB			|								| Move focus to the previous marking.
 @p a						|								| Accept all Darknet predictions (if any) for the current image as actual markings.
 @p b						|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
+@p c						|								| Display the 'class' menu (see @p ENTER key).
+@p j						| yes							| Jump to a different image.
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).
 @p p						|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)

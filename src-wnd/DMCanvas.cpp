@@ -12,6 +12,9 @@ dm::DMCanvas::DMCanvas(DMContent & c) :
 
 	mouse_drag_is_enabled = true;
 
+	setWantsKeyboardFocus(true);
+	grabKeyboardFocus();
+
 	return;
 }
 

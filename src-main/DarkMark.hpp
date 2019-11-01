@@ -24,6 +24,7 @@ namespace dm
 	class DMCanvas;
 	class Notebook;
 	class DMContent;
+	class DMJumpWnd;
 	class DMStatsWnd;
 	class DMAboutWnd;
 	class DarknetWnd;
@@ -50,6 +51,7 @@ namespace dm
 #include "CrosshairComponent.hpp"
 #include "ProjectInfo.hpp"
 #include "Notebook.hpp"
+#include "DMJumpWnd.hpp"
 #include "DMCorner.hpp"
 #include "DMCanvas.hpp"
 #include "DMContent.hpp"
