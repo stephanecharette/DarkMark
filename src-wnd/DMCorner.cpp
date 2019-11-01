@@ -37,7 +37,7 @@ void dm::DMCorner::mouseDown(const MouseEvent & event)
 	{
 		content.create_popup_menu().showMenuAsync(PopupMenu::Options());
 	}
-	else
+	else if (content.selected_mark >= 0)
 	{
 		const int x = event.getMouseDownX();
 		const int y = event.getMouseDownY();

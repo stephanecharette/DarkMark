@@ -9,7 +9,7 @@
 
 namespace dm
 {
-	typedef std::set<double> SDbl;
+	typedef std::map<double, double> MDbl;
 
 	class DMJumpWnd : public DocumentWindow, public Slider::Listener, public Timer
 	{
@@ -33,7 +33,7 @@ namespace dm
 			DMContent & content;
 
 			/// Remember the locations (percentages) where the image sets need to be drawn overtop the slider component.
-			SDbl markers;
+			MDbl markers;
 
 	};
 }

@@ -31,21 +31,33 @@ dm::DMJumpWnd::DMJumpWnd(DMContent & c) :
 	slider.addListener(this);
 
 	// determine all the positions where we need to draw a marker (indicating different image sets)
-	// (this only makes sense if the images are sorted alphabetically)
-	if (content.sort_order == ESort::kAlphabetical)
+	// (this only makes sense when the images are sorted alphabetically)
+	auto filenames = content.image_filenames;
+	std::sort(filenames.begin(), filenames.end());
+	filenames.push_back(" "); // insert a "dummy" file so when we process for markers we'll trigger and add a record for the last set of files
+
+	File previous_dir;
+	double files_in_section	= 0;
+	double files_with_json	= 0;
+	for (size_t idx = 0; idx < filenames.size(); idx ++)
 	{
-		File previous_dir;
-		for (size_t idx = 0; idx < content.image_filenames.size(); idx ++)
+		const std::string & fn = filenames.at(idx);
+		File file	= File(fn);
+		File json	= file.withFileExtension(".json");
+		File parent	= file.getParentDirectory();
+		if (parent != previous_dir)
 		{
-			const std::string & fn = content.image_filenames.at(idx);
-			File dir = File(fn).getParentDirectory();
-			if (dir != previous_dir)
-			{
-				// new directory!  remember this location
-				markers.insert((double)idx / (double)content.image_filenames.size());
-				previous_dir = dir;
-			}
+			// new directory!  put a marker here and remember this location
+			const double location = (double)idx / (double)filenames.size();
+			const double percentage_with_json = (double)files_with_json / (double)files_in_section;
+			markers[location] = percentage_with_json;
+			previous_dir = parent;
+			files_in_section = 0;
+			files_with_json = 0;
 		}
+
+		files_in_section ++;
+		files_with_json += (json.existsAsFile() ? 1 : 0);
 	}
 
 	setIcon(DarkMarkLogo());
@@ -135,19 +147,36 @@ void dm::DMJumpWnd::timerCallback()
 
 void dm::DMJumpWnd::paintOverChildren(Graphics & g)
 {
-	if (content.sort_order == ESort::kAlphabetical and markers.empty() == false)
+	if (content.sort_order == ESort::kAlphabetical)
 	{
-		g.setColour(Colours::white);
 		g.setOpacity(0.25);
 
-		const double width		= getWidth();
-		const double height		= getHeight();
-		for (const double marker : markers)
+		const double width	= getWidth();
+		const double height	= getHeight();
+		double old_location	= 0.0;
+		for (auto iter : markers)
 		{
-			if (marker > 0.0)
+			const double location = iter.first;
+			const double percentage_with_json = iter.second;
+			const double invert_percentage = 1.0 - percentage_with_json;
+
+			if (location > 0.0)
 			{
-				const double pos = marker * width;
-				g.drawVerticalLine(pos, 0.0, height);
+				auto colour = Colours::white;
+				if (percentage_with_json >= 0.99)
+				{
+					colour = Colours::green;
+				}
+				else if (percentage_with_json <= 0.01)
+				{
+					colour = Colours::red;
+				}
+				g.setColour(colour);
+
+				const double new_location = location * width;
+				g.drawVerticalLine(std::round(new_location), 0.0, height);
+				g.drawHorizontalLine(std::round(invert_percentage * height), old_location, new_location);
+				old_location = new_location;
 			}
 		}
 	}
