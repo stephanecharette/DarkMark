@@ -28,17 +28,18 @@ dm::DMContent::DMContent() :
 	image_filename_index(0),
 	project_info(cfg().get_str("image_directory"))
 {
-	corners.push_back(new DMCorner(*this, ECorner::kTL));
-	corners.push_back(new DMCorner(*this, ECorner::kTR));
-	corners.push_back(new DMCorner(*this, ECorner::kBR));
-	corners.push_back(new DMCorner(*this, ECorner::kBL));
-
 	addAndMakeVisible(canvas);
 
-	for (auto c : corners)
+	for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
 	{
+		auto * c = new DMCorner(*this, type);
+		corners.push_back(c);
 		addAndMakeVisible(c);
 	}
+
+	addAndMakeVisible(bubble_message);
+	bubble_message.setLookAndFeel(&look_and_feel_v3);
+	bubble_message.toFront(false);
 
 	setWantsKeyboardFocus(true);
 
@@ -410,6 +411,24 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		load_image(image_filename_index);
 		return true;
 	}
+	else if (keycode == KeyPress::upKey or keycode == KeyPress::downKey)
+	{
+		if (dmapp().darkhelp)
+		{
+			float threshold = dmapp().darkhelp->threshold;
+
+			threshold += (keycode == KeyPress::upKey ? 0.05f : -0.05f);
+			threshold = std::min(std::max(threshold, 0.05f), 0.95f);
+
+			if (threshold != dmapp().darkhelp->threshold)
+			{
+				dmapp().darkhelp->threshold = threshold;
+				load_image(image_filename_index);
+				show_message("darknet threshold: " + std::to_string((int)std::round(100.0 * threshold)) + "%");
+			}
+		}
+		return true;
+	}
 	else if (keycode == KeyPress::deleteKey or keycode == KeyPress::backspaceKey or keycode == KeyPress::numberPadDelete)
 	{
 		if (selected_mark >= 0)
@@ -438,6 +457,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	else if (key.getTextCharacter() == 'r')
 	{
 		set_sort_order(ESort::kRandom);
+		show_message("re-shuffle random sort");
 		return true;
 	}
 	else if (key.getTextCharacter() == 'a')
@@ -449,17 +469,25 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_predictions) + 1) % 3 );
 		toggle_show_predictions(toggle);
+		show_message("predictions: " + std::string(
+				toggle == EToggle::kOn	? "on"	:
+				toggle == EToggle::kOff	? "off"	: "auto"));
+
 		return true;
 	}
 	else if (key.getTextCharacter() == 'm')
 	{
 		toggle_show_marks();
+		show_message("user marks: " + std::string(show_marks ? "visible" : "hidden"));
 		return true;
 	}
 	else if (key.getTextCharacter() == 'l')
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_labels) + 1) % 3 );
 		set_labels(toggle);
+		show_message("labels: " + std::string(
+				toggle == EToggle::kOn	? "on"	:
+				toggle == EToggle::kOff	? "off"	: "auto"));
 		return true;
 	}
 	else if (key.getTextCharacter() == 'b')
@@ -1164,6 +1192,22 @@ dm::DMContent & dm::DMContent::show_jump_wnd()
 		dmapp().jump_wnd.reset(new DMJumpWnd(*this));
 	}
 	dmapp().jump_wnd->toFront(true);
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::show_message(const std::string & msg)
+{
+	if (msg.empty())
+	{
+		bubble_message.setVisible(false);
+	}
+	else
+	{
+		const Rectangle<int> r(getWidth()/2, 1, 1, 1);
+		bubble_message.showAt(r, AttributedString(msg), 4000, true, false);
+	}
 
 	return *this;
 }

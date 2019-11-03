@@ -81,6 +81,8 @@ namespace dm
 
 			DMContent & show_jump_wnd();
 
+			DMContent & show_message(const std::string & msg);
+
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
 
@@ -143,5 +145,8 @@ namespace dm
 			std::string text_filename;
 
 			ProjectInfo project_info;
+
+			LookAndFeel_V3 look_and_feel_v3; // V4 is way too dark, it is impossible to read, so stick to v3 when building bubble messages
+			BubbleMessageComponent bubble_message;
 	};
 }
