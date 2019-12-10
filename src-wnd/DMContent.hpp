@@ -83,6 +83,13 @@ namespace dm
 
 			DMContent & show_message(const std::string & msg);
 
+			/** Save the current image with annotations as a screenshot.
+			 * @param [in] full_size When set to @p true, this will save the image at 100% zoom.  When set to false, this will
+			 * save the image at exactly the same zoom level as what is currently displayed on the screen.
+			 * @param [in] fn If not blank, the screenshot will be saved to this file.  Should end in @p .png or @p .jpg.
+			 */
+			DMContent & save_screenshot(const bool full_size = true, const std::string & fn = "");
+
 			DMCanvas canvas;
 			std::vector<DMCorner*> corners;
 

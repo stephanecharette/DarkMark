@@ -265,6 +265,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 //	Log("code=" + std::to_string(key.getKeyCode()) + " char=" + std::to_string(key.getTextCharacter()) + " description=" + key.getTextDescription().toStdString());
 
 	const auto keycode = key.getKeyCode();
+	const auto keychar = key.getTextCharacter();
 
 	const KeyPress key0 = KeyPress::createFromDescription("0");
 	const KeyPress key9 = KeyPress::createFromDescription("9");
@@ -454,18 +455,18 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		dmapp().about_wnd->toFront(true);
 		return true;
 	}
-	else if (key.getTextCharacter() == 'r')
+	else if (keychar == 'r')
 	{
 		set_sort_order(ESort::kRandom);
 		show_message("re-shuffle random sort");
 		return true;
 	}
-	else if (key.getTextCharacter() == 'a')
+	else if (keychar == 'a')
 	{
 		accept_all_marks();
 		return true; // event has been handled
 	}
-	else if (key.getTextCharacter() == 'p')
+	else if (keychar == 'p')
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_predictions) + 1) % 3 );
 		toggle_show_predictions(toggle);
@@ -475,13 +476,13 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 
 		return true;
 	}
-	else if (key.getTextCharacter() == 'm')
+	else if (keychar == 'm')
 	{
 		toggle_show_marks();
 		show_message("user marks: " + std::string(show_marks ? "visible" : "hidden"));
 		return true;
 	}
-	else if (key.getTextCharacter() == 'l')
+	else if (keychar == 'l')
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_labels) + 1) % 3 );
 		set_labels(toggle);
@@ -490,56 +491,50 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 				toggle == EToggle::kOff	? "off"	: "auto"));
 		return true;
 	}
-	else if (key.getTextCharacter() == 'b')
+	else if (keychar == 'b')
 	{
 		toggle_bold_labels();
 		return true;
 	}
-	else if (key.getTextCharacter() == 'c' or keycode == KeyPress::returnKey)
+	else if (keychar == 'c' or keycode == KeyPress::returnKey)
 	{
 		create_class_menu().showMenuAsync(PopupMenu::Options());
 		return true;
 	}
-	else if (key.getTextCharacter() == 'j')
+	else if (keychar == 'j')
 	{
 		show_jump_wnd();
 		return true;
 	}
-	else if (key.getTextCharacter() == 's' or key.getTextCharacter() == 'S')
+	else if (keychar == 's')
 	{
-		std::string filename = File(long_filename).getFileNameWithoutExtension().toStdString();
-		filename += "_annotated.png";
-		File f = File::getSpecialLocation(File::SpecialLocationType::userDesktopDirectory).getChildFile(filename);
-
-		FileChooser chooser("Save annotated image to...", f, "*.png,*.jpg,*.jpeg");
-		if (chooser.browseForFileToSave(true))
+		save_screenshot(false);
+		return true;
+	}
+	else if (keychar == 'S')
+	{
+		save_screenshot(true);
+		return true;
+	}
+	#if 0
+	else if (keychar == 'z')
+	{
+		const auto old_image_index = image_filename_index;
+		show_predictions = EToggle::kOn;
+		show_marks = false;
+		for (size_t idx = 0; idx < image_filenames.size(); idx ++)
 		{
-			const auto old_scaled_image_size = scaled_image_size;
-			if (key.getTextCharacter() == 'S') // uppercase 'S' means we should use the full-size image
-			{
-				// we want to save the full-size image, not the resized one we're currently viewing,
-				// so swap out a few things, re-build the annotated image, and save *those* results
-				scaled_image_size = original_image.size();
-				canvas.rebuild_cache_image();
-			}
-
-			File f = chooser.getResult();
-			if (f.hasFileExtension(".png"))
-			{
-				cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_PNG_COMPRESSION, 9});
-			}
-			else
-			{
-				cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_JPEG_OPTIMIZE, 1, CV_IMWRITE_JPEG_QUALITY, 75});
-			}
-
-			if (scaled_image_size != old_scaled_image_size)
-			{
-				// now put back the scaled image we expect to be there
-				scaled_image_size = old_scaled_image_size;
-				canvas.rebuild_cache_image();
-			}
+			load_image(idx);
+			std::stringstream ss;
+			ss << "frame_" << std::setfill('0') << std::setw(4) << idx << ".png";
+			save_screenshot(true, ss.str());
 		}
+		load_image(old_image_index);
+	}
+	#endif
+	else
+	{
+		show_message("ignoring unknown key '" + key.getTextDescription().toStdString() + "'");
 	}
 
 	return false;
@@ -1207,6 +1202,64 @@ dm::DMContent & dm::DMContent::show_message(const std::string & msg)
 	{
 		const Rectangle<int> r(getWidth()/2, 1, 1, 1);
 		bubble_message.showAt(r, AttributedString(msg), 4000, true, false);
+	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::save_screenshot(const bool full_size, const std::string & fn)
+{
+	bool proceed = false;
+	std::string filename = fn;
+	if (filename.empty())
+	{
+		filename = File(long_filename).getFileNameWithoutExtension().toStdString();
+		filename += "_annotated.png";
+	}
+	else
+	{
+		proceed = true;
+	}
+
+	File f = File::getSpecialLocation(File::SpecialLocationType::userDesktopDirectory).getChildFile(filename);
+	if (fn.empty())
+	{
+		FileChooser chooser("Save annotated image to...", f, "*.png,*.jpg,*.jpeg");
+		if (chooser.browseForFileToSave(true))
+		{
+			f = chooser.getResult();
+			proceed = true;
+		}
+	}
+
+	if (proceed)
+	{
+		const auto old_scaled_image_size = scaled_image_size;
+
+		if (full_size) // uppercase 'S' means we should use the full-size image
+		{
+			// we want to save the full-size image, not the resized one we're currently viewing,
+			// so swap out a few things, re-build the annotated image, and save *those* results
+			scaled_image_size = original_image.size();
+			canvas.rebuild_cache_image();
+		}
+
+		if (f.hasFileExtension(".png"))
+		{
+			cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_PNG_COMPRESSION, 9});
+		}
+		else
+		{
+			cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_JPEG_OPTIMIZE, 1, CV_IMWRITE_JPEG_QUALITY, 75});
+		}
+
+		if (scaled_image_size != old_scaled_image_size)
+		{
+			// now put back the scaled image we expect to be there
+			scaled_image_size = old_scaled_image_size;
+			canvas.rebuild_cache_image();
+		}
 	}
 
 	return *this;
