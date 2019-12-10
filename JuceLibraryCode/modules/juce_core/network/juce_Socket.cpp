@@ -283,8 +283,25 @@ namespace SocketHelpers
         if (! lock.isLocked())
             return -1;
 
-        int h = handle.load();
+        auto hasErrorOccured = [&handle] () -> bool
+        {
+            auto h = handle.load();
 
+            if (h == invalidSocket)
+                return true;
+
+            int opt;
+            juce_socklen_t len = sizeof (opt);
+
+            if (getsockopt (h, SOL_SOCKET, SO_ERROR, (char*) &opt, &len) < 0  || opt != 0)
+                return true;
+
+            return false;
+        };
+
+        auto h = handle.load();
+
+       #if JUCE_WINDOWS || JUCE_MINGW
         struct timeval timeout;
         struct timeval* timeoutp;
 
@@ -305,43 +322,33 @@ namespace SocketHelpers
         FD_ZERO (&wset);
         FD_SET (h, &wset);
 
-        fd_set* const prset = forReading ? &rset : nullptr;
-        fd_set* const pwset = forReading ? nullptr : &wset;
+        fd_set* prset = forReading ? &rset : nullptr;
+        fd_set* pwset = forReading ? nullptr : &wset;
 
-       #if JUCE_WINDOWS
-        if (select ((int) h + 1, prset, pwset, 0, timeoutp) < 0)
+        // NB - need to use select() here as WSAPoll is broken on Windows
+        if (select ((int) h + 1, prset, pwset, nullptr, timeoutp) < 0 || hasErrorOccured())
             return -1;
-       #else
-        {
-            int result = 0;
-
-            for (;;)
-            {
-                result = select (h + 1, prset, pwset, nullptr, timeoutp);
-
-                if (result >= 0 || errno != EINTR)
-                    break;
-            }
-
-            if (result < 0)
-                return -1;
-        }
-       #endif
-
-        // we are closing
-        if (handle.load() < 0)
-            return -1;
-
-        {
-            int opt;
-            juce_socklen_t len = sizeof (opt);
-
-            if (getsockopt (h, SOL_SOCKET, SO_ERROR, (char*) &opt, &len) < 0
-                 || opt != 0)
-                return -1;
-        }
 
         return FD_ISSET (h, forReading ? &rset : &wset) ? 1 : 0;
+      #else
+        short eventsFlag = (forReading ? POLLIN : POLLOUT);
+        pollfd pfd { (SocketHandle) h, eventsFlag, 0 };
+
+        int result = 0;
+
+        for (;;)
+        {
+            result = poll (&pfd, 1, timeoutMsecs);
+
+            if (result >= 0 || errno != EINTR)
+                break;
+        }
+
+        if (result < 0 || hasErrorOccured())
+            return -1;
+
+        return (pfd.revents & eventsFlag) != 0;
+      #endif
     }
 
     static addrinfo* getAddressInfo (bool isDatagram, const String& hostName, int portNumber)

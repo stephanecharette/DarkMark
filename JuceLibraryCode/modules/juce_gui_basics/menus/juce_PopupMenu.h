@@ -192,6 +192,8 @@ public:
         Item& setColour (Colour) & noexcept;
         /** Sets the customComponent property (and returns a reference to this item to allow chaining). */
         Item& setCustomComponent (ReferenceCountedObjectPtr<CustomComponent> customComponent) & noexcept;
+        /** Sets the image property (and returns a reference to this item to allow chaining). */
+        Item& setImage (std::unique_ptr<Drawable>) & noexcept;
 
         /** Sets the isTicked flag (and returns a reference to this item to allow chaining). */
         Item&& setTicked (bool shouldBeTicked = true) && noexcept;
@@ -205,6 +207,8 @@ public:
         Item&& setColour (Colour) && noexcept;
         /** Sets the customComponent property (and returns a reference to this item to allow chaining). */
         Item&& setCustomComponent (ReferenceCountedObjectPtr<CustomComponent> customComponent) && noexcept;
+        /** Sets the image property (and returns a reference to this item to allow chaining). */
+        Item&& setImage (std::unique_ptr<Drawable>) && noexcept;
     };
 
     /** Adds an item to the menu.
@@ -699,6 +703,13 @@ public:
         */
         bool isItemHighlighted() const noexcept                 { return isHighlighted; }
 
+        /** Returns a pointer to the Item that holds this custom component, if this
+            component is currently held by an Item.
+            You can query the Item for information that you might want to use
+            in your paint() method, such as the item's enabled and ticked states.
+        */
+        const PopupMenu::Item* getItem() const noexcept         { return item; }
+
         /** @internal */
         bool isTriggeredAutomatically() const noexcept          { return triggeredAutomatically; }
         /** @internal */
@@ -707,6 +718,9 @@ public:
     private:
         //==============================================================================
         bool isHighlighted = false, triggeredAutomatically;
+        const PopupMenu::Item* item = nullptr;
+
+        friend PopupMenu;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CustomComponent)
     };
@@ -811,6 +825,8 @@ private:
 
     Component* createWindow (const Options&, ApplicationCommandManager**) const;
     int showWithOptionalCallback (const Options&, ModalComponentManager::Callback*, bool);
+
+    static void setItem (CustomComponent&, const Item*);
 
    #if JUCE_CATCH_DEPRECATED_CODE_MISUSE
     // These methods have new implementations now - see its new definition

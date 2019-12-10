@@ -20,8 +20,6 @@
   ==============================================================================
 */
 
-#include <poll.h>
-
 namespace juce
 {
 
@@ -255,7 +253,7 @@ bool MessageManager::dispatchNextMessageOnSystemQueue (bool returnIfNoPendingMes
     for (;;)
     {
         if (LinuxErrorHandling::keyboardBreakOccurred)
-            JUCEApplicationBase::getInstance()->quit();
+            JUCEApplicationBase::quit();
 
         if (auto* runLoop = InternalRunLoop::getInstanceWithoutCreating())
         {

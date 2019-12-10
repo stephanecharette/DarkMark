@@ -80,7 +80,10 @@ struct ItemComponent  : public Component
             customComp = *new HeaderItemComponent (item.text);
 
         if (customComp != nullptr)
+        {
+            setItem (*customComp, &item);
             addAndMakeVisible (*customComp);
+        }
 
         parent.addAndMakeVisible (this);
 
@@ -96,6 +99,9 @@ struct ItemComponent  : public Component
 
     ~ItemComponent() override
     {
+        if (customComp != nullptr)
+            setItem (*customComp, nullptr);
+
         removeChildComponent (customComp.get());
     }
 
@@ -1385,6 +1391,12 @@ PopupMenu::Item& PopupMenu::Item::setCustomComponent (ReferenceCountedObjectPtr<
     return *this;
 }
 
+PopupMenu::Item& PopupMenu::Item::setImage (std::unique_ptr<Drawable> newImage) & noexcept
+{
+    image = std::move (newImage);
+    return *this;
+}
+
 PopupMenu::Item&& PopupMenu::Item::setTicked (bool shouldBeTicked) && noexcept
 {
     isTicked = shouldBeTicked;
@@ -1418,6 +1430,12 @@ PopupMenu::Item&& PopupMenu::Item::setColour (Colour newColour) && noexcept
 PopupMenu::Item&& PopupMenu::Item::setCustomComponent (ReferenceCountedObjectPtr<CustomComponent> comp) && noexcept
 {
     customComponent = comp;
+    return std::move (*this);
+}
+
+PopupMenu::Item&& PopupMenu::Item::setImage (std::unique_ptr<Drawable> newImage) && noexcept
+{
+    image = std::move (newImage);
     return std::move (*this);
 }
 
@@ -1891,6 +1909,12 @@ bool PopupMenu::containsAnyActiveItems() const noexcept
 void PopupMenu::setLookAndFeel (LookAndFeel* const newLookAndFeel)
 {
     lookAndFeel = newLookAndFeel;
+}
+
+void PopupMenu::setItem (CustomComponent& c, const Item* itemToUse)
+{
+    c.item = itemToUse;
+    c.repaint();
 }
 
 //==============================================================================
