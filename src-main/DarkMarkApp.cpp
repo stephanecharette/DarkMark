@@ -56,6 +56,17 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	cfg.reset(new Cfg);
 	startup_wnd.reset(new StartupWnd);
 
+	// before we go any further, check to see if Darknet is installed where we think it is
+	const auto darknet_dir = cfg->get_str("darknet_dir");
+	File f(darknet_dir);
+	if (f.isDirectory() == false)
+	{
+		Log("darknet directory does not exist: " + darknet_dir);
+		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark",
+				"The darknet directory is set to " + darknet_dir + ", but that directory does not exist.\n\n"
+				"Please quit from DarkMark and edit the configuration file " + cfg->getFile().getFullPathName().toStdString() + " to set \"darknet_dir\" to the correct location.");
+	}
+
 	return;
 }
 

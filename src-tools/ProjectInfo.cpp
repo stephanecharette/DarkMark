@@ -18,7 +18,15 @@ dm::ProjectInfo::ProjectInfo(const std::string & project_directory)
 	enable_hue					= cfg().get_bool("darknet_enable_hue"			);
 	enable_flip					= cfg().get_bool("darknet_enable_flip"			);
 
-	rebuild(project_directory);
+	try
+	{
+		rebuild(project_directory);
+	}
+	catch (const std::exception & e)
+	{
+		dm::Log("project info error: " + std::string(e.what()));
+		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Error setting up the project:\n\n" + std::string(e.what()));
+	}
 
 	return;
 }
