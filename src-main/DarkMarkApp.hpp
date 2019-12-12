@@ -16,6 +16,10 @@ namespace dm
 			DarkMarkApplication(void);
 			virtual ~DarkMarkApplication(void);
 
+			static void signal_handler(int signal_number);
+
+			static void setup_signal_handling();
+
 			virtual const String getApplicationName		(void)	override	{ return "DarkMark";		}
 			virtual const String getApplicationVersion	(void)	override	{ return DARKMARK_VERSION;	}
 			virtual bool moreThanOneInstanceAllowed		(void)	override	{ return true;				}

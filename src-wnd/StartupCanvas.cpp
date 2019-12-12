@@ -114,6 +114,8 @@ void dm::StartupCanvas::resized()
 
 void dm::StartupCanvas::initialize_on_thread()
 {
+	DarkMarkApplication::setup_signal_handling();
+
 	applying_filter = true;
 	v.clear();
 	table.updateContent();
@@ -219,6 +221,8 @@ void dm::StartupCanvas::initialize_on_thread()
 void dm::StartupCanvas::find_all_darknet_files()
 {
 	// find all the .cfg, .weight, and .names files
+
+	DarkMarkApplication::setup_signal_handling();
 
 	applying_filter = true;
 	v.clear();

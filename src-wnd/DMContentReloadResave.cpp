@@ -21,6 +21,8 @@ dm::DMContentReloadResave::~DMContentReloadResave()
 
 void dm::DMContentReloadResave::run()
 {
+	DarkMarkApplication::setup_signal_handling();
+
 	const double max_work = content.image_filenames.size();
 	double work_completed = 0.0;
 

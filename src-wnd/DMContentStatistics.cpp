@@ -25,6 +25,8 @@ dm::DMContentStatistics::~DMContentStatistics()
 
 void dm::DMContentStatistics::run()
 {
+	DarkMarkApplication::setup_signal_handling();
+
 	const double max_work = content.image_filenames.size();
 	double work_completed = 0.0;
 

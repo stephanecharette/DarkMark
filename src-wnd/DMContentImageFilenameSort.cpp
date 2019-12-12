@@ -18,6 +18,8 @@ dm::DMContentImageFilenameSort::DMContentImageFilenameSort(dm::DMContent & c) :
 
 void dm::DMContentImageFilenameSort::run()
 {
+	DarkMarkApplication::setup_signal_handling();
+
 	if (content.sort_order != dm::ESort::kCountMarks and
 		content.sort_order != dm::ESort::kTimestamp)
 	{
