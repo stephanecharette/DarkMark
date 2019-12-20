@@ -27,6 +27,7 @@ Key							| Saves Modified Marks First	| Description
 @p r						| yes							| Randomly sort the images and load the first image.
 @p s (lowercase)			|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".  Screenshots must be saved in either @p .jpg or @p .png file format (default is @p PNG).
 @p S (uppercase)			|								| Same as @p 's' (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
+@p y						|								| Copy marks from previous (alphabetical) marked up image.
 @p 0-9						|								| Set the class ID of the currently selected mark to the specified value zero through nine.
 @p CTRL + @p 0-9			|								| Set the class ID of the currently selected mark to the value 10-19 (specified key + 10).
 @p ALT + @p 0-9				|								| Set the class ID of the currently selected mark to the value 20-29 (specified key + 20).

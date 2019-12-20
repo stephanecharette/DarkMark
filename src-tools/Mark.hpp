@@ -31,7 +31,7 @@ namespace dm
 			/// Empty constructor creates a mark at (0, 0, 0, 0)
 			Mark();
 
-			/// Darknet-style constructor with the center point and the size of the mark.
+			/// Darknet-style constructor with the center point and the size of the mark, both normalized.
 			Mark(const cv::Point2d & midpoint, const cv::Size2d & normalized_size, const cv::Size & image_size, const size_t & class_index);
 
 			/// Return @p true if an image size has not been set and all points are set to zero.

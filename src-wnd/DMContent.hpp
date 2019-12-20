@@ -65,6 +65,8 @@ namespace dm
 
 			DMContent & delete_current_image();
 
+			DMContent & copy_marks_from_previous_image();
+
 			DMContent & accept_all_marks();
 
 			DMContent & erase_all_marks();
