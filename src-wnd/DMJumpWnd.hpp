@@ -19,14 +19,14 @@ namespace dm
 
 			virtual ~DMJumpWnd();
 
-			virtual void closeButtonPressed();
-			virtual void userTriedToCloseWindow();
+			virtual void closeButtonPressed() override;
+			virtual void userTriedToCloseWindow() override;
 
-			virtual void sliderValueChanged(Slider * slider);
+			virtual void sliderValueChanged(Slider * slider) override;
 
-			virtual void timerCallback();
+			virtual void timerCallback() override;
 
-			virtual void paintOverChildren(Graphics & g);
+			virtual void paintOverChildren(Graphics & g) override;
 
 			Slider slider;
 

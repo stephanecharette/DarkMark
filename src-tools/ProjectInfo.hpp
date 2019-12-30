@@ -16,8 +16,8 @@ namespace dm
 
 			std::string project_name;				///< e.g., @p flowers
 
-			std::string	darknet_dir;				///< e.g., @p /home/bob/darknet/
-			std::string	project_dir;				///< e.g., @p /home/bob/nn/flowers/
+			std::string	darknet_dir;				///< e.g., @p /home/bob/darknet
+			std::string	project_dir;				///< e.g., @p /home/bob/nn/flowers
 			std::string	darknet_tiny_cfg_filename;	///< e.g., @p /home/bob/nn/flowers/flowers_yolov3-tiny.cfg
 			std::string	darknet_full_cfg_filename;	///< e.g., @p /home/bob/nn/flowers/flowers_yolov3-full.cfg
 			std::string data_filename;				///< e.g., @p /home/bob/nn/flowers/flowers.data

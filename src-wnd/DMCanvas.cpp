@@ -76,6 +76,13 @@ void dm::DMCanvas::rebuild_cache_image()
 		}
 	}
 
+	if (mouse_drag_rectangle != invalid_rectangle)
+	{
+		// user is dragging the mouse to create a point, so hide predictions
+		Log("dragging detected, turning off predictons in image cache");
+		content.predictions_are_shown = false;
+	}
+
 	if (content.number_of_marks == 0)
 	{
 		content.marks_are_shown = false;

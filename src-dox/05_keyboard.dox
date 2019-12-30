@@ -20,6 +20,7 @@ Key							| Saves Modified Marks First	| Description
 @p a						|								| Accept all Darknet predictions (if any) for the current image as actual markings.
 @p b						|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
 @p c						|								| Display the 'class' menu (see @p ENTER key).
+@p e						|								| Settings not exposed in right-mouse-click menu.
 @p j						| yes							| Jump to a different image.
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).

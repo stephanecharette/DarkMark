@@ -220,6 +220,16 @@ void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 	mouse_previous_loc	= mouse_current_loc;
 	mouse_current_loc	= event.getPosition();
 
+	if (mouse_drag_rectangle == invalid_rectangle or
+		mouse_drag_rectangle.getX() == -1 or
+		mouse_drag_rectangle.getY() == -1 or
+		(mouse_drag_rectangle.getX() >= 0 and mouse_drag_rectangle.getY() >= 0 and
+			(mouse_drag_rectangle.getWidth() == 0 or mouse_drag_rectangle.getHeight() == 0)))
+	{
+		// looks like this is the start of a new mouse drag
+		need_to_rebuild_cache_image = true;
+	}
+
 	const auto p1 = mouse_drag_rectangle.getTopLeft();
 	const auto p2 = mouse_current_loc;
 	const auto w = p2.x - p1.x;

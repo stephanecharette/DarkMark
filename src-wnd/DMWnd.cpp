@@ -49,6 +49,7 @@ dm::DMWnd::~DMWnd(void)
 	dmapp().stats_wnd	.reset(nullptr);
 	dmapp().darknet_wnd	.reset(nullptr);
 	dmapp().darkhelp	.reset(nullptr);
+	dmapp().settings_wnd.reset(nullptr);
 
 	return;
 }

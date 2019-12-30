@@ -40,6 +40,7 @@ namespace dm
 			std::unique_ptr<DMReviewWnd>	review_wnd;
 			std::unique_ptr<DarknetWnd>		darknet_wnd;
 			std::unique_ptr<StartupWnd>		startup_wnd;
+			std::unique_ptr<SettingsWnd>	settings_wnd;
 	};
 
 

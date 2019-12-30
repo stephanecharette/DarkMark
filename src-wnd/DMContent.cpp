@@ -521,6 +521,14 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		copy_marks_from_previous_image();
 		return true;
 	}
+	else if (keychar == 'e')
+	{
+		if (not dmapp().settings_wnd)
+		{
+			dmapp().settings_wnd.reset(new SettingsWnd(*this));
+		}
+		dmapp().settings_wnd->toFront(true);
+	}
 	#if 0
 	else if (keychar == 'z')
 	{

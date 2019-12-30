@@ -168,9 +168,9 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 
 	// otherwise if we get here we need to validate the fields before we export the darknet files
 
-	const String darknet_dir	= v_darknet_dir.getValue();
-	const int image_size		= v_image_size.getValue();
-	const int batch_size		= v_batch_size.getValue();
+	const String darknet_dir	= v_darknet_dir	.getValue();
+	const int image_size		= v_image_size	.getValue();
+	const int batch_size		= v_batch_size	.getValue();
 	const int subdivisions		= v_subdivisions.getValue();
 
 	if (darknet_dir.isEmpty() or File(darknet_dir).exists() == false or File(darknet_dir).getChildFile("cfg").exists() == false)
@@ -211,15 +211,15 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue("darknet_enable_flip"		, v_enable_flip					);
 
 	info.darknet_dir				= v_darknet_dir.toString().toStdString();
-	info.enable_yolov3_tiny			= v_enable_yolov3_tiny.getValue();
-	info.enable_yolov3_full			= v_enable_yolov3_full.getValue();
+	info.enable_yolov3_tiny			= v_enable_yolov3_tiny	.getValue();
+	info.enable_yolov3_full			= v_enable_yolov3_full	.getValue();
 	info.training_images_percentage	= static_cast<double>(v_training_images_percentage.getValue()) / 100.0;
-	info.image_size					= v_image_size.getValue();
-	info.batch_size					= v_batch_size.getValue();
-	info.subdivisions				= v_subdivisions.getValue();
-	info.iterations					= v_iterations.getValue();
-	info.enable_hue					= v_enable_hue.getValue();
-	info.enable_flip				= v_enable_flip.getValue();
+	info.image_size					= v_image_size			.getValue();
+	info.batch_size					= v_batch_size			.getValue();
+	info.subdivisions				= v_subdivisions		.getValue();
+	info.iterations					= v_iterations			.getValue();
+	info.enable_hue					= v_enable_hue			.getValue();
+	info.enable_flip				= v_enable_flip			.getValue();
 
 	try
 	{
@@ -307,11 +307,11 @@ void dm::DarknetWnd::create_Darknet_files()
 	if (true)
 	{
 		std::ofstream fs(info.data_filename);
-		fs	<< "classes = " << content.names.size()				<< std::endl
-			<< "train = " << info.train_filename				<< std::endl
-			<< "valid = " << info.valid_filename				<< std::endl
-			<< "names = " << cfg().get_str("darknet_names")		<< std::endl
-			<< "backup = " << info.project_dir					<< std::endl;
+		fs	<< "classes = "	<< content.names.size()				<< std::endl
+			<< "train = "	<< info.train_filename				<< std::endl
+			<< "valid = "	<< info.valid_filename				<< std::endl
+			<< "names = "	<< cfg().get_str("darknet_names")	<< std::endl
+			<< "backup = "	<< info.project_dir					<< std::endl;
 	}
 
 	size_t number_of_files_train = 0;
@@ -372,6 +372,72 @@ void dm::DarknetWnd::create_Darknet_files()
 		const std::string data = ss.str();
 		File f(info.command_filename);
 		f.replaceWithData(data.c_str(), data.size());	// do not use replaceWithText() since it converts the file to CRLF endings which confuses bash
+		f.setExecutePermission(true);
+	}
+
+	if (true)
+	{
+		std::stringstream ss;
+		ss	<< "#!/bin/bash"																					<< std::endl
+			<< ""																								<< std::endl
+			<< "# This script assumes you have 2 computers:"													<< std::endl
+			<< "#"																								<< std::endl
+			<< "# - the first is the desktop where you run DarkMark,"											<< std::endl
+			<< "# - the second has a decent GPU and is where you train the neural network."						<< std::endl
+			<< "#"																								<< std::endl
+			<< "# It also assumes the directory structure for where neural networks are saved"					<< std::endl
+			<< "# on disk is identical between both computers."													<< std::endl
+			<< "#"																								<< std::endl
+			<< "# Running this script *FROM THE DESKTOP COMPUTER* will retrieve the results"					<< std::endl
+			<< "# (the .weights files) from 'gpurig' where training took place."								<< std::endl
+			<< ""																								<< std::endl
+			<< "cd " << info.project_dir																		<< std::endl
+			<< ""																								<< std::endl
+			<< "ping -c 1 -W 1 gpurig >/dev/null 2>&1"															<< std::endl
+			<< "if [ $? -ne 0 ]; then"																			<< std::endl
+			<< "	echo \"Make sure the hostname 'gpurig' can be resolved or exists in the /etc/hosts file!\""	<< std::endl
+			<< "else"																							<< std::endl
+			<< "	rsync --progress --times --compress gpurig:" << info.project_dir << "/\\* ."				<< std::endl
+			<< "fi"																								<< std::endl
+			<< ""																								<< std::endl;
+		const std::string data = ss.str();
+		File f = File(info.project_dir).getChildFile("get_results_from_gpu_rig.sh");
+		f.replaceWithData(data.c_str(), data.size());
+		f.setExecutePermission(true);
+	}
+
+	if (true)
+	{
+		std::stringstream ss;
+		ss	<< "#!/bin/bash"																					<< std::endl
+			<< ""																								<< std::endl
+			<< "# This script assumes you have 2 computers:"													<< std::endl
+			<< "#"																								<< std::endl
+			<< "# - the first is the desktop where you run DarkMark,"											<< std::endl
+			<< "# - the second has a decent GPU and is where you train the neural network."						<< std::endl
+			<< "#"																								<< std::endl
+			<< "# It also assumes the directory structure for where neural networks are saved"					<< std::endl
+			<< "# on disk is identical between both computers."													<< std::endl
+			<< "#"																								<< std::endl
+			<< "# Running this script *FROM THE DESKTOP COMPUTER* will copy all of the"							<< std::endl
+			<< "# necessary files (images, .txt, .names, .cfg, etc) from the desktop computer"					<< std::endl
+			<< "# to the rig with the decent GPU so you can then start the training process."					<< std::endl
+			<< "#"																								<< std::endl
+			<< "# After you run this script, ssh to the GPU rig and run this to train:"							<< std::endl
+			<< "#		" << info.command_filename																<< std::endl
+			<< ""																								<< std::endl
+			<< "cd " << info.project_dir																		<< std::endl
+			<< ""																								<< std::endl
+			<< "ping -c 1 -W 1 gpurig >/dev/null 2>&1"															<< std::endl
+			<< "if [ $? -ne 0 ]; then"																			<< std::endl
+			<< "	echo \"Make sure the hostname 'gpurig' can be resolved or exists in the /etc/hosts file!\""	<< std::endl
+			<< "else"																							<< std::endl
+			<< "	rsync --recursive --progress --times --compress . gpurig:" << info.project_dir				<< std::endl
+			<< "fi"																								<< std::endl
+			<< ""																								<< std::endl;
+		const std::string data = ss.str();
+		File f = File(info.project_dir).getChildFile("send_files_to_gpu_rig.sh");
+		f.replaceWithData(data.c_str(), data.size());
 		f.setExecutePermission(true);
 	}
 

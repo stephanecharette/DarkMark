@@ -600,16 +600,19 @@ void dm::StartupCanvas::filter_out_extra_weight_files()
 			const std::string md5 = MD5(File(info.full_name)).toHexString().toStdString();
 			if (md5s.count(md5) == 0)
 			{
+				Log("keeping the file " + info.full_name + " (md5=" + md5 + ")");
 				new_files.push_back(info);
 				md5s.insert(md5);
 			}
 			else
 			{
+				Log("skipping the file due to duplicate MD5 sum: " + info.full_name);
 				extra_weights_files.insert(info.full_name);
 			}
 		}
 		else
 		{
+			Log("skipping the intermediate file " + info.full_name);
 			extra_weights_files.insert(info.full_name);
 		}
 	}

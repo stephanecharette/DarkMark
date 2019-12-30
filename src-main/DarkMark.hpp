@@ -30,6 +30,7 @@ namespace dm
 	class DarknetWnd;
 	class StartupWnd;
 	class StartupCanvas;
+	class SettingsWnd;
 	class ProjectInfo;
 	class DMContentReview;
 	class DMReviewWnd;
@@ -61,6 +62,7 @@ namespace dm
 #include "DMReviewCanvas.hpp"
 #include "DarknetWnd.hpp"
 #include "StartupWnd.hpp"
+#include "SettingsWnd.hpp"
 #include "StartupCanvas.hpp"
 #include "DMContentReloadResave.hpp"
 #include "DMContentImageFilenameSort.hpp"
