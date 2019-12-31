@@ -412,6 +412,10 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "if [ $? -ne 0 ]; then"																			<< std::endl
 			<< "	echo \"Make sure the hostname 'gpurig' can be resolved or exists in the /etc/hosts file!\""	<< std::endl
 			<< "else"																							<< std::endl
+			<< "	if [ -e chart.png ]; then"																	<< std::endl
+			<< "		rm -f chart.png"																		<< std::endl
+			<< "	fi"																							<< std::endl
+			<< ""																								<< std::endl
 			<< "	rsync --progress --times --compress gpurig:" << info.project_dir << "/\\* ."				<< std::endl
 			<< ""																								<< std::endl
 			<< "	if [ -e chart.png ]; then"																	<< std::endl
