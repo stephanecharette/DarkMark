@@ -202,6 +202,10 @@ void dm::DMContent::start_darknet()
 		{
 			dmapp().darkhelp.reset(new DarkHelp(darknet_cfg, darknet_weights, darknet_names));
 			Log("neural network loaded in " + darkhelp().duration_string());
+
+			dmapp().darkhelp->threshold							= cfg().get_int("darknet_threshold")			/ 100.0f;
+			dmapp().darkhelp->hierarchy_threshold				= cfg().get_int("darknet_hierarchy_threshold")	/ 100.0f;
+			dmapp().darkhelp->non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold")		/ 100.0f;
 		}
 		catch (const std::exception & e)
 		{

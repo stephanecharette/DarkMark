@@ -30,7 +30,7 @@ dm::DMWnd::DMWnd() :
 		restoreWindowStateFromString( cfg().getValue("DMWnd") );
 	}
 
-//	setFullScreen(cfg().kiosk_mode);
+	CrosshairComponent::crosshair_colour = Colour::fromString(cfg().get_str("crosshair_colour"));
 
 	content.start_darknet();
 

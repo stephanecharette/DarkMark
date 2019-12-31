@@ -357,12 +357,29 @@ void dm::DarknetWnd::create_Darknet_files()
 		}
 	}
 
+	const std::string timestamp = Time::getCurrentTime().formatted("%a %Y-%m-%d %H:%M:%S %Z").toStdString();
+	std::string header;
+
 	if (true)
 	{
 		std::stringstream ss;
-		ss	<< "#!/bin/bash"						<< std::endl
+		ss	<< "#!/bin/bash"				<< std::endl
+			<< ""							<< std::endl
+			<< "cd " << info.project_dir	<< std::endl
+			<< ""							<< std::endl
+			<< "# Warning: this file is automatically created/updated by DarkMark v" << DARKMARK_VERSION << "!" << std::endl
+			<< "# Created on " << timestamp << " by " << SystemStats::getLogonName().toStdString() << "@" << SystemStats::getComputerName().toStdString() << "." << std::endl;
+		header = ss.str();
+	}
+
+	if (true)
+	{
+		std::stringstream ss;
+		ss	<< header
 			<< ""									<< std::endl
-			<< "cd " << info.project_dir			<< std::endl
+			<< "if [ -e chart.png ]; then"			<< std::endl
+			<< "	rm -f chart.png"				<< std::endl
+			<< "fi"									<< std::endl
 			<< ""									<< std::endl
 			<< "# other parms:  -show_imgs"			<< std::endl
 			<< "# other parms:  -mjpeg_port 8090"	<< std::endl
@@ -378,11 +395,11 @@ void dm::DarknetWnd::create_Darknet_files()
 	if (true)
 	{
 		std::stringstream ss;
-		ss	<< "#!/bin/bash"																					<< std::endl
-			<< ""																								<< std::endl
+		ss	<< header
+			<< "#"																								<< std::endl
 			<< "# This script assumes you have 2 computers:"													<< std::endl
 			<< "#"																								<< std::endl
-			<< "# - the first is the desktop where you run DarkMark,"											<< std::endl
+			<< "# - the first is the desktop where you run DarkMark and this script,"							<< std::endl
 			<< "# - the second has a decent GPU and is where you train the neural network."						<< std::endl
 			<< "#"																								<< std::endl
 			<< "# It also assumes the directory structure for where neural networks are saved"					<< std::endl
@@ -391,13 +408,15 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "# Running this script *FROM THE DESKTOP COMPUTER* will retrieve the results"					<< std::endl
 			<< "# (the .weights files) from 'gpurig' where training took place."								<< std::endl
 			<< ""																								<< std::endl
-			<< "cd " << info.project_dir																		<< std::endl
-			<< ""																								<< std::endl
 			<< "ping -c 1 -W 1 gpurig >/dev/null 2>&1"															<< std::endl
 			<< "if [ $? -ne 0 ]; then"																			<< std::endl
 			<< "	echo \"Make sure the hostname 'gpurig' can be resolved or exists in the /etc/hosts file!\""	<< std::endl
 			<< "else"																							<< std::endl
 			<< "	rsync --progress --times --compress gpurig:" << info.project_dir << "/\\* ."				<< std::endl
+			<< ""																								<< std::endl
+			<< "	if [ -e chart.png ]; then"																	<< std::endl
+			<< "		eog chart.png"																			<< std::endl
+			<< "	fi"																							<< std::endl
 			<< "fi"																								<< std::endl
 			<< ""																								<< std::endl;
 		const std::string data = ss.str();
@@ -409,11 +428,11 @@ void dm::DarknetWnd::create_Darknet_files()
 	if (true)
 	{
 		std::stringstream ss;
-		ss	<< "#!/bin/bash"																					<< std::endl
-			<< ""																								<< std::endl
+		ss	<< header
+			<< "#"																								<< std::endl
 			<< "# This script assumes you have 2 computers:"													<< std::endl
 			<< "#"																								<< std::endl
-			<< "# - the first is the desktop where you run DarkMark,"											<< std::endl
+			<< "# - the first is the desktop where you run DarkMark and this script,"							<< std::endl
 			<< "# - the second has a decent GPU and is where you train the neural network."						<< std::endl
 			<< "#"																								<< std::endl
 			<< "# It also assumes the directory structure for where neural networks are saved"					<< std::endl
@@ -423,10 +442,10 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "# necessary files (images, .txt, .names, .cfg, etc) from the desktop computer"					<< std::endl
 			<< "# to the rig with the decent GPU so you can then start the training process."					<< std::endl
 			<< "#"																								<< std::endl
-			<< "# After you run this script, ssh to the GPU rig and run this to train:"							<< std::endl
+			<< "# After this script has finished running, ssh to the GPU rig and run this to train:"			<< std::endl
+			<< "#"																								<< std::endl
 			<< "#		" << info.command_filename																<< std::endl
-			<< ""																								<< std::endl
-			<< "cd " << info.project_dir																		<< std::endl
+			<< "#"																								<< std::endl
 			<< ""																								<< std::endl
 			<< "ping -c 1 -W 1 gpurig >/dev/null 2>&1"															<< std::endl
 			<< "if [ $? -ne 0 ]; then"																			<< std::endl

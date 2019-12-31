@@ -64,5 +64,7 @@ namespace dm
 
 			juce::Image cached_image;
 			bool need_to_rebuild_cache_image;
+
+			static Colour crosshair_colour;
 	};
 }

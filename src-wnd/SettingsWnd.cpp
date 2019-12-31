@@ -5,6 +5,45 @@
 #include "DarkMark.hpp"
 
 
+class CrosshairColourPicker : public ButtonPropertyComponent, public ChangeListener
+{
+	public:
+
+		CrosshairColourPicker(const String & propertyName) : ButtonPropertyComponent(propertyName, true) { return; }
+		virtual String getButtonText()const override { return dm::CrosshairComponent::crosshair_colour.toDisplayString(false); }
+		virtual void buttonClicked() override
+		{
+			ColourSelector * cs = new ColourSelector(
+				ColourSelector::showColourAtTop |
+				ColourSelector::editableColour	|
+				ColourSelector::showColourspace	);
+
+			cs->setCurrentColour(dm::CrosshairComponent::crosshair_colour);
+			cs->setName("Crosshair Colour");
+			cs->setSize(200, 200);
+			cs->addChangeListener(this);
+
+			Component * parent = dm::dmapp().settings_wnd.get();
+			auto r = parent->getLocalArea(this, getBounds());
+			CallOutBox::launchAsynchronously(cs, r, parent);
+
+			return;
+		}
+
+		virtual void changeListenerCallback(ChangeBroadcaster * source) override
+		{
+			ColourSelector * cs = dynamic_cast<ColourSelector*>(source);
+			if (cs)
+			{
+				const auto colour = cs->getCurrentColour();
+				dm::CrosshairComponent::crosshair_colour = colour;
+				refresh();
+			}
+			return;
+		}
+};
+
+
 dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	DocumentWindow("DarkMark v" DARKMARK_VERSION " - Settings", Colours::darkgrey, TitleBarButtons::closeButton),
 	content(c),
@@ -40,6 +79,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 //	TextPropertyComponent		* t = nullptr;
 //	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
+	ButtonPropertyComponent		* b = nullptr;
 
 	s = new SliderPropertyComponent(v_darkhelp_threshold, "detection threshold", 0, 100, 1);
 	s->setTooltip("Detection threshold is used to determine whether or not there is an object in the predicted bounding box.");
@@ -56,8 +96,14 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	pp.addSection("darknet", properties);
 	properties.clear();
 
+	b = new CrosshairColourPicker("crosshair colour");
+	properties.add(b);
+
+	pp.addSection("drawing", properties);
+	properties.clear();
+
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 200);
+	r = r.withSizeKeepingCentre(400, 300);
 	setBounds(r);
 
 	setVisible(true);
@@ -76,6 +122,11 @@ void dm::SettingsWnd::closeButtonPressed()
 {
 	// close button
 
+	cfg().setValue("crosshair_colour"			, CrosshairComponent::crosshair_colour			.toString()	);
+	cfg().setValue("darknet_threshold"			, v_darkhelp_threshold							.getValue()	);
+	cfg().setValue("darknet_hierarchy_threshold", v_darkhelp_hierchy_threshold					.getValue()	);
+	cfg().setValue("darknet_nms_threshold"		, v_darkhelp_non_maximal_suppression_threshold	.getValue()	);
+
 	dmapp().settings_wnd.reset(nullptr);
 
 	return;
@@ -86,7 +137,7 @@ void dm::SettingsWnd::userTriedToCloseWindow()
 {
 	// ALT+F4
 
-	dmapp().settings_wnd.reset(nullptr);
+	closeButtonPressed();
 
 	return;
 }
@@ -120,6 +171,7 @@ void dm::SettingsWnd::resized()
 void dm::SettingsWnd::buttonClicked(Button * button)
 {
 	closeButtonPressed();
+
 	return;
 }
 
