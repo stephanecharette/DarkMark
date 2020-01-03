@@ -363,7 +363,7 @@ void dm::DarknetWnd::create_Darknet_files()
 	if (true)
 	{
 		std::stringstream ss;
-		ss	<< "#!/bin/bash"				<< std::endl
+		ss	<< "#!/bin/bash -e"				<< std::endl
 			<< ""							<< std::endl
 			<< "cd " << info.project_dir	<< std::endl
 			<< ""							<< std::endl
@@ -374,18 +374,29 @@ void dm::DarknetWnd::create_Darknet_files()
 
 	if (true)
 	{
+		const std::string cmd = info.darknet_dir + "/darknet detector -map -dont_show train " + info.data_filename + " " + (info.enable_yolov3_tiny ? info.darknet_tiny_cfg_filename : info.darknet_full_cfg_filename);
+
 		std::stringstream ss;
 		ss	<< header
-			<< ""									<< std::endl
-			<< "if [ -e chart.png ]; then"			<< std::endl
-			<< "	rm -f chart.png"				<< std::endl
-			<< "fi"									<< std::endl
-			<< ""									<< std::endl
-			<< "# other parms:  -show_imgs"			<< std::endl
-			<< "# other parms:  -mjpeg_port 8090"	<< std::endl
-			<< "/usr/bin/time --verbose " << info.darknet_dir << "/darknet detector -map -dont_show train " << info.data_filename << " "
-			<< (info.enable_yolov3_tiny ? info.darknet_tiny_cfg_filename : info.darknet_full_cfg_filename) << std::endl
-			<< ""									<< std::endl;
+			<< ""												<< std::endl
+			<< "if [ -e chart.png ]; then"						<< std::endl
+			<< "	rm -f chart.png"							<< std::endl
+			<< "fi"												<< std::endl
+			<< ""												<< std::endl
+			<< "rm -f " << info.project_name << "*.weights"		<< std::endl
+			<< "rm -f output.log"								<< std::endl
+			<< "rm -f chart.png"								<< std::endl
+			<< ""												<< std::endl
+			<< "echo \"ts1: $(date)\" > output.log"				<< std::endl
+			<< "echo \"ts2: $(date +%s)\" >> output.log"		<< std::endl
+			<< "echo \"cmd: " << cmd << "\" >> output.log"		<< std::endl
+			<< ""												<< std::endl
+			<< "/usr/bin/time --verbose " << cmd << " 2>&1 | tee --append output.log" << std::endl
+			<< ""												<< std::endl
+			<< "echo \"ts3: $(date)\" >> output.log"			<< std::endl
+			<< "echo \"ts4: $(date +%s)\" >> output.log"		<< std::endl
+			<< ""												<< std::endl;
+
 		const std::string data = ss.str();
 		File f(info.command_filename);
 		f.replaceWithData(data.c_str(), data.size());	// do not use replaceWithText() since it converts the file to CRLF endings which confuses bash
@@ -412,9 +423,9 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "if [ $? -ne 0 ]; then"																			<< std::endl
 			<< "	echo \"Make sure the hostname 'gpurig' can be resolved or exists in the /etc/hosts file!\""	<< std::endl
 			<< "else"																							<< std::endl
-			<< "	if [ -e chart.png ]; then"																	<< std::endl
-			<< "		rm -f chart.png"																		<< std::endl
-			<< "	fi"																							<< std::endl
+			<< "#	rm -f " << info.project_name << "*.weights"													<< std::endl
+			<< "#	rm -f output.log"																			<< std::endl
+			<< "	rm -f chart.png"																			<< std::endl
 			<< ""																								<< std::endl
 			<< "	rsync --progress --times --compress gpurig:" << info.project_dir << "/\\* ."				<< std::endl
 			<< ""																								<< std::endl
