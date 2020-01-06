@@ -37,6 +37,7 @@ namespace dm
 			Value v_iterations;
 			Value v_enable_hue;
 			Value v_enable_flip;
+			Value v_angle;
 
 			DMContent & content;
 			ProjectInfo & info;

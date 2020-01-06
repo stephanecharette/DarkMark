@@ -38,6 +38,7 @@ namespace dm
 			int			iterations;					///< number of iterations; e.g., @p 20,000
 			bool		enable_hue;					///< when @p TRUE, hue will be set to @p 0.1, otherwise hue will be set to zero
 			bool		enable_flip;				///< when @p TRUE, flip will be set to @p 1, otherwise flip will be set to zero
+			int			angle;						///< rotation angle, or zero to disable
 
 			ProjectInfo(const std::string & project_directory);
 

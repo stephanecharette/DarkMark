@@ -17,6 +17,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & project_directory)
 	iterations					= cfg().get_int	("darknet_iterations"			);
 	enable_hue					= cfg().get_bool("darknet_enable_hue"			);
 	enable_flip					= cfg().get_bool("darknet_enable_flip"			);
+	angle						= cfg().get_int	("darknet_angle"				);
 
 	try
 	{

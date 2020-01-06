@@ -67,6 +67,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("darknet_iterations"			, 4000										);
 	insert_if_not_exist("darknet_enable_hue"			, true										);
 	insert_if_not_exist("darknet_enable_flip"			, true										);
+	insert_if_not_exist("darknet_angle"					, 0											);
 	insert_if_not_exist("darknet_threshold"				, 50										); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7e956a7d74f8d576e573da4ea92310f1
 	insert_if_not_exist("darknet_hierarchy_threshold"	, 50										); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7766c935160b80d696e232067afe8430
 	insert_if_not_exist("darknet_nms_threshold"			, 45										); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#ac533cda5d4cbba691deb4df5d89da318

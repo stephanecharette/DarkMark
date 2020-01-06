@@ -378,6 +378,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 							if (keyword == "max_batches"	) cfg().setValue("darknet_iterations"	, value_int);
 							if (keyword == "hue"			) cfg().setValue("darknet_enable_hue"	, value_bool);
 							if (keyword == "flip"			) cfg().setValue("darknet_enable_flip"	, value_bool);
+							if (keyword == "angle"			) cfg().setValue("darknet_angle"		, value_int);
 						}
 					}
 				}

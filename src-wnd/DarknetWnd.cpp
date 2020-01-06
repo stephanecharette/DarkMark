@@ -41,6 +41,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_iterations					= info.iterations;
 	v_enable_hue					= info.enable_hue;
 	v_enable_flip					= info.enable_flip;
+	v_angle							= 0; // info.angle; -- see https://github.com/AlexeyAB/darknet/issues/4626
 
 	Array<PropertyComponent *> properties;
 	TextPropertyComponent		* t = nullptr;
@@ -92,6 +93,14 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b = new BooleanPropertyComponent(v_enable_flip, "enable flip", "flip (left-right)");
 	b->setTooltip("If the network you are training contains objects that have different meaning when flipped/mirrored (left hand vs right hand, 'b' vs 'd', ...) then you'll want to disable this to prevent darknet from mirroring objects during data augmentation. Otherwise, this should be left 'on'.");
 	properties.add(b);
+
+#if 0
+	// This is not yet supported by Darknet.
+	// https://github.com/AlexeyAB/darknet/issues/4626
+	s = new SliderPropertyComponent(v_angle, "rotation angle", 0.0, 180.0, 1.0);
+	s->setTooltip("The number of degrees (+/-) by which the image can be rotated.");
+	properties.add(s);
+#endif
 
 	pp.addSection("data augmentation", properties);
 	properties.clear();
@@ -209,6 +218,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue("darknet_iterations"			, v_iterations					);
 	cfg().setValue("darknet_enable_hue"			, v_enable_hue					);
 	cfg().setValue("darknet_enable_flip"		, v_enable_flip					);
+	cfg().setValue("darknet_angle"				, v_angle						);
 
 	info.darknet_dir				= v_darknet_dir.toString().toStdString();
 	info.enable_yolov3_tiny			= v_enable_yolov3_tiny	.getValue();
@@ -220,6 +230,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.iterations					= v_iterations			.getValue();
 	info.enable_hue					= v_enable_hue			.getValue();
 	info.enable_flip				= v_enable_flip			.getValue();
+	info.angle						= v_angle				.getValue();
 
 	try
 	{
@@ -261,6 +272,7 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 
 	const bool enable_hue				= info.enable_hue;
 	const bool enable_flip				= info.enable_flip;
+	const int angle						= info.angle;
 	const size_t number_of_iterations	= info.iterations;
 	const size_t step1					= std::round(0.8 * number_of_iterations);
 	const size_t step2					= std::round(0.9 * number_of_iterations);
@@ -283,7 +295,8 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 			"sed --in-place \"/^subdivisions *=/ c\\subdivisions="	+ std::to_string(subdivisions)							+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^filters *= *255/ c\\filters="		+ std::to_string(filters)								+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^height *=/ c\\height="				+ std::to_string(width)									+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^width *=/ c\\width="				+ std::to_string(height)								+ "\" "		+ cfg_filename
+			"sed --in-place \"/^width *=/ c\\width="				+ std::to_string(height)								+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^angle *=/ c\\angle="				+ std::to_string(angle)									+ "\" "		+ cfg_filename
 		};
 
 		for (const std::string & cmd : commands)
