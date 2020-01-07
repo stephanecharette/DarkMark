@@ -20,7 +20,7 @@ You click-and-drag the mouse to create or modify marks.  Use the cursor keys, @p
 
 When you quit from the DarkMark Editor window, it will bring you back to the DarkMark Launcher window.
 
-@section DarkMarkDarknet DarkMark Darknet Options
+@section DarkMarkDarknet Darknet Files
 
 Right-mouse-click in the DarkMark Editor window to create all of the required Darknet files:
 
@@ -28,13 +28,26 @@ Right-mouse-click in the DarkMark Editor window to create all of the required Da
 
 This will create the following required text files which Darknet uses when training a new artificial neural network:
 
-filename					| description
-----------------------------|------------
-@p project_name.cfg			| YOLOv3 configuration file
-@p project_name.data		| references the other files
-@p project_name_train.txt	| list of images to use for training
-@p project_name_valid.txt	| list of images to use for validation
-@p project_name_train.sh	| bash script to start the darknet training
+filename						| description
+--------------------------------|------------
+@p project_name.cfg				| YOLOv3 configuration file
+@p project_name.data			| references the other files
+@p project_name_train.txt		| list of images to use for training
+@p project_name_valid.txt		| list of images to use for validation
+@p project_name_train.sh		| bash script to start the darknet training
+@p send_files_to_gpu_rig.sh		| use rsync to copy all of the source files to the GPU rig
+@p get_results_from_gpu_rig.sh	| use rsync to copy the results back from the GPU rig
+
+@section DarkMarkSettings DarkMark Settings
+
+Press @p "e" (see @ref Keyboard) to modify several settings:
+
+@image html darkmark_settings.png
+
+- Detection threshold is used to determine whether or not there is an object in the predicted bounding box.
+- The hierarchical threshold is used to decide whether following the tree to a more specific class is the right action to take. When this threshold is 0, the tree will basically follow the highest probability branch all the way to a leaf node.
+- Non-Maximal Suppression (NMS) suppresses overlapping bounding boxes and only retains the bounding box that has the maximum probability of object detection associated with it. It examines all bounding boxes and removes the least confident of the boxes that overlap with each other.
+- Colour used to draw the crosshairs.
 
 @section DarkMarkReview DarkMark Review
 
@@ -51,6 +64,18 @@ Right-mouse-click in the DarkMark Editor window to view statistics on all the ma
 @image html darkmark_statistics.png
 
 This can help identify which classes need better representation, or if any marks have been incorrectly set on unusually small or unusually large images.  Double-click on the "min size" or "max size" cell to immediately open that image in the DarkMark Editor window.
+
+@section DarkMarkJump DarkMark Jump
+
+The jump window is used to quickly switch between images.  When the images are sorted alphabetically and broken up into different sets (different subdirectories), the jump window will draw a vertical line between each set:
+
+@image html darkmark_jump.png
+
+In this example, there are 6 different image data sets in the project, represented by the 6 sections along the horizontal axis:
+
+@image html darkmark_jump_annotated.png
+
+The images from the first five data sets have all been marked and are shown with a green outline.  The last data set is incomplete, with approximately 50% of the images having been marked, which is why a horizontal line is shown partway through the set.
 
 ----
 

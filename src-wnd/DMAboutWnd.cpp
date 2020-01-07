@@ -1,4 +1,4 @@
-/* DarkMark (C) 2019 Stephane Charette <stephanecharette@gmail.com>
+/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
  * $Id$
  */
 
@@ -40,7 +40,7 @@ void dm::DMAboutCanvas::paint(Graphics & g)
 	g.setOpacity(1.0);
 	g.setColour(Colours::black);
 	g.drawMultiLineText(
-		"C Code Run's DarkMark, (C) 2019 Stephane Charette\n"
+		"C Code Run's DarkMark, (C) 2019-2020 Stephane Charette\n"
 		"Application to mark up images for use with Darknet.\n"
 		"See https://www.ccoderun.ca/darkmark/ for details.", 0, h + 10, w, Justification::centred);
 

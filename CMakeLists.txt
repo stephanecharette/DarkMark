@@ -1,4 +1,4 @@
-# DarkMark (C) 2019 Stephane Charette <stephanecharette@gmail.com>
+# DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
 # $Id$
 
 PROJECT ( DarkMark C CXX )
