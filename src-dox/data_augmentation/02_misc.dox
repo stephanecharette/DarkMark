@@ -10,17 +10,56 @@ For example, training to recognize the letters @p "b" and @p "d", or @p "left ha
 
 @section Mosaic Mosaic
 
-As of early January 2020, this is not yet an official option in darknet.
+Data augmentation may combine multiple images into a single image ("mosaic").
+
+<table>
+	<tr>
+		<th colspan="5">mosaic</th>
+	<tr>
+		<td> @image html mosaic_01.jpg </td>
+		<td> @image html mosaic_02.jpg </td>
+		<td> @image html mosaic_03.jpg </td>
+		<td> @image html mosaic_04.jpg </td>
+		<td> @image html mosaic_05.jpg </td>
+	<tr>
+		<td> @image html mosaic_06.jpg </td>
+		<td> @image html mosaic_07.jpg </td>
+		<td> @image html mosaic_08.jpg </td>
+		<td> @image html mosaic_09.jpg </td>
+		<td> @image html mosaic_10.jpg </td>
+</table>
+
+As of early January 2020, this is not yet an official option in darknet, and not much documentation is available.
 @see https://github.com/AlexeyAB/darknet/issues/4638
 
 @section Cutmix Cutmix
 
-As of early January 2020, this is not yet an official option in darknet.
+As of early January 2020, this is not yet an official option in darknet, and not much documentation is available.
 @see https://github.com/AlexeyAB/darknet/issues/4638
 
 @section Mixup Mixup
 
-As of early January 2020, this is not yet an official option in darknet.
+Data augmentation may blend multiple images together to create a new image.
+
+<table>
+	<tr>
+		<th colspan="5">mixup</th>
+	<tr>
+		<td> @image html mixup_01.jpg </td>
+		<td> @image html mixup_02.jpg </td>
+		<td> @image html mixup_03.jpg </td>
+		<td> @image html mixup_04.jpg </td>
+		<td> @image html mixup_05.jpg </td>
+	<tr>
+		<td> @image html mixup_06.jpg </td>
+		<td> @image html mixup_07.jpg </td>
+		<td> @image html mixup_08.jpg </td>
+		<td> @image html mixup_09.jpg </td>
+		<td> @image html mixup_10.jpg </td>
+</table>
+
+
+As of early January 2020, this is not yet an official option in darknet, and not much documentation is available.
 @see https://github.com/AlexeyAB/darknet/issues/4638
 
 */
