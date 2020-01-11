@@ -1,0 +1,26 @@
+/** @page DataAugmentationMisc Data Augmentation - Misc
+
+@image html darknet_output_misc.png
+
+@section Flip Flip
+
+Images are randomly flipped left-right.  Turn this off if you are training classes that depend on left-hand and right-hand distinctions.
+
+For example, training to recognize the letters @p "b" and @p "d", or @p "left hand" and @p "right hand" would be problematic if flip is enabled.
+
+@section Mosaic Mosaic
+
+As of early January 2020, this is not yet an official option in darknet.
+@see https://github.com/AlexeyAB/darknet/issues/4638
+
+@section Cutmix Cutmix
+
+As of early January 2020, this is not yet an official option in darknet.
+@see https://github.com/AlexeyAB/darknet/issues/4638
+
+@section Mixup Mixup
+
+As of early January 2020, this is not yet an official option in darknet.
+@see https://github.com/AlexeyAB/darknet/issues/4638
+
+*/

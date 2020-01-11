@@ -30,6 +30,7 @@ namespace dm
 
 			virtual Cfg &insert_if_not_exist(const std::string &key, const std::string &val);
 			virtual Cfg &insert_if_not_exist(const std::string &key, const int &val);
+			virtual Cfg &insert_if_not_exist(const std::string &key, const double &val);
 
 			virtual Cfg &set_str(const std::string &key, const std::string &val);
 
@@ -41,6 +42,9 @@ namespace dm
 
 			/// The key must exist, otherwise an exception is thrown.
 			virtual int get_int(const std::string &key);
+
+			/// The key must exist, otherwise an exception is thrown.
+			virtual double get_double(const std::string &key);
 
 			/// Return the corresponding value, or the default value if the key does not exist.
 			virtual bool get_bool(const std::string &key, const bool default_value=true);

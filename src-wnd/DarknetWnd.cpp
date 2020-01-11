@@ -9,6 +9,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	DocumentWindow("DarkMark v" DARKMARK_VERSION " - Darknet Output", Colours::darkgrey, TitleBarButtons::closeButton),
 	content(c),
 	info(c.project_info),
+	help_button("Help"),
 	ok_button("OK"),
 	cancel_button("Cancel")
 {
@@ -18,11 +19,13 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	setDropShadowEnabled	(true			);
 
 	canvas.addAndMakeVisible(pp);
+	canvas.addAndMakeVisible(help_button);
 	canvas.addAndMakeVisible(ok_button);
 	canvas.addAndMakeVisible(cancel_button);
 
-	ok_button.addListener(this);
-	cancel_button.addListener(this);
+	help_button		.addListener(this);
+	ok_button		.addListener(this);
+	cancel_button	.addListener(this);
 
 	setIcon(DarkMarkLogo());
 	ComponentPeer *peer = getPeer();
@@ -39,9 +42,15 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_batch_size					= info.batch_size;
 	v_subdivisions					= info.subdivisions;
 	v_iterations					= info.iterations;
-	v_enable_hue					= info.enable_hue;
+	v_saturation					= info.saturation;
+	v_exposure						= info.exposure;
+	v_hue							= info.hue;
 	v_enable_flip					= info.enable_flip;
 	v_angle							= 0; // info.angle; -- see https://github.com/AlexeyAB/darknet/issues/4626
+	v_mosaic						= info.enable_mosaic;
+	v_cutmix						= info.enable_cutmix;
+	v_mixup							= info.enable_mixup;
+	v_keep_augmented_images			= false;
 
 	Array<PropertyComponent *> properties;
 	TextPropertyComponent		* t = nullptr;
@@ -79,19 +88,42 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s->setTooltip("The number of images processed in parallel by the GPU is the batch size divided by subdivisions. Default is 8.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_iterations, "iterations", 1000.0, 100000.0, 1.0);
+	s = new SliderPropertyComponent(v_iterations, "max_batches", 1000.0, 100000.0, 1.0);
 	s->setTooltip("The total number of iterations to run. As a general rule of thumb, at the very least this should be 2000x more than the number of classes defined.");
 	properties.add(s);
 
 	pp.addSection("configuration", properties);
 	properties.clear();
 
-	b = new BooleanPropertyComponent(v_enable_hue, "enable hue", "hue (colour)");
-	b->setTooltip("If the network you are training contains classes based on colour, then you'll want to disable this to prevent darknet from altering the hue during data augmentation. Otherwise, this should be left 'on'.");
-	properties.add(b);
+	s = new SliderPropertyComponent(v_saturation, "saturation", 0.0, 10.0, 0.001);
+	s->setTooltip("The intensity of the colour.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_exposure, "exposure", 0.0, 10.0, 0.001);
+	s->setTooltip("The amount of white or black added to a colour to create a new shade.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_hue, "hue", 0.0, 1.0, 0.001);
+	s->setTooltip("If the network you are training contains classes based on colour, then you'll want to disable this or use a very low value to prevent darknet from altering the hue during data augmentation. Set to 0.5 or higher if the colour does not matter.");
+	properties.add(s);
+
+	pp.addSection("data augmentation [colour]", properties);
+	properties.clear();
 
 	b = new BooleanPropertyComponent(v_enable_flip, "enable flip", "flip (left-right)");
 	b->setTooltip("If the network you are training contains objects that have different meaning when flipped/mirrored (left hand vs right hand, 'b' vs 'd', ...) then you'll want to disable this to prevent darknet from mirroring objects during data augmentation. Otherwise, this should be left 'on'.");
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_mosaic, "enable mosaic", "mosaic");
+//	b->setTooltip("...?");
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_cutmix, "enable cutmix", "cutmix");
+//	b->setTooltip("...?");
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_mixup, "enable mixup", "mixup");
+//	b->setTooltip("...?");
 	properties.add(b);
 
 #if 0
@@ -102,11 +134,18 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.add(s);
 #endif
 
-	pp.addSection("data augmentation", properties);
+	pp.addSection("data augmentation [misc]", properties);
+	properties.clear();
+
+	b = new BooleanPropertyComponent(v_keep_augmented_images, "keep images", "keep images");
+	b->setTooltip("Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
+	properties.add(b);
+
+	pp.addSection("data augmentation [debug]", properties);
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 400);
+	r = r.withSizeKeepingCentre(400, 575);
 	setBounds(r);
 
 	setVisible(true);
@@ -151,6 +190,8 @@ void dm::DarknetWnd::resized()
 	FlexBox button_row;
 	button_row.flexDirection = FlexBox::Direction::row;
 	button_row.justifyContent = FlexBox::JustifyContent::flexEnd;
+	button_row.items.add(FlexItem(help_button).withWidth(100.0));
+	button_row.items.add(FlexItem().withFlex(1.0));
 	button_row.items.add(FlexItem(cancel_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 	button_row.items.add(FlexItem(ok_button).withWidth(100.0));
 
@@ -169,6 +210,14 @@ void dm::DarknetWnd::resized()
 
 void dm::DarknetWnd::buttonClicked(Button * button)
 {
+	if (button == &help_button)
+	{
+		URL url("https://www.ccoderun.ca/DarkMark/DataAugmentation.html");
+		url.launchInDefaultBrowser();
+
+		return;
+	}
+
 	if (button == &cancel_button)
 	{
 		closeButtonPressed();
@@ -216,7 +265,9 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue("darknet_batch_size"			, v_batch_size					);
 	cfg().setValue("darknet_subdivisions"		, v_subdivisions				);
 	cfg().setValue("darknet_iterations"			, v_iterations					);
-	cfg().setValue("darknet_enable_hue"			, v_enable_hue					);
+	cfg().setValue("darknet_saturation"			, v_saturation					);
+	cfg().setValue("darknet_exposure"			, v_exposure					);
+	cfg().setValue("darknet_hue"				, v_hue							);
 	cfg().setValue("darknet_enable_flip"		, v_enable_flip					);
 	cfg().setValue("darknet_angle"				, v_angle						);
 
@@ -228,7 +279,12 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.batch_size					= v_batch_size			.getValue();
 	info.subdivisions				= v_subdivisions		.getValue();
 	info.iterations					= v_iterations			.getValue();
-	info.enable_hue					= v_enable_hue			.getValue();
+	info.saturation					= v_saturation			.getValue();
+	info.exposure					= v_exposure			.getValue();
+	info.hue						= v_hue					.getValue();
+	info.enable_mosaic				= v_mosaic				.getValue();
+	info.enable_cutmix				= v_cutmix				.getValue();
+	info.enable_mixup				= v_mixup				.getValue();
 	info.enable_flip				= v_enable_flip			.getValue();
 	info.angle						= v_angle				.getValue();
 
@@ -270,8 +326,13 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 		files_to_modify.push_back(info.darknet_tiny_cfg_filename);
 	}
 
-	const bool enable_hue				= info.enable_hue;
+	const bool enable_mosaic			= info.enable_mosaic;
+	const bool enable_cutmix			= info.enable_cutmix;
+	const bool enable_mixup				= info.enable_mixup;
 	const bool enable_flip				= info.enable_flip;
+	const float saturation				= info.saturation;
+	const float exposure				= info.exposure;
+	const float hue						= info.hue;
 	const int angle						= info.angle;
 	const size_t number_of_iterations	= info.iterations;
 	const size_t step1					= std::round(0.8 * number_of_iterations);
@@ -286,8 +347,13 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	{
 		const VStr commands =
 		{
-			"sed --in-place \"/^hue *=/ c\\hue="					+ std::string(enable_hue ? "0.1" : "0")					+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^hue *=/ c\\hue="					+ std::to_string(hue)									+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^hue *=/ a\\flip="					+ std::string(enable_flip ? "1" : "0")					+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^hue *=/ a\\mosaic="					+ std::string(enable_mosaic ? "1" : "0")				+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^hue *=/ a\\cutmix="					+ std::string(enable_cutmix ? "1" : "0")				+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^hue *=/ a\\mixup="					+ std::string(enable_mixup ? "1" : "0")					+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^saturation *=/ c\\saturation="		+ std::to_string(saturation)							+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^exposure *=/ c\\exposure="			+ std::to_string(exposure)								+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(content.names.size())					+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^max_batches *=/ c\\max_batches="	+ std::to_string(number_of_iterations)					+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^steps *=/ c\\steps="				+ std::to_string(step1) + "," + std::to_string(step2)	+ "\" "		+ cfg_filename,
@@ -387,7 +453,7 @@ void dm::DarknetWnd::create_Darknet_files()
 
 	if (true)
 	{
-		const std::string cmd = info.darknet_dir + "/darknet detector -map -dont_show train " + info.data_filename + " " + (info.enable_yolov3_tiny ? info.darknet_tiny_cfg_filename : info.darknet_full_cfg_filename);
+		const std::string cmd = info.darknet_dir + "/darknet detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + (info.enable_yolov3_tiny ? info.darknet_tiny_cfg_filename : info.darknet_full_cfg_filename);
 
 		std::stringstream ss;
 		ss	<< header

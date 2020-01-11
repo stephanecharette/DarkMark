@@ -36,9 +36,14 @@ namespace dm
 			int			batch_size;					///< e.g., @p 64
 			int			subdivisions;				///< e.g., @p 8
 			int			iterations;					///< number of iterations; e.g., @p 20,000
-			bool		enable_hue;					///< when @p TRUE, hue will be set to @p 0.1, otherwise hue will be set to zero
+			float		saturation;
+			float		exposure;
+			float		hue;						///< between 0.0 and 1.0
 			bool		enable_flip;				///< when @p TRUE, flip will be set to @p 1, otherwise flip will be set to zero
 			int			angle;						///< rotation angle, or zero to disable
+			bool		enable_mosaic;
+			bool		enable_cutmix;
+			bool		enable_mixup;
 
 			ProjectInfo(const std::string & project_directory);
 

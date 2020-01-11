@@ -1,0 +1,321 @@
+/** @page DataAugmentationColour Data Augmentation - Colour
+
+@tableofcontents
+
+This page describes how @b saturation, @b exposure, and @b hue are utilized during data augmentation.
+
+@li @ref Saturation is the intensity of a colour.
+@li @ref Exposure (lightness) is the amount of black or white that has been added to the colour.
+@li @ref Hue is a synonym for "colour".
+
+All images on this page were initially generated with darknet and were of different sizes, but then were manually resized to better fit on this page.  This makes it easier to compare and better understand how colours are altered by darknet.
+
+This is the original image used for this demonstration:
+@image html original.jpg
+
+@section SatExpHueDisabled Disabled
+
+When all 3 colour parameters (@b saturation, @b exposure, and @b hue) are set to zero, this disables all colour changes:
+
+@image html sat_0000_exp_0000_hue_000.png
+
+The colours in the augmented data will then perfectly match those of the original image:
+
+<table>
+	<tr>
+		<th colspan="5">saturation=0.00, exposure=0.00, hue=0.00</th>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_000_01.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_02.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_03.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_04.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_000_06.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_07.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_08.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_09.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_000_10.jpg </td>
+</table>
+
+
+@section SatExpHueDefault Default
+
+The default values in the original @p yolov3.cfg and @p yolov3-tiny.cfg files is the following:
+
+~~~~{.cfg}
+saturation = 1.5
+exposure = 1.5
+hue=.1
+~~~~
+
+In DarkMark, this looks like the following:
+
+@image html sat_0150_exp_0150_hue_010.png
+
+Visually, this results in images like these:
+
+<table>
+	<tr>
+		<th colspan="5">saturation=1.50, exposure=1.50, hue=0.10</th>
+	<tr>
+		<td> @image html sat_0150_exp_0150_hue_010_01.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_02.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_03.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_04.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_05.jpg </td>
+	<tr>
+		<td> @image html sat_0150_exp_0150_hue_010_06.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_07.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_08.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_09.jpg </td>
+		<td> @image html sat_0150_exp_0150_hue_010_10.jpg </td>
+</table>
+
+
+@section Saturation Saturation
+
+Saturation determines the colour intensity.  The higher the value, the greater the variance, both positive and negative.  So some images will seem extra-vibrant, while others may look almost black-and-white.
+
+DarkMark allows saturation to vary from 0.0 to 10.0, while in darknet the upper range is actually even higher.
+
+@subsection Saturation250 Saturation 2.50
+
+<table>
+	<tr>
+		<th colspan="5">saturation=2.50</th>
+	<tr>
+		<td> @image html sat_0250_exp_0000_hue_000_01.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_02.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_03.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_04.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_0250_exp_0000_hue_000_06.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_07.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_08.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_09.jpg </td>
+		<td> @image html sat_0250_exp_0000_hue_000_10.jpg </td>
+</table>
+
+@subsection Saturation500 Saturation 5.00
+
+<table>
+	<tr>
+		<th colspan="5">saturation=5.00</th>
+	<tr>
+		<td> @image html sat_0500_exp_0000_hue_000_01.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_02.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_03.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_04.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_0500_exp_0000_hue_000_06.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_07.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_08.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_09.jpg </td>
+		<td> @image html sat_0500_exp_0000_hue_000_10.jpg </td>
+		<td>
+</table>
+
+@subsection Saturation750 Saturation 7.50
+
+<table>
+	<tr>
+		<th colspan="5">saturation=7.50</th>
+	<tr>
+		<td> @image html sat_0750_exp_0000_hue_000_01.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_02.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_03.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_04.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_0750_exp_0000_hue_000_06.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_07.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_08.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_09.jpg </td>
+		<td> @image html sat_0750_exp_0000_hue_000_10.jpg </td>
+</table>
+
+@subsection Saturation1000 Saturation 10.00
+
+<table>
+	<tr>
+		<th colspan="5">saturation=10.00</th>
+	<tr>
+		<td> @image html sat_1000_exp_0000_hue_000_01.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_02.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_03.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_04.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_1000_exp_0000_hue_000_06.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_07.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_08.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_09.jpg </td>
+		<td> @image html sat_1000_exp_0000_hue_000_10.jpg </td>
+
+
+@section Exposure Exposure
+
+Exposure  determines the amount of black or white that is added to colours.  The higher the value, the greater the variance, possibly making it appear as if the images were over- or under-exposed.
+
+DarkMark allows exposure to vary from 0.0 to 10.0, while in darknet the upper range is actually even higher.
+
+@subsection Exposure250 Exposure 2.50
+
+<table>
+	<tr>
+		<th colspan="5">exposure=2.50</th>
+	<tr>
+		<td> @image html sat_0000_exp_0250_hue_000_01.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_02.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_03.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_04.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_05.jpg
+	<tr>
+		<td> @image html sat_0000_exp_0250_hue_000_06.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_07.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_08.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_09.jpg
+		<td> @image html sat_0000_exp_0250_hue_000_10.jpg
+</table>
+
+@subsection Exposure500 Exposure 5.00
+
+<table>
+	<tr>
+		<th colspan="5">exposure=5.00</th>
+	<tr>
+		<td> @image html sat_0000_exp_0500_hue_000_01.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_02.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_03.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_04.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_0500_hue_000_06.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_07.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_08.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_09.jpg </td>
+		<td> @image html sat_0000_exp_0500_hue_000_10.jpg </td>
+</table>
+
+@subsection Exposure750 Exposure 7.50
+
+<table>
+	<tr>
+		<th colspan="5">exposure=7.50</th>
+	<tr>
+		<td> @image html sat_0000_exp_0750_hue_000_01.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_02.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_03.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_04.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_0750_hue_000_06.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_07.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_08.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_09.jpg </td>
+		<td> @image html sat_0000_exp_0750_hue_000_10.jpg </td>
+</table>
+
+@subsection Exposure1000 Exposure 10.00
+
+<table>
+	<tr>
+		<th colspan="5">exposure=10.00</th>
+	<tr>
+		<td> @image html sat_0000_exp_1000_hue_000_01.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_02.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_03.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_04.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_1000_hue_000_06.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_07.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_08.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_09.jpg </td>
+		<td> @image html sat_0000_exp_1000_hue_000_10.jpg </td>
+</table>
+
+@section Hue Hue
+
+Hue determines the colour.  The range is from 0.0 to 1.0.
+
+@subsection Hue025 Hue 0.25
+
+<table>
+	<tr>
+		<th colspan="5">hue=0.25</th>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_025_01.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_02.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_03.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_04.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_025_06.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_07.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_08.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_09.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_025_10.jpg </td>
+</table>
+
+@subsection Hue050 Hue 0.50
+
+<table>
+	<tr>
+		<th colspan="5">hue=0.50</th>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_050_01.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_02.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_03.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_04.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_050_06.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_07.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_08.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_09.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_050_10.jpg </td>
+</table>
+
+@subsection Hue075 Hue 0.75
+
+<table>
+	<tr>
+		<th colspan="5">hue=0.75</th>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_075_01.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_02.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_03.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_04.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_075_06.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_07.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_08.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_09.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_075_10.jpg </td>
+</table>
+
+@subsection Hue100 Hue 1.00
+
+<table>
+	<tr>
+		<th colspan="5">hue=1.00</th>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_100_01.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_02.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_03.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_04.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_05.jpg </td>
+	<tr>
+		<td> @image html sat_0000_exp_0000_hue_100_06.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_07.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_08.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_09.jpg </td>
+		<td> @image html sat_0000_exp_0000_hue_100_10.jpg </td>
+</table>
+
+*/

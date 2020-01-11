@@ -35,14 +35,21 @@ namespace dm
 			Value v_batch_size;
 			Value v_subdivisions;
 			Value v_iterations;
-			Value v_enable_hue;
+			Value v_saturation;
+			Value v_exposure;
+			Value v_hue;
 			Value v_enable_flip;
 			Value v_angle;
+			Value v_mosaic;
+			Value v_cutmix;
+			Value v_mixup;
+			Value v_keep_augmented_images;
 
 			DMContent & content;
 			ProjectInfo & info;
 			Component canvas;
 			PropertyPanel pp;
+			TextButton help_button;
 			TextButton ok_button;
 			TextButton cancel_button;
 	};

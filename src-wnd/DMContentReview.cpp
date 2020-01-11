@@ -4,6 +4,7 @@
 
 #include "DarkMark.hpp"
 
+#include <magic.h>
 
 #include "json.hpp"
 using json = nlohmann::json;
@@ -30,6 +31,9 @@ void dm::DMContentReview::run()
 	double work_completed = 0.0;
 
 	MMReviewInfo m;
+
+	magic_t magic_cookie = magic_open(MAGIC_MIME_TYPE);
+	magic_load(magic_cookie, nullptr);
 
 	for (const auto & fn : content.image_filenames)
 	{
@@ -81,14 +85,22 @@ void dm::DMContentReview::run()
 			const int h = std::round(mat.rows * mark["rect"]["h"].get<double>());
 			const cv::Rect r(x, y, w, h);
 
+			// Check to see if the file type looks sane.  Especially when working with 3rd-party data sets, I've seen plenty of images
+			// which are saved with .jpg extension, but which are actually .bmp, .gif, or .png.  (Though I'm not certain if this causes
+			// problems when darknet uses opencv to load images...?)
+			const std::string msg = magic_file(magic_cookie, fn.c_str());
+
 			ReviewInfo review_info;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
 			review_info.mat = mat(r).clone();
+			review_info.msg = msg;
 			const size_t idx = m[class_idx].size();
 			m[class_idx][idx] = review_info;
 		}
 	}
+
+	magic_close(magic_cookie);
 
 	if (threadShouldExit() == false)
 	{

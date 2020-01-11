@@ -1,0 +1,17 @@
+/** @page DataAugmentation Data Augmentation
+
+%DarkMark allows several significant darknet data augmentation parameters to be changed.
+
+@image html darknet_data_augmentation.png
+
+- @subpage DataAugmentationColour
+  - @ref Saturation
+  - @ref Exposure
+  - @ref Hue
+- @subpage DataAugmentationMisc
+  - @ref Flip
+  - @ref Mosaic
+  - @ref Cutmix
+  - @ref Mixup
+
+*/

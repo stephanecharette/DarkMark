@@ -367,18 +367,24 @@ void dm::StartupWnd::buttonClicked(Button * button)
 						std::smatch matches;
 						if (std::regex_match(line, matches, rgx))
 						{
-							const std::string keyword = matches[1].str();
-							const float value_float = std::atof(matches[2].str().c_str());
-							const bool value_bool = (value_float == 0.0 ? false : true);
-							const int value_int = static_cast<int>(value_float);
+							const std::string keyword	= matches[1].str();
+							const float value_float		= std::atof(matches[2].str().c_str());
+							const bool	value_bool		= (value_float == 0.0 ? false : true);
+							const int	value_int		= static_cast<int>(value_float);
 
 							if (keyword == "batch"			) cfg().setValue("darknet_batch_size"	, value_int);
 							if (keyword == "subdivisions"	) cfg().setValue("darknet_subdivisions"	, value_int);
 							if (keyword == "width"			) cfg().setValue("darknet_image_size"	, value_int);
 							if (keyword == "max_batches"	) cfg().setValue("darknet_iterations"	, value_int);
-							if (keyword == "hue"			) cfg().setValue("darknet_enable_hue"	, value_bool);
+							if (keyword == "saturation"		) cfg().setValue("darknet_saturation"	, value_float);
+							if (keyword == "exposure"		) cfg().setValue("darknet_exposure"		, value_float);
+							if (keyword == "hue"			) cfg().setValue("darknet_hue"			, value_float);
+//							if (keyword == "hue"			) cfg().setValue("darknet_enable_hue"	, value_bool);
 							if (keyword == "flip"			) cfg().setValue("darknet_enable_flip"	, value_bool);
 							if (keyword == "angle"			) cfg().setValue("darknet_angle"		, value_int);
+							if (keyword == "mosaic"			) cfg().setValue("darknet_mosaic"		, value_bool);
+							if (keyword == "cutmix"			) cfg().setValue("darknet_cutmix"		, value_bool);
+							if (keyword == "mixup"			) cfg().setValue("darknet_mixup"		, value_bool);
 						}
 					}
 				}

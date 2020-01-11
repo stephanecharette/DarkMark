@@ -18,6 +18,7 @@ dm::DMReviewCanvas::DMReviewCanvas(const MReviewInfo & m) :
 	getHeader().addColumn("mark"		, 2, 100, 30, -1, TableHeaderComponent::notSortable);
 	getHeader().addColumn("size"		, 3, 100, 30, -1, TableHeaderComponent::notSortable);
 	getHeader().addColumn("filename"	, 4, 100, 30, -1, TableHeaderComponent::notSortable);
+	getHeader().addColumn("type"		, 5, 100, 30, -1, TableHeaderComponent::notSortable);
 	// if changing columns, also update paintCell() below
 
 	if (cfg().containsKey("review_columns"))
@@ -103,10 +104,23 @@ String dm::DMReviewCanvas::getCellTooltip(int rowNumber, int columnId)
 void dm::DMReviewCanvas::paintRowBackground(Graphics & g, int rowNumber, int width, int height, bool rowIsSelected)
 {
 	Colour colour = Colours::white;
+
+	if (rowNumber >= 0 and
+		rowNumber < (int)mri.size())
+	{
+		const auto & review_info = mri.at(rowNumber);
+		if (review_info.msg != "image/jpeg")
+		{
+			// looks like something about this image is different than "normal", so highlight it to the user
+			colour = Colours::lightyellow;
+		}
+	}
+
 	if ( rowIsSelected )
 	{
 		colour = Colours::lightblue; // selected rows will have a blue background
 	}
+
 	g.fillAll( colour );
 
 	// draw the cell bottom divider between rows
@@ -122,7 +136,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 	if (rowNumber < 0					or
 		rowNumber >= (int)mri.size()	or
 		columnId < 1					or
-		columnId > 4					)
+		columnId > 5					)
 	{
 		// rows are 0-based, columns are 1-based
 		return;
@@ -137,6 +151,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 		*		2: mark (image)
 		*		3: size
 		*		4: filename
+		*		5: msg
 		*/
 
 	if (columnId == 2)
@@ -157,6 +172,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 		if (columnId == 1)	str = std::to_string(rowNumber + 1);
 		if (columnId == 3)	str = std::to_string(review_info.mat.cols) + " x " + std::to_string(review_info.mat.rows);
 		if (columnId == 4)	str = review_info.filename;
+		if (columnId == 5)	str = review_info.msg;
 
 		// draw the text for this cell
 		g.setColour( Colours::black );

@@ -3,6 +3,7 @@
 %DarkMark has several dependencies which must be installed:
 
 @li JUCE is a C++ framework.  It has several required development libraries.  See the JUCE discussion forums for details, or below for an example.
+@li libmagic.so  Recognize the type of data in a file using "magic" numbers.
 @li libdarknet.so  https://www.ccoderun.ca/programming/2019-08-18_Installing_and_building_Darknet/
 @li libdarkhelp.so  https://www.ccoderun.ca/DarkHelp/api/
 
@@ -57,7 +58,7 @@ sudo dpkg -i darkhelp-*-Linux.deb
 @subsection BuildingDarkMark DarkMark
 Do this third.  <a target="_blank" href="https://www.ccoderun.ca/download/">Download</a> and install the pre-built package of DarkMark, or build it from source:
 @code{.sh}
-sudo apt-get install libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev
+sudo apt-get install libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev
 # download the DarkMark source code from https://www.ccoderun.ca/download/
 cd ~/src/DarkMark
 mkdir build

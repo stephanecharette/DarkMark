@@ -15,9 +15,14 @@ dm::ProjectInfo::ProjectInfo(const std::string & project_directory)
 	batch_size					= cfg().get_int	("darknet_batch_size"			);
 	subdivisions				= cfg().get_int	("darknet_subdivisions"			);
 	iterations					= cfg().get_int	("darknet_iterations"			);
-	enable_hue					= cfg().get_bool("darknet_enable_hue"			);
+	saturation					= cfg().get_double("darknet_saturation"			);
+	exposure					= cfg().get_double("darknet_exposure"			);
+	hue							= cfg().get_double("darknet_hue"				);
 	enable_flip					= cfg().get_bool("darknet_enable_flip"			);
 	angle						= cfg().get_int	("darknet_angle"				);
+	enable_mosaic				= cfg().get_bool("darknet_mosaic"				);
+	enable_cutmix				= cfg().get_bool("darknet_cutmix"				);
+	enable_mixup				= cfg().get_bool("darknet_mixup"				);
 
 	try
 	{

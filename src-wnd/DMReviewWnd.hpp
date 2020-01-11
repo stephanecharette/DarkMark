@@ -14,6 +14,7 @@ namespace dm
 		cv::Mat mat;
 		std::string filename;
 		size_t class_idx;
+		std::string msg;
 	};
 
 	/** Key is a sequential counter that starts at zero, value is the review info structure.  Was done this way instead of
