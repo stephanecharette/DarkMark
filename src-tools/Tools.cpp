@@ -21,15 +21,27 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, std
 		const std::string filename = f.getFullPathName().toStdString();
 		if (std::regex_match(filename, image_filename_regex))
 		{
-			if (filename.find("chart.png") == std::string::npos)
-			{
-				image_filenames.push_back(filename);
+			// Why is it that sometimes darknet creates a file named "chart.png", and other times it gets complicated
+			// and instead creates the file as "chart_<project>_yolov3[-tiny].png"?  Either way, ignore those chart*.png
+			// files when running DarkMark.
 
-				File json_file = f.withFileExtension(".json");
-				if (json_file.existsAsFile())
-				{
-					json_filenames.push_back(json_file.getFullPathName().toStdString());
-				}
+			if (filename.find("chart.png") != std::string::npos)
+			{
+				continue;
+			}
+
+			if (filename.find("chart_"	) != std::string::npos and
+				filename.find(".png"	) != std::string::npos)
+			{
+				continue;
+			}
+
+			image_filenames.push_back(filename);
+
+			File json_file = f.withFileExtension(".json");
+			if (json_file.existsAsFile())
+			{
+				json_filenames.push_back(json_file.getFullPathName().toStdString());
 			}
 		}
 	}

@@ -43,21 +43,10 @@ dm::DMContent::DMContent() :
 
 	setWantsKeyboardFocus(true);
 
-	const std::regex image_filename_regex(cfg().get_str("image_regex"), std::regex::icase | std::regex::nosubs | std::regex::optimize | std::regex::ECMAScript);
+	VStr json_filenames;
+	std::atomic<bool> done = false;
+	find_files(File(project_info.project_dir), image_filenames, json_filenames, done);
 
-	DirectoryIterator iter(File(project_info.project_dir), true, "*", File::findFiles + File::ignoreHiddenFiles);
-	while (iter.next())
-	{
-		File f = iter.getFile();
-		const std::string filename = f.getFullPathName().toStdString();
-		if (std::regex_match(filename, image_filename_regex))
-		{
-			if (filename.find("chart.png") == std::string::npos)
-			{
-				image_filenames.push_back(filename);
-			}
-		}
-	}
 	Log("number of images found in " + project_info.project_dir + ": " + std::to_string(image_filenames.size()));
 	set_sort_order(sort_order);
 
