@@ -45,39 +45,39 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		home = ptr;
 	}
 
-	insert_if_not_exist("darknet_config"				, ""										);
-	insert_if_not_exist("darknet_weights"				, ""										);
-	insert_if_not_exist("darknet_names"					, ""										);
-	insert_if_not_exist("darknet_dir"					, home + "/darknet"							);
-	insert_if_not_exist("image_directory"				, home + "/nn/flowers"						);
-	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:png)|(?:gif))$"	);
-	insert_if_not_exist("sort_order"					, static_cast<int>(ESort::kAlphabetical)	);
-	insert_if_not_exist("show_labels"					, static_cast<int>(EToggle::kAuto)			);
-	insert_if_not_exist("show_predictions"				, static_cast<int>(EToggle::kAuto)			);
-	insert_if_not_exist("show_marks"					, true										);
-	insert_if_not_exist("alpha_blend_percentage"		, 65										);
-	insert_if_not_exist("all_marks_are_bold"			, false										);
-	insert_if_not_exist("show_processing_time"			, true										);
-	insert_if_not_exist("darknet_enable_yolov3_tiny"	, true										);
-	insert_if_not_exist("darknet_enable_yolov3_full"	, true										);
-	insert_if_not_exist("darknet_trailing_percentage"	, 85										);
-	insert_if_not_exist("darknet_image_size"			, 416										);
-	insert_if_not_exist("darknet_batch_size"			, 64										);
-	insert_if_not_exist("darknet_subdivisions"			, 8											);
-	insert_if_not_exist("darknet_iterations"			, 4000										);
-	insert_if_not_exist("darknet_saturation"			, 1.50f										);
-	insert_if_not_exist("darknet_exposure"				, 1.50f										);
-	insert_if_not_exist("darknet_hue"					, 0.10f										);
-	insert_if_not_exist("darknet_enable_flip"			, true										);
-	insert_if_not_exist("darknet_angle"					, 0											);
-	insert_if_not_exist("darknet_mosaic"				, false										);
-	insert_if_not_exist("darknet_cutmix"				, false										);
-	insert_if_not_exist("darknet_mixup"					, false										);
-	insert_if_not_exist("darknet_threshold"				, 50										); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7e956a7d74f8d576e573da4ea92310f1
-	insert_if_not_exist("darknet_hierarchy_threshold"	, 50										); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7766c935160b80d696e232067afe8430
-	insert_if_not_exist("darknet_nms_threshold"			, 45										); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#ac533cda5d4cbba691deb4df5d89da318
-	insert_if_not_exist("crosshair_colour"				, "ffffffff"								); // alpha + rgb
-	insert_if_not_exist("review_table_row_height"		, 75										);
+	insert_if_not_exist("darknet_config"				, ""												);
+	insert_if_not_exist("darknet_weights"				, ""												);
+	insert_if_not_exist("darknet_names"					, ""												);
+	insert_if_not_exist("darknet_dir"					, home + "/darknet"									);
+	insert_if_not_exist("image_directory"				, home + "/nn/flowers"								);
+	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:gif))$"	);
+	insert_if_not_exist("sort_order"					, static_cast<int>(ESort::kAlphabetical)			);
+	insert_if_not_exist("show_labels"					, static_cast<int>(EToggle::kAuto)					);
+	insert_if_not_exist("show_predictions"				, static_cast<int>(EToggle::kAuto)					);
+	insert_if_not_exist("show_marks"					, true												);
+	insert_if_not_exist("alpha_blend_percentage"		, 65												);
+	insert_if_not_exist("all_marks_are_bold"			, false												);
+	insert_if_not_exist("show_processing_time"			, true												);
+	insert_if_not_exist("darknet_enable_yolov3_tiny"	, true												);
+	insert_if_not_exist("darknet_enable_yolov3_full"	, true												);
+	insert_if_not_exist("darknet_trailing_percentage"	, 85												);
+	insert_if_not_exist("darknet_image_size"			, 416												);
+	insert_if_not_exist("darknet_batch_size"			, 64												);
+	insert_if_not_exist("darknet_subdivisions"			, 8													);
+	insert_if_not_exist("darknet_iterations"			, 4000												);
+	insert_if_not_exist("darknet_saturation"			, 1.50f												);
+	insert_if_not_exist("darknet_exposure"				, 1.50f												);
+	insert_if_not_exist("darknet_hue"					, 0.10f												);
+	insert_if_not_exist("darknet_enable_flip"			, true												);
+	insert_if_not_exist("darknet_angle"					, 0													);
+	insert_if_not_exist("darknet_mosaic"				, false												);
+	insert_if_not_exist("darknet_cutmix"				, false												);
+	insert_if_not_exist("darknet_mixup"					, false												);
+	insert_if_not_exist("darknet_threshold"				, 50												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7e956a7d74f8d576e573da4ea92310f1
+	insert_if_not_exist("darknet_hierarchy_threshold"	, 50												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7766c935160b80d696e232067afe8430
+	insert_if_not_exist("darknet_nms_threshold"			, 45												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#ac533cda5d4cbba691deb4df5d89da318
+	insert_if_not_exist("crosshair_colour"				, "ffffffff"										); // alpha + rgb
+	insert_if_not_exist("review_table_row_height"		, 75												);
 
 	removeValue("darknet_enable_hue");	// this was changed to the float value darknet_hue
 
