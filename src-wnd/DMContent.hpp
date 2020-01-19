@@ -79,6 +79,8 @@ namespace dm
 
 			DMContent & review_marks();
 
+			DMContent & rotate_every_image();
+
 			DMContent & reload_resave_every_image();
 
 			DMContent & show_jump_wnd();

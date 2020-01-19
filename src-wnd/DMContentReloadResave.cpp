@@ -55,6 +55,5 @@ void dm::DMContentReloadResave::run()
 	content.show_predictions = previous_predictions;
 	content.load_image(0);
 
-
 	return;
 }
