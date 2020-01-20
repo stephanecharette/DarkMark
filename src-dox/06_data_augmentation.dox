@@ -14,4 +14,8 @@
   - @ref Cutmix
   - @ref Mixup
 
+@image html rotate_every_image.png
+
+- @subpage DataAugmentationRotation
+
 */

@@ -113,40 +113,43 @@ void dm::DMContentRotateImages::run()
 			content.image_filenames.push_back(new_full_fn);
 			images_added ++;
 
-			// re-create the markup for this newly rotated image by saving a simple .txt file,
-			// and then we'll get DarkMark to reload this image which should cause the .json output
-
-			const double degrees	= (rotation == cv::ROTATE_90_CLOCKWISE ? 90.0 : rotation == cv::ROTATE_180 ? 180.0 : 270.0);
-			const double rads		= degrees * M_PI / 180.0;
-			const double s			= std::sin(rads);
-			const double c			= std::cos(rads);
-
-			auto txt_file = File(new_full_fn).withFileExtension(".txt");
-			std::ofstream fs(txt_file.getFullPathName().toStdString());
-
-			for (const auto & m : original_marks)
+			if (original_marks.empty() == false)
 			{
-				if (m.is_prediction)
+				// re-create the markup for this newly rotated image by saving a simple .txt file,
+				// and then we'll get DarkMark to reload this image which should cause the .json output
+
+				const double degrees	= (rotation == cv::ROTATE_90_CLOCKWISE ? 90.0 : rotation == cv::ROTATE_180 ? 180.0 : 270.0);
+				const double rads		= degrees * M_PI / 180.0;
+				const double s			= std::sin(rads);
+				const double c			= std::cos(rads);
+
+				auto txt_file = File(new_full_fn).withFileExtension(".txt");
+				std::ofstream fs(txt_file.getFullPathName().toStdString());
+
+				for (const auto & m : original_marks)
 				{
-					continue;
+					if (m.is_prediction)
+					{
+						continue;
+					}
+
+					const cv::Rect2d r	= m.get_normalized_bounding_rect();
+					const double w		= r.width;
+					const double h		= r.height;
+					const double x		= r.x + r.width / 2.0 - 0.5; // -0.5 to bring it back to the origin
+					const double y		= r.y + r.height / 2.0 - 0.5; // -0.5 to bring it back to the origin
+
+					const double new_w		= (degrees == 180.0 ? w : h);
+					const double new_h		= (degrees == 180.0 ? h : w);
+					const double new_x		= x * c - y * s + 0.5;
+					const double new_y		= x * s + y * c + 0.5;
+
+					fs << std::fixed << std::setprecision(10) << m.class_idx << " " << new_x << " " << new_y << " " << new_w << " " << new_h << std::endl;
 				}
 
-				const cv::Rect2d r	= m.get_normalized_bounding_rect();
-				const double w		= r.width;
-				const double h		= r.height;
-				const double x		= r.x + r.width / 2.0 - 0.5; // -0.5 to bring it back to the origin
-				const double y		= r.y + r.height / 2.0 - 0.5; // -0.5 to bring it back to the origin
-
-				const double new_w		= (degrees == 180.0 ? w : h);
-				const double new_h		= (degrees == 180.0 ? h : w);
-				const double new_x		= x * c - y * s + 0.5;
-				const double new_y		= x * s + y * c + 0.5;
-
-				fs << std::fixed << std::setprecision(10) << m.class_idx << " " << new_x << " " << new_y << " " << new_w << " " << new_h << std::endl;
+				// load the new images to force DarkMark to create the .json file from the .txt file
+				content.load_image(content.image_filenames.size() - 1);
 			}
-
-			// load the new images to force DarkMark to create the .json file from the .txt file
-			content.load_image(content.image_filenames.size() - 1);
 		}
 	}
 

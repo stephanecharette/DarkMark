@@ -1,0 +1,43 @@
+/** @page DataAugmentationRotation Data Augmentation - Rotation
+
+Rotating an image can easily defeat a neural network that wasn't trained to expect an image in a certain orientation.
+
+For example:
+
+<table>
+	<tr>
+		<td> @image html dog_r000.png </td>
+		<td> @image html dog_r090.png </td>
+	<tr>
+		<td> @image html dog_r180.png </td>
+		<td> @image html dog_r270.png </td>
+</table>
+
+Sometimes -- such as this next dash cam image example -- it doesn't make sense to include rotated images when training the neural network.  With a dash cam, unless you flip your vehicle upside down you wouldn't expect the sky to be on the bottom and vehicles around you driving upside down, so rotated images like these ones don't make much sense.  And since this example neural network wasn't trained with upside down images of vehicles, it does a very poor job of predicting what is in the frame:
+
+<table>
+	<tr>
+		<td> @image html traffic_predictions_r000.png </td>
+		<td> @image html traffic_predictions_r180.png </td>
+</table>
+
+But there are other times when it makes perfect sense for a neural network to detect objects oriented in many different ways.  In this next example, when training a network to recognize cells as viewed in a microscope, there is no fixed up/down/left/right orientation:
+
+@image html segmented_neutrophil.png
+
+
+For this reason, an option has been added to DarkMark to rotate all the images 90, 180, and 270 degrees:
+
+@image html rotate_every_image.png
+
+@note If the images have already been marked up, then rotating the images in this manner will also rotate the corresponding marks.
+
+Once the rotation has completed, there will be an additional 3 images for each original image.  The filenames will contain @p _r090, @p _r180, and @p _r270 to indicate the applied rotation.  Similar to this:
+
+@image html segmented_neutrophil_rotation.png
+
+- @p _r090: 90 degree rotation (clockwise)
+- @p _r180: 180 degree rotation
+- @p _r270: 270 degree rotation (clockwise), aka 90 degree counter-clockwise
+
+*/
