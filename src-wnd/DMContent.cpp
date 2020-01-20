@@ -1246,7 +1246,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	const bool has_any_marks = (marks.size() > 0);
 
 	PopupMenu image;
-	image.addItem("accept " + std::to_string(number_of_darknet_marks) + " pending marks", (number_of_darknet_marks > 0)	, false	, std::function<void()>( [&]{ accept_all_marks();			} ));
+	image.addItem("accept " + std::to_string(number_of_darknet_marks) + " pending mark" + (number_of_darknet_marks == 1 ? "" : "s"), (number_of_darknet_marks > 0)	, false	, std::function<void()>( [&]{ accept_all_marks();			} ));
 
 	std::string text = "erase 1 mark";
 	if (marks.size() != 1)
