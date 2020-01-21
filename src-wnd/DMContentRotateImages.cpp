@@ -5,9 +5,10 @@
 #include "DarkMark.hpp"
 
 
-dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c) :
-	ThreadWithProgressWindow("Rotate all images 90, 180, and 270 degrees...", true, true),
-	content(c)
+dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c, const bool all_images) :
+	ThreadWithProgressWindow("Rotate images 90, 180, and 270 degrees...", true, true),
+	content(c),
+	apply_to_all_images(all_images)
 {
 	return;
 }
@@ -22,6 +23,10 @@ dm::DMContentRotateImages::~DMContentRotateImages()
 void dm::DMContentRotateImages::run()
 {
 	DarkMarkApplication::setup_signal_handling();
+
+	// briefly pause here so the window can properly redraw itself (hack?)
+	getAlertWindow()->repaint();
+	sleep(250); // milliseconds
 
 	// make a set of all filenames so we can quickly look up if an image already exists
 	SStr all_filenames;
@@ -84,6 +89,13 @@ void dm::DMContentRotateImages::run()
 		// remember the image and the markup for this image, because we're going to have to rotate all the points
 		const auto original_marks = content.marks;
 		cv::Mat original_mat = content.original_image;
+
+		if (apply_to_all_images == false and original_marks.empty())
+		{
+			// image is not marked up, so don't bother to rotate it
+			images_skipped ++;
+			continue;
+		}
 
 		for (const auto rotation : {cv::ROTATE_90_CLOCKWISE, cv::ROTATE_180, cv::ROTATE_90_COUNTERCLOCKWISE})
 		{

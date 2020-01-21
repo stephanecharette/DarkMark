@@ -1258,7 +1258,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	image.addSeparator();
 	image.addItem("jump..."																										, std::function<void()>( [&]{ show_jump_wnd();				} ));
 	image.addSeparator();
-	image.addItem("rotate every image..."																						, std::function<void()>( [&]{ rotate_every_image();			} ));
+	image.addItem("rotate images..."																							, std::function<void()>( [&]{ rotate_every_image();			} ));
 	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
 
 	PopupMenu m;
@@ -1308,22 +1308,27 @@ dm::DMContent & dm::DMContent::review_marks()
 
 dm::DMContent & dm::DMContent::rotate_every_image()
 {
-	const bool result = AlertWindow::showOkCancelBox(AlertWindow::InfoIcon, "DarkMark",
-		"This will rotate every image 90, 180, and 270 degrees, and will also rotate and copy all existing marks to each new image. "
+	const int result = AlertWindow::showYesNoCancelBox(AlertWindow::QuestionIcon, "DarkMark",
+		"This will rotate images 90, 180, and 270 degrees, and will also rotate and copy all existing marks for each new image. "
 		"Only run this if the network you are training uses images that do not have an obvious top/bottom/left/right direction.\n"
 		"\n"
 		"Examples:\n"
 		"\n"
-		"- If you are training with images of vehicles on a road, having those images rotated sideways and upside down doesn't make sense.\n"
+		"- If you are training with dash cam images of vehicles on a road, having those images rotated sideways and upside down "
+		"doesn't make sense.\n"
 		"\n"
 		"- If you are training with images taken through a microscope, those images typically wouldn't have a fixed orientation, and the "
 		"network training would benefit from having additional marked up images.\n"
 		"\n"
-		"Proceed with the image rotations?");
+		"Proceed with the image rotations?",
+		"rotate all images",
+		"rotate marked up images",
+		"cancel"
+	);
 
-	if (result)
+	if (result > 0)
 	{
-		DMContentRotateImages helper(*this);
+		DMContentRotateImages helper(*this, (result == 0));
 		helper.runThread();
 	}
 
