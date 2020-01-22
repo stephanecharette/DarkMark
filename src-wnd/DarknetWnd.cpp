@@ -401,6 +401,7 @@ void dm::DarknetWnd::create_Darknet_files()
 	{
 		// only include the images for which we have at least 1 mark
 		VStr v;
+		VStr skipped;
 		for (const auto & filename : content.image_filenames)
 		{
 			File f = File(filename).withFileExtension(".json");
@@ -408,6 +409,7 @@ void dm::DarknetWnd::create_Darknet_files()
 			if (count == 0)
 			{
 				number_of_skipped_files ++;
+				skipped.push_back(filename);
 			}
 			else
 			{
@@ -433,6 +435,14 @@ void dm::DarknetWnd::create_Darknet_files()
 			{
 				fs_valid << v[idx] << std::endl;
 			}
+		}
+
+		const std::string fn = File(info.valid_filename).getSiblingFile("skipped_images.txt").getFullPathName().toStdString();
+		std::random_shuffle(skipped.begin(), skipped.end());
+		std::ofstream fs_skipped(fn);
+		for (const auto & image_filename : skipped)
+		{
+			fs_skipped << image_filename << std::endl;
 		}
 	}
 
