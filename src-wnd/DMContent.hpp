@@ -100,11 +100,17 @@ namespace dm
 			VMarks marks;
 			VStr names;
 
+			/// Index into the @ref names vector so we can easily find the special case of "empty image".
+			size_t empty_image_name_index;
+
 			ESort sort_order;
 			EToggle show_labels;
 
 			/// Toggle in configuration that determines if darknet predictions are hidden, shown, or automatic (meaning shown only if there are no "real" marks).
 			EToggle show_predictions;
+
+			/// Boolean flag triggered by the user to decide if the image is empty and should still have a .json and .txt file generated.
+			bool image_is_completely_empty;
 
 			/// Boolean switch in configuration that determines if real marks are shown or hidden.
 			bool show_marks;

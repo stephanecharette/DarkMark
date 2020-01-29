@@ -20,6 +20,7 @@ dm::DMContentReview::DMContentReview(dm::DMContent & c) :
 
 dm::DMContentReview::~DMContentReview()
 {
+	return;
 }
 
 
@@ -62,6 +63,20 @@ void dm::DMContentReview::run()
 		catch(const std::exception & e)
 		{
 			Log("failed to read image " + fn + " or parse json " + f.getFullPathName().toStdString());
+			continue;
+		}
+
+		if (root["mark"].empty() and root.value("completely_empty", false))
+		{
+			const auto class_idx = content.empty_image_name_index;
+			ReviewInfo review_info;
+			review_info.class_idx = class_idx;
+			review_info.filename = fn;
+			review_info.mat = mat.clone();
+			review_info.msg = magic_file(magic_cookie, fn.c_str());
+			const size_t idx = m[class_idx].size();
+			m[class_idx][idx] = review_info;
+
 			continue;
 		}
 

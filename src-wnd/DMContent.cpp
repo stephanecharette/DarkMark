@@ -10,9 +10,11 @@ using json = nlohmann::json;
 
 dm::DMContent::DMContent() :
 	canvas(*this),
+	empty_image_name_index(0),
 	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
 	show_predictions(static_cast<EToggle>(cfg().get_int("show_predictions"))),
+	image_is_completely_empty(false),
 	show_marks(cfg().get_bool("show_marks")),
 	marks_are_shown(false),
 	predictions_are_shown(false),
@@ -229,6 +231,10 @@ void dm::DMContent::start_darknet()
 	}
 
 	Log("number of name entries: " + std::to_string(names.size()));
+
+	// add 1 more special entry to the end of the "names" so we can deal with empty images
+	empty_image_name_index = names.size();
+	names.push_back("* empty image *");
 
 	annotation_colours = DarkHelp::get_default_annotation_colours();
 
@@ -551,7 +557,7 @@ dm::DMContent & dm::DMContent::set_class(const size_t class_idx)
 {
 	if (selected_mark >= 0 and (size_t)selected_mark < marks.size())
 	{
-		if (class_idx >= names.size())
+		if (class_idx >= names.size() - 1)
 		{
 			Log("class idx \"" + std::to_string(class_idx) + "\" is beyond the last index");
 			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Class id #" + std::to_string(class_idx) + " is beyond the highest class defined in " + cfg().get_str("darknet_names") + ".");
@@ -697,6 +703,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	selected_mark	= -1;
 	original_image	= cv::Mat();
 	marks.clear();
+	image_is_completely_empty = false;
 
 	if (new_idx >= image_filenames.size())
 	{
@@ -804,6 +811,13 @@ dm::DMContent & dm::DMContent::save_text()
 {
 	if (text_filename.empty() == false)
 	{
+		bool delete_txt_file = true;
+
+		if (image_is_completely_empty)
+		{
+			delete_txt_file = false;
+		}
+
 		std::ofstream fs(text_filename);
 		for (const auto & m : marks)
 		{
@@ -813,12 +827,22 @@ dm::DMContent & dm::DMContent::save_text()
 				continue;
 			}
 
+			delete_txt_file = false;
+
 			const cv::Rect2d r	= m.get_normalized_bounding_rect();
 			const double w		= r.width;
 			const double h		= r.height;
 			const double x		= r.x + w / 2.0;
 			const double y		= r.y + h / 2.0;
 			fs << std::fixed << std::setprecision(10) << m.class_idx << " " << x << " " << y << " " << w << " " << h << std::endl;
+		}
+
+		fs.close();
+
+		if (delete_txt_file)
+		{
+			// there was no legitimate reason to keep the .txt file
+			std::remove(text_filename.c_str());
 		}
 	}
 
@@ -874,8 +898,26 @@ dm::DMContent & dm::DMContent::save_json()
 		root["timestamp"]		= std::time(nullptr);
 		root["version"]			= DARKMARK_VERSION;
 
-		std::ofstream fs(json_filename);
-		fs << root.dump(1, '\t') << std::endl;
+		if (next_id == 0 and image_is_completely_empty)
+		{
+			// no marks were written out, so this must be an empty image
+			root["completely_empty"] = true;
+		}
+		else
+		{
+			root["completely_empty"] = false;
+		}
+
+		if (next_id > 0 or image_is_completely_empty)
+		{
+			std::ofstream fs(json_filename);
+			fs << root.dump(1, '\t') << std::endl;
+		}
+		else
+		{
+			// image has no markup -- delete the .json file if it existed
+			std::remove(json_filename.c_str());
+		}
 	}
 
 	need_to_save = false;
@@ -894,6 +936,13 @@ size_t dm::DMContent::count_marks_in_json(File & f)
 		{
 			json root = json::parse(f.loadFileAsString().toStdString());
 			result = root["mark"].size();
+
+			if (result == 0 and root.value("completely_empty", false))
+			{
+				// if there are zero marks, then see if the image has been identified
+				// as completely empty, and if so count that as if it was a mark
+				result = 1;
+			}
 		}
 		catch (const std::exception & e)
 		{
@@ -935,6 +984,11 @@ bool dm::DMContent::load_text()
 			m.description = m.name;
 			marks.push_back(m);
 		}
+
+		if (marks.empty())
+		{
+			image_is_completely_empty = true;
+		}
 	}
 
 	return success;
@@ -966,6 +1020,11 @@ bool dm::DMContent::load_json()
 			}
 			m.rebalance();
 			marks.push_back(m);
+		}
+
+		if (marks.empty())
+		{
+			image_is_completely_empty = root.value("completely_empty", false);
 		}
 
 		success = true;
@@ -1175,20 +1234,20 @@ PopupMenu dm::DMContent::create_class_menu()
 	}
 
 	PopupMenu m;
-	for (size_t idx = 0; idx < names.size(); idx ++)
+	for (size_t idx = 0; idx < names.size() - 1; idx ++)
 	{
 		const std::string & name = std::to_string(idx) + " - " + names.at(idx);
 
 		const bool is_ticked = (selected_class_idx == (int)idx ? true : false);
 
-		if (idx % 10 == 0 and names.size() > 1)
+		if (idx % 10 == 0 and names.size() - 1 > 1)
 		{
 			std::stringstream ss;
 			if (idx == 10) ss << "CTRL + ";
 			if (idx == 20) ss << "ALT + ";
 			if (idx == 30) ss << "CTRL + ALT + ";
 			ss << "0";
-			const size_t max_val = std::min(names.size() - 1, idx + 9) - idx;
+			const size_t max_val = std::min(names.size() - 2, idx + 9) - idx;
 			if (max_val > 0)
 			{
 				ss << " to " << max_val;
@@ -1198,6 +1257,25 @@ PopupMenu dm::DMContent::create_class_menu()
 
 		m.addItem(name, (is_enabled and not is_ticked), is_ticked, std::function<void()>( [&, idx]{ this->set_class(idx); } ));
 	}
+
+	bool image_already_marked = false;
+	for (const auto & mark : marks)
+	{
+		if (mark.is_prediction == false)
+		{
+			image_already_marked = true;
+			image_is_completely_empty = false;
+			break;
+		}
+	}
+
+	m.addSeparator();
+	m.addItem("empty image", (image_already_marked == false), image_is_completely_empty, std::function<void()>( [&]
+	{
+		image_is_completely_empty = ! image_is_completely_empty;
+		rebuild_image_and_repaint();
+		need_to_save = true;
+	} ));
 
 	return m;
 }

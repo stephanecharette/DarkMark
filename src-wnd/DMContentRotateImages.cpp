@@ -90,7 +90,7 @@ void dm::DMContentRotateImages::run()
 		const auto original_marks = content.marks;
 		cv::Mat original_mat = content.original_image;
 
-		if (apply_to_all_images == false and original_marks.empty())
+		if (apply_to_all_images == false and (content.image_is_completely_empty == false and original_marks.empty()))
 		{
 			// image is not marked up, so don't bother to rotate it
 			images_skipped ++;
@@ -125,7 +125,7 @@ void dm::DMContentRotateImages::run()
 			content.image_filenames.push_back(new_full_fn);
 			images_added ++;
 
-			if (original_marks.empty() == false)
+			if (original_marks.empty() == false or content.image_is_completely_empty)
 			{
 				// re-create the markup for this newly rotated image by saving a simple .txt file,
 				// and then we'll get DarkMark to reload this image which should cause the .json output

@@ -54,6 +54,14 @@ void dm::DMContentStatistics::run()
 		{
 			json root = json::parse(f.loadFileAsString().toStdString());
 
+			// if the image is completely empty, then create a "fake" mark covering the entire image
+			if (root.value("completely_empty", false))
+			{
+				root["mark"][0]["class_idx"] = content.empty_image_name_index;
+				root["mark"][0]["rect"]["int_w"] = root["image"]["width"];
+				root["mark"][0]["rect"]["int_h"] = root["image"]["height"];
+			}
+
 			for (auto mark : root["mark"])
 			{
 				const size_t class_idx = mark["class_idx"].get<size_t>();
@@ -86,6 +94,12 @@ void dm::DMContentStatistics::run()
 				}
 			}
 		}
+	}
+
+	// remove the entry for "empty images" if it wasn't used
+	if (m[content.empty_image_name_index].count == 0)
+	{
+		m.erase(content.empty_image_name_index);
 	}
 
 	// calculate the averages and standard deviations for each class

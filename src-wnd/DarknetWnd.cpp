@@ -339,7 +339,7 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	const size_t step2					= std::round(0.9 * number_of_iterations);
 	const size_t batch					= info.batch_size;
 	const size_t subdivisions			= info.subdivisions;
-	const size_t filters				= content.names.size() * 3 + 15;
+	const size_t filters				= (content.names.size() - 1) * 3 + 15;
 	const size_t width					= info.image_size;
 	const size_t height					= width;
 
@@ -354,7 +354,7 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 			"sed --in-place \"/^hue *=/ a\\mixup="					+ std::string(enable_mixup ? "1" : "0")					+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^saturation *=/ c\\saturation="		+ std::to_string(saturation)							+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^exposure *=/ c\\exposure="			+ std::to_string(exposure)								+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(content.names.size())					+ "\" "		+ cfg_filename,
+			"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(content.names.size() - 1)				+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^max_batches *=/ c\\max_batches="	+ std::to_string(number_of_iterations)					+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^steps *=/ c\\steps="				+ std::to_string(step1) + "," + std::to_string(step2)	+ "\" "		+ cfg_filename,
 			"sed --in-place \"/^batch *=/ c\\batch="				+ std::to_string(batch)									+ "\" "		+ cfg_filename,
@@ -386,7 +386,7 @@ void dm::DarknetWnd::create_Darknet_files()
 	if (true)
 	{
 		std::ofstream fs(info.data_filename);
-		fs	<< "classes = "	<< content.names.size()				<< std::endl
+		fs	<< "classes = "	<< content.names.size() - 1			<< std::endl
 			<< "train = "	<< info.train_filename				<< std::endl
 			<< "valid = "	<< info.valid_filename				<< std::endl
 			<< "names = "	<< cfg().get_str("darknet_names")	<< std::endl
@@ -399,7 +399,7 @@ void dm::DarknetWnd::create_Darknet_files()
 	size_t number_of_marks = 0;
 	if (true)
 	{
-		// only include the images for which we have at least 1 mark
+		// only include the images for which we have at least 1 mark (or have been explicitly marked as empty)
 		VStr v;
 		VStr skipped;
 		for (const auto & filename : content.image_filenames)
@@ -569,7 +569,7 @@ void dm::DarknetWnd::create_Darknet_files()
 		std::stringstream ss;
 		ss	<< "The necessary files to run darknet have been saved to " << info.project_dir << "." << std::endl
 			<< std::endl
-			<< "There are " << content.names.size() << " classes with a total of "
+			<< "There are " << content.names.size() - 1 << " classes with a total of "
 			<< number_of_files_train << " training files and "
 			<< number_of_files_valid << " validation files. The average is "
 			<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)

@@ -83,7 +83,7 @@ void dm::DMCanvas::rebuild_cache_image()
 		content.predictions_are_shown = false;
 	}
 
-	if (content.number_of_marks == 0)
+	if (content.number_of_marks == 0 and content.image_is_completely_empty == false)
 	{
 		content.marks_are_shown = false;
 	}
@@ -98,11 +98,24 @@ void dm::DMCanvas::rebuild_cache_image()
 		}
 	}
 
-	for (size_t idx = 0; idx < content.marks.size(); idx ++)
-	{
-		const bool is_selected = (static_cast<int>(idx) == content.selected_mark);
+	bool must_exit_loop = false;
 
-		Mark & m = content.marks.at(idx);
+	for (size_t idx = 0; must_exit_loop == false and (content.image_is_completely_empty or idx < content.marks.size()); idx ++)
+	{
+		Mark m;
+		if (content.image_is_completely_empty)
+		{
+			// treat empty images as if they have a single mark covering the entire image
+			m = Mark(cv::Point2d(0.5, 0.5), cv::Size2d(1.0, 1.0), cv::Size(0, 0), content.empty_image_name_index);
+			m.description = content.names[content.empty_image_name_index];
+
+			// we're using a "fake" mark on empty images, so immediately exit this loop once we're done drawing what we need
+			must_exit_loop = true;
+		}
+		else
+		{
+			m = content.marks.at(idx);
+		}
 
 		if (m.is_prediction == false and content.marks_are_shown == false)
 		{
@@ -114,6 +127,7 @@ void dm::DMCanvas::rebuild_cache_image()
 			continue;
 		}
 
+		const bool is_selected	= (static_cast<int>(idx) == content.selected_mark);
 		const std::string name	= m.description;
 		const cv::Rect r		= m.get_bounding_rect(content.scaled_image.size());
 		const cv::Scalar colour	= m.get_colour();
@@ -307,6 +321,7 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 	content.marks.push_back(m);
 	content.selected_mark = content.marks.size() - 1;
 	content.need_to_save = true;
+	content.image_is_completely_empty = false;
 	content.rebuild_image_and_repaint();
 
 	return;
@@ -344,6 +359,7 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 	content.selected_mark = content.marks.size() - 1;
 	content.most_recent_size = m.get_normalized_bounding_rect().size();
 	content.need_to_save = true;
+	content.image_is_completely_empty = false;
 	content.rebuild_image_and_repaint();
 
 	return;
