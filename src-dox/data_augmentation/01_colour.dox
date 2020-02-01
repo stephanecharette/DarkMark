@@ -2,7 +2,7 @@
 
 @tableofcontents
 
-This page describes how @b saturation, @b exposure, and @b hue are utilized during data augmentation.
+This page describes how @b saturation, @b exposure, and @b hue are utilized during darknet's data augmentation.
 
 @li @ref Saturation is the intensity of a colour.
 @li @ref Exposure (lightness) is the amount of black or white that has been added to the colour.
