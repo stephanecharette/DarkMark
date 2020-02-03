@@ -67,9 +67,12 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		peer->setIcon(DarkMarkLogo());
 	}
 
-	v_darkhelp_threshold							= std::round(100.0f * dmapp().darkhelp->threshold);
-	v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp->hierarchy_threshold);
-	v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp->non_maximal_suppression_threshold);
+	if (dmapp().darkhelp)
+	{
+		v_darkhelp_threshold							= std::round(100.0f * dmapp().darkhelp->threshold);
+		v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp->hierarchy_threshold);
+		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp->non_maximal_suppression_threshold);
+	}
 
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
@@ -178,9 +181,12 @@ void dm::SettingsWnd::buttonClicked(Button * button)
 
 void dm::SettingsWnd::valueChanged(Value & value)
 {
-	dmapp().darkhelp->hierarchy_threshold				= static_cast<float>(v_darkhelp_hierchy_threshold					.getValue()) / 100.0f;
-	dmapp().darkhelp->non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
-	dmapp().darkhelp->threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
+	if (dmapp().darkhelp)
+	{
+		dmapp().darkhelp->hierarchy_threshold				= static_cast<float>(v_darkhelp_hierchy_threshold					.getValue()) / 100.0f;
+		dmapp().darkhelp->non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
+		dmapp().darkhelp->threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
+	}
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 
