@@ -109,9 +109,9 @@ void dm::DMReviewCanvas::paintRowBackground(Graphics & g, int rowNumber, int wid
 		rowNumber < (int)mri.size())
 	{
 		const auto & review_info = mri.at(rowNumber);
-		if (review_info.msg != "image/jpeg")
+		if (review_info.msg != "image/jpeg" and review_info.msg != "image/png")
 		{
-			// looks like something about this image is different than "normal", so highlight it to the user
+			// looks like something about this image is different than what we'd normally expect, so highlight it to the user
 			colour = Colours::lightyellow;
 		}
 	}
