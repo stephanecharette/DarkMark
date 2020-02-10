@@ -33,6 +33,9 @@ void dm::DMContentReview::run()
 
 	MMReviewInfo m;
 
+	// last index in the names vector will be to store "errors"
+	const size_t error_index = content.names.size();
+
 	magic_t magic_cookie = magic_open(MAGIC_MIME_TYPE);
 	magic_load(magic_cookie, nullptr);
 
@@ -63,7 +66,7 @@ void dm::DMContentReview::run()
 		catch(const std::exception & e)
 		{
 			Log("failed to read image " + fn + " or parse json " + f.getFullPathName().toStdString() + ": " + e.what());
-			const auto class_idx = 0;
+			const auto class_idx = error_index;
 			ReviewInfo review_info;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
@@ -92,13 +95,21 @@ void dm::DMContentReview::run()
 			review_info.msg = magic_file(magic_cookie, fn.c_str());
 			const size_t idx = m[class_idx].size();
 			m[class_idx][idx] = review_info;
-
 			continue;
 		}
 
 		if (root["mark"].empty())
 		{
 			// nothing we can do with this file we don't have any marks defined
+			Log("no marks defined, yet image is not marked as empty: " + fn);
+			const auto class_idx = error_index;
+			ReviewInfo review_info;
+			review_info.class_idx = class_idx;
+			review_info.filename = fn;
+			review_info.mat = cv::Mat(32, 32, CV_8UC3, cv::Scalar(0, 0, 255)); // use a red square to indicate a problem
+			review_info.msg = "no marks defined, yet image is not marked as empty";
+			const size_t idx = m[class_idx].size();
+			m[class_idx][idx] = review_info;
 			continue;
 		}
 
@@ -109,7 +120,7 @@ void dm::DMContentReview::run()
 				break;
 			}
 
-			const size_t class_idx = mark["class_idx"].get<size_t>();
+			size_t class_idx = mark["class_idx"].get<size_t>();
 			const int x = std::round(mat.cols * mark["rect"]["x"].get<double>());
 			const int y = std::round(mat.rows * mark["rect"]["y"].get<double>());
 			const int w = std::round(mat.cols * mark["rect"]["w"].get<double>());
@@ -130,9 +141,10 @@ void dm::DMContentReview::run()
 			}
 			catch (...)
 			{
-				Log("encountered a problem trying to get the ROI from " + fn);
+				Log(content.names[class_idx] + ": encountered a problem trying to get the ROI from " + fn);
 				review_info.mat = cv::Mat(32, 32, CV_8UC3, cv::Scalar(0, 0, 255)); // use a red square to indicate a problem
 				msg = "error reading image or region of interest; maybe try to delete and re-create the mark?";
+				class_idx = error_index;
 			}
 			review_info.msg = msg;
 			const size_t idx = m[class_idx].size();

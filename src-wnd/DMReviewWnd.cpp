@@ -82,6 +82,10 @@ void dm::DMReviewWnd::rebuild_notebook()
 			// if we can, we'd much rather use the "official" name for this class
 			name = content.names.at(class_idx);
 		}
+		if (content.names.size() == class_idx)
+		{
+			name = "* errors *";
+		}
 
 		Log("creating a notebook tab for class \"" + name + "\", mri has " + std::to_string(mri.size()) + " entries");
 
