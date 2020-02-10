@@ -62,6 +62,8 @@ void dm::DMContentStatistics::run()
 				root["mark"][0]["rect"]["int_h"] = root["image"]["height"];
 			}
 
+			std::map<size_t, size_t> mark_counter;
+
 			for (auto mark : root["mark"])
 			{
 				const size_t class_idx = mark["class_idx"].get<size_t>();
@@ -80,6 +82,8 @@ void dm::DMContentStatistics::run()
 				s.width_counts[w] ++;
 				s.height_counts[h] ++;
 
+				mark_counter[class_idx] ++;
+
 				if (a < s.min_area)
 				{
 					s.min_area = a;
@@ -91,6 +95,30 @@ void dm::DMContentStatistics::run()
 					s.max_area = a;
 					s.max_size = cv::Size(w, h);
 					s.max_filename = fn;
+				}
+			}
+
+			// now go through the marks and see if we're beyond the minimum or maximum
+			for (auto iter : mark_counter)
+			{
+				const size_t class_idx = iter.first;
+				const size_t count = iter.second;
+
+				Stats & s = m[class_idx];
+
+				if (s.min_number_of_marks_per_image == 0 or s.min_number_of_marks_per_image > count)
+				{
+					// found new minimum
+					s.min_number_of_marks_per_image = count;
+					s.min_number_of_marks_filename = fn;
+
+				}
+
+				if (count > s.max_number_of_marks_per_image)
+				{
+					// found new maximum
+					s.max_number_of_marks_per_image = count;
+					s.max_number_of_marks_filename = fn;
 				}
 			}
 		}
@@ -149,6 +177,7 @@ void dm::DMContentStatistics::run()
 	}
 	dmapp().stats_wnd->m.swap(m);
 	dmapp().stats_wnd->tlb.updateContent();
+	dmapp().stats_wnd->tlb.repaint();
 	dmapp().stats_wnd->toFront(true);
 
 	return;

@@ -45,6 +45,9 @@ namespace dm
 		double standard_deviation_width;
 		double standard_deviation_height;
 
+		size_t min_number_of_marks_per_image;
+		size_t max_number_of_marks_per_image;
+
 		/// Keep track of all widths and all heights so we can calculate standard deviations.  @{
 		std::map<int, size_t> width_counts;
 		std::map<int, size_t> height_counts;
@@ -52,6 +55,9 @@ namespace dm
 
 		std::string min_filename;
 		std::string max_filename;
+
+		std::string min_number_of_marks_filename;
+		std::string max_number_of_marks_filename;
 
 		Stats()
 		{
@@ -71,6 +77,9 @@ namespace dm
 			avg_w = 0.0;
 			avg_h = 0.0;
 			avg_a = 0.0;
+
+			min_number_of_marks_per_image = 0.0;
+			max_number_of_marks_per_image = 0.0;
 		}
 	};
 

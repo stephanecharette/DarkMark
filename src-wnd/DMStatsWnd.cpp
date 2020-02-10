@@ -18,6 +18,8 @@ dm::DMStatsWnd::DMStatsWnd(DMContent & c) :
 	tlb.getHeader().addColumn("max size"	, 7, 100, 30, -1, TableHeaderComponent::notSortable);
 	tlb.getHeader().addColumn("SD width"	, 8, 100, 30, -1, TableHeaderComponent::notSortable);
 	tlb.getHeader().addColumn("SD height"	, 9, 100, 30, -1, TableHeaderComponent::notSortable);
+	tlb.getHeader().addColumn("min marks"	, 10, 100, 30, -1, TableHeaderComponent::notSortable);
+	tlb.getHeader().addColumn("max marks"	, 11, 100, 30, -1, TableHeaderComponent::notSortable);
 	// if changing columns, also update paintCell() below
 
 	tlb.getHeader().setStretchToFitActive(true);
@@ -28,6 +30,7 @@ dm::DMStatsWnd::DMStatsWnd(DMContent & c) :
 	setUsingNativeTitleBar	(true		);
 	setResizable			(true, false);
 	setDropShadowEnabled	(true		);
+	setAlwaysOnTop			(true		);
 
 	setIcon(DarkMarkLogo());
 	ComponentPeer *peer = getPeer();
@@ -96,6 +99,8 @@ void dm::DMStatsWnd::cellDoubleClicked(int rowNumber, int columnId, const MouseE
 
 		if (columnId == 5)	filename = s.min_filename;
 		if (columnId == 7)	filename = s.max_filename;
+		if (columnId == 10)	filename = s.min_number_of_marks_filename;
+		if (columnId == 11)	filename = s.max_number_of_marks_filename;
 
 		if (filename.empty() == false)
 		{
@@ -137,6 +142,14 @@ String dm::DMStatsWnd::getCellTooltip(int rowNumber, int columnId)
 		{
 			return "double click to open " + s.max_filename;
 		}
+		else if (columnId == 10)
+		{
+			return "double click to open " + s.min_number_of_marks_filename;
+		}
+		else if (columnId == 11)
+		{
+			return "double click to open " + s.max_number_of_marks_filename;
+		}
 	}
 
 	return "";
@@ -165,7 +178,7 @@ void dm::DMStatsWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 	if (rowNumber < 0				or
 		rowNumber >= (int)m.size()	or
 		columnId < 1				or
-		columnId > 9				)
+		columnId > 11				)
 	{
 		// rows are 0-based, columns are 1-based
 		return;
@@ -183,6 +196,8 @@ void dm::DMStatsWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 	 *		7: max size
 	 *		8: SD width
 	 *		9: SD height
+	 *		10: minimum number of marks per image
+	 *		11: maximum number of marks per image
 	 */
 	std::stringstream ss;
 	ss << std::fixed << std::setprecision(2);
@@ -198,6 +213,8 @@ void dm::DMStatsWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 		case 7: ss << s.max_size.width << " x " << s.max_size.height;	break;
 		case 8: ss << s.standard_deviation_width;						break;
 		case 9: ss << s.standard_deviation_height;						break;
+		case 10: ss << s.min_number_of_marks_per_image;					break;
+		case 11: ss << s.max_number_of_marks_per_image;					break;
 	}
 
 	// draw the text and the right-hand-side dividing line between cells
