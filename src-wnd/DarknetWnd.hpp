@@ -9,7 +9,7 @@
 
 namespace dm
 {
-	class DarknetWnd : public DocumentWindow, public Button::Listener
+	class DarknetWnd : public DocumentWindow, public Button::Listener, public Value::Listener
 	{
 		public:
 
@@ -24,12 +24,15 @@ namespace dm
 
 			virtual void buttonClicked(Button * button);
 
+			virtual void valueChanged(Value & value);
+
 			void create_YOLO_configuration_files();
 			void create_Darknet_files();
 
 			Value v_darknet_dir;
 			Value v_enable_yolov3_tiny;
 			Value v_enable_yolov3_full;
+			Value v_train_with_all_images;
 			Value v_training_images_percentage;
 			Value v_image_size;
 			Value v_batch_size;
@@ -52,5 +55,7 @@ namespace dm
 			TextButton help_button;
 			TextButton ok_button;
 			TextButton cancel_button;
+
+			SliderPropertyComponent * percentage_slider;
 	};
 }

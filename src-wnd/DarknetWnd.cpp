@@ -13,6 +13,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	ok_button("OK"),
 	cancel_button("Cancel")
 {
+	percentage_slider = nullptr;
+
 	setContentNonOwned		(&canvas, true	);
 	setUsingNativeTitleBar	(true			);
 	setResizable			(true, false	);
@@ -37,6 +39,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_darknet_dir					= info.darknet_dir.c_str();
 	v_enable_yolov3_tiny			= info.enable_yolov3_tiny;
 	v_enable_yolov3_full			= info.enable_yolov3_full;
+	v_train_with_all_images			= info.train_with_all_images;
 	v_training_images_percentage	= std::round(100.0 * info.training_images_percentage);
 	v_image_size					= info.image_size;
 	v_batch_size					= info.batch_size;
@@ -51,6 +54,9 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_cutmix						= info.enable_cutmix;
 	v_mixup							= info.enable_mixup;
 	v_keep_augmented_images			= false;
+
+	// when this value is toggled, we need to enable/disable the image percentage slider
+	v_train_with_all_images.addListener(this);
 
 	Array<PropertyComponent *> properties;
 	TextPropertyComponent		* t = nullptr;
@@ -72,8 +78,17 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("darknet", properties);
 	properties.clear();
 
+	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
+	b->setTooltip("Enable this option to use the full list of images for both training and validation (recommended), otherwise use the percentage defined below.");
+	properties.add(b);
+
 	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
-	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 85% of the images for training, and 15% for validation.");
+	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
+	percentage_slider = s; // remember this slider, because we need to enable/disable it based on the previous boolean toggle
+	if (v_train_with_all_images.getValue())
+	{
+		s->setEnabled(false);
+	}
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_image_size, "image size", 32.0, 2048.0, 32.0);
@@ -141,7 +156,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b->setTooltip("Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
 	properties.add(b);
 
-	pp.addSection("data augmentation [debug]", properties);
+	pp.addSection("data augmentation [debug]", properties, false);
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
@@ -156,6 +171,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 dm::DarknetWnd::~DarknetWnd()
 {
+	percentage_slider = nullptr;
+
 	return;
 }
 
@@ -257,36 +274,38 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 
 	canvas.setEnabled(false);
 
-	cfg().setValue("darknet_dir"				, v_darknet_dir					);
-	cfg().setValue("darknet_enable_yolov3_tiny"	, v_enable_yolov3_tiny			);
-	cfg().setValue("darknet_enable_yolov3_full"	, v_enable_yolov3_full			);
-	cfg().setValue("darknet_trailing_percentage", v_training_images_percentage	);
-	cfg().setValue("darknet_image_size"			, v_image_size					);
-	cfg().setValue("darknet_batch_size"			, v_batch_size					);
-	cfg().setValue("darknet_subdivisions"		, v_subdivisions				);
-	cfg().setValue("darknet_iterations"			, v_iterations					);
-	cfg().setValue("darknet_saturation"			, v_saturation					);
-	cfg().setValue("darknet_exposure"			, v_exposure					);
-	cfg().setValue("darknet_hue"				, v_hue							);
-	cfg().setValue("darknet_enable_flip"		, v_enable_flip					);
-	cfg().setValue("darknet_angle"				, v_angle						);
+	cfg().setValue("darknet_dir"					, v_darknet_dir					);
+	cfg().setValue("darknet_enable_yolov3_tiny"		, v_enable_yolov3_tiny			);
+	cfg().setValue("darknet_enable_yolov3_full"		, v_enable_yolov3_full			);
+	cfg().setValue("darknet_train_with_all_images"	, v_train_with_all_images		);
+	cfg().setValue("darknet_training_percentage"	, v_training_images_percentage	);
+	cfg().setValue("darknet_image_size"				, v_image_size					);
+	cfg().setValue("darknet_batch_size"				, v_batch_size					);
+	cfg().setValue("darknet_subdivisions"			, v_subdivisions				);
+	cfg().setValue("darknet_iterations"				, v_iterations					);
+	cfg().setValue("darknet_saturation"				, v_saturation					);
+	cfg().setValue("darknet_exposure"				, v_exposure					);
+	cfg().setValue("darknet_hue"					, v_hue							);
+	cfg().setValue("darknet_enable_flip"			, v_enable_flip					);
+	cfg().setValue("darknet_angle"					, v_angle						);
 
 	info.darknet_dir				= v_darknet_dir.toString().toStdString();
-	info.enable_yolov3_tiny			= v_enable_yolov3_tiny	.getValue();
-	info.enable_yolov3_full			= v_enable_yolov3_full	.getValue();
+	info.enable_yolov3_tiny			= v_enable_yolov3_tiny		.getValue();
+	info.enable_yolov3_full			= v_enable_yolov3_full		.getValue();
+	info.train_with_all_images		= v_train_with_all_images	.getValue();
 	info.training_images_percentage	= static_cast<double>(v_training_images_percentage.getValue()) / 100.0;
-	info.image_size					= v_image_size			.getValue();
-	info.batch_size					= v_batch_size			.getValue();
-	info.subdivisions				= v_subdivisions		.getValue();
-	info.iterations					= v_iterations			.getValue();
-	info.saturation					= v_saturation			.getValue();
-	info.exposure					= v_exposure			.getValue();
-	info.hue						= v_hue					.getValue();
-	info.enable_mosaic				= v_mosaic				.getValue();
-	info.enable_cutmix				= v_cutmix				.getValue();
-	info.enable_mixup				= v_mixup				.getValue();
-	info.enable_flip				= v_enable_flip			.getValue();
-	info.angle						= v_angle				.getValue();
+	info.image_size					= v_image_size				.getValue();
+	info.batch_size					= v_batch_size				.getValue();
+	info.subdivisions				= v_subdivisions			.getValue();
+	info.iterations					= v_iterations				.getValue();
+	info.saturation					= v_saturation				.getValue();
+	info.exposure					= v_exposure				.getValue();
+	info.hue						= v_hue						.getValue();
+	info.enable_mosaic				= v_mosaic					.getValue();
+	info.enable_cutmix				= v_cutmix					.getValue();
+	info.enable_mixup				= v_mixup					.getValue();
+	info.enable_flip				= v_enable_flip				.getValue();
+	info.angle						= v_angle					.getValue();
 
 	try
 	{
@@ -301,6 +320,17 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	}
 
 	closeButtonPressed();
+
+	return;
+}
+
+
+void dm::DarknetWnd::valueChanged(Value & value)
+{
+	if (percentage_slider)
+	{
+		percentage_slider->setEnabled(not v_train_with_all_images.getValue());
+	}
 
 	return;
 }
@@ -419,19 +449,27 @@ void dm::DarknetWnd::create_Darknet_files()
 		}
 
 		std::random_shuffle(v.begin(), v.end());
+		const bool use_all_images = info.train_with_all_images;
 		number_of_files_train = std::round(info.training_images_percentage * v.size());
 		number_of_files_valid = v.size() - number_of_files_train;
+
+		if (use_all_images)
+		{
+			number_of_files_train = v.size();
+			number_of_files_valid = v.size();
+		}
 
 		std::ofstream fs_train(info.train_filename);
 		std::ofstream fs_valid(info.valid_filename);
 
 		for (size_t idx = 0; idx < v.size(); idx ++)
 		{
-			if (idx < number_of_files_train)
+			if (use_all_images or idx < number_of_files_train)
 			{
 				fs_train << v[idx] << std::endl;
 			}
-			else
+
+			if (use_all_images or idx >= number_of_files_train)
 			{
 				fs_valid << v[idx] << std::endl;
 			}
@@ -468,22 +506,24 @@ void dm::DarknetWnd::create_Darknet_files()
 		std::stringstream ss;
 		ss	<< header
 			<< ""												<< std::endl
-			<< "if [ -e chart.png ]; then"						<< std::endl
-			<< "	rm -f chart.png"							<< std::endl
-			<< "fi"												<< std::endl
-			<< ""												<< std::endl
 			<< "rm -f " << info.project_name << "*.weights"		<< std::endl
 			<< "rm -f output.log"								<< std::endl
 			<< "rm -f chart.png"								<< std::endl
 			<< ""												<< std::endl
-			<< "echo \"ts1: $(date)\" > output.log"				<< std::endl
-			<< "echo \"ts2: $(date +%s)\" >> output.log"		<< std::endl
+			<< "ts1=$(date)"									<< std::endl
+			<< "ts2=$(date +%s)"								<< std::endl
+			<< "echo \"initial ts1: ${ts1}\" > output.log"		<< std::endl
+			<< "echo \"initial ts2: ${ts2}\" >> output.log"		<< std::endl
 			<< "echo \"cmd: " << cmd << "\" >> output.log"		<< std::endl
 			<< ""												<< std::endl
 			<< "/usr/bin/time --verbose " << cmd << " 2>&1 | tee --append output.log" << std::endl
 			<< ""												<< std::endl
-			<< "echo \"ts3: $(date)\" >> output.log"			<< std::endl
-			<< "echo \"ts4: $(date +%s)\" >> output.log"		<< std::endl
+			<< "ts3=$(date)"									<< std::endl
+			<< "ts4=$(date +%s)"								<< std::endl
+			<< "echo \"ts1: ${ts1}\" >> output.log"				<< std::endl
+			<< "echo \"ts2: ${ts2}\" >> output.log"				<< std::endl
+			<< "echo \"ts3: ${ts3}\" >> output.log"				<< std::endl
+			<< "echo \"ts4: ${ts4}\" >> output.log"				<< std::endl
 			<< ""												<< std::endl;
 
 		const std::string data = ss.str();

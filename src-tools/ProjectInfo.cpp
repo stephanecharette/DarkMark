@@ -10,7 +10,8 @@ dm::ProjectInfo::ProjectInfo(const std::string & project_directory)
 	darknet_dir					= cfg().get_str	("darknet_dir"					);
 	enable_yolov3_tiny			= cfg().get_bool("darknet_enable_yolov3_tiny"	);
 	enable_yolov3_full			= cfg().get_bool("darknet_enable_yolov3_full"	);
-	training_images_percentage	= cfg().get_int	("darknet_trailing_percentage"	) / 100.0;
+	train_with_all_images		= cfg().get_bool("darknet_train_with_all_images");
+	training_images_percentage	= cfg().get_int	("darknet_training_percentage"	) / 100.0;
 	image_size					= cfg().get_int	("darknet_image_size"			);
 	batch_size					= cfg().get_int	("darknet_batch_size"			);
 	subdivisions				= cfg().get_int	("darknet_subdivisions"			);

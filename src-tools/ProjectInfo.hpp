@@ -31,6 +31,7 @@ namespace dm
 
 			bool		enable_yolov3_tiny;			///< @p TRUE if the *-tiny.cfg file should be created
 			bool		enable_yolov3_full;			///< @p TRUE if the *-full.cfg file should be created
+			bool		train_with_all_images;		///< should we train with *all* images, or should we use @ref training_images_percentage?
 			double		training_images_percentage;	///< between 0.0 and 1.0
 			int			image_size;					///< must be a multiple of 32 (416, 608, 832, ...)
 			int			batch_size;					///< e.g., @p 64

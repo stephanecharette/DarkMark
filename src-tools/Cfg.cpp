@@ -60,7 +60,8 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("show_processing_time"			, true												);
 	insert_if_not_exist("darknet_enable_yolov3_tiny"	, true												);
 	insert_if_not_exist("darknet_enable_yolov3_full"	, true												);
-	insert_if_not_exist("darknet_trailing_percentage"	, 85												);
+	insert_if_not_exist("darknet_train_with_all_images"	, true												);
+	insert_if_not_exist("darknet_training_percentage"	, 80												);
 	insert_if_not_exist("darknet_image_size"			, 416												);
 	insert_if_not_exist("darknet_batch_size"			, 64												);
 	insert_if_not_exist("darknet_subdivisions"			, 8													);
@@ -80,6 +81,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("review_table_row_height"		, 75												);
 
 	removeValue("darknet_enable_hue");	// this was changed to the float value darknet_hue
+	removeValue("darknet_trailing_percentage");	// typo:  "trailing" -> "training"
 
 	saveIfNeeded();
 
