@@ -194,20 +194,30 @@ void dm::DMContent::start_darknet()
 			dmapp().darkhelp.reset(new DarkHelp(darknet_cfg, darknet_weights, darknet_names));
 			Log("neural network loaded in " + darkhelp().duration_string());
 
-			dmapp().darkhelp->threshold							= cfg().get_int("darknet_threshold")			/ 100.0f;
-			dmapp().darkhelp->hierarchy_threshold				= cfg().get_int("darknet_hierarchy_threshold")	/ 100.0f;
-			dmapp().darkhelp->non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold")		/ 100.0f;
+			darkhelp().threshold							= cfg().get_int("darknet_threshold")			/ 100.0f;
+			darkhelp().hierarchy_threshold					= cfg().get_int("darknet_hierarchy_threshold")	/ 100.0f;
+			darkhelp().non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold")		/ 100.0f;
+			names = darkhelp().names;
 		}
 		catch (const std::exception & e)
 		{
 			dmapp().darkhelp.reset(nullptr);
 			Log("failed to load darknet (cfg=" + darknet_cfg + ", weights=" + darknet_weights + ", names=" + darknet_names + "): " + e.what());
+			AlertWindow::showMessageBoxAsync(
+				AlertWindow::AlertIconType::WarningIcon,
+				"DarkMark",
+				"Failed to load darknet neural network. The error message returned was:\n" +
+				String("\n") +
+				e.what());
 		}
-		names = darkhelp().names;
 	}
 	else
 	{
 		Log("skipped loading darknet due to missing or invalid .cfg or .weights filenames");
+		AlertWindow::showMessageBoxAsync(
+			AlertWindow::AlertIconType::InfoIcon,
+			"DarkMark",
+			"One or more required neural network file was not found. The neural network cannot be loaded.");
 	}
 
 	if (names.empty() and darknet_names.empty() == false)
