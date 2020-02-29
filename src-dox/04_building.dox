@@ -50,10 +50,12 @@ sudo apt-get install libtclap-dev
 cd ~/src/DarkHelp
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_BUILD_TYPE=Release -DDARKNET_FLAG=X ..
 make -j package
 sudo dpkg -i darkhelp-*-Linux.deb
 @endcode
+
+@warning It it important that the darknet flag @p "X" in the @p cmake command above be set correctly.  You'll want to look at the <a target="_blank" href="https://www.ccoderun.ca/DarkHelp/api/Building.html">DarkHelp build instructions</a> for details.
 
 @subsection BuildingDarkMark DarkMark
 Do this third.  <a target="_blank" href="https://www.ccoderun.ca/download/">Download</a> and install the pre-built package of DarkMark, or build it from source:
