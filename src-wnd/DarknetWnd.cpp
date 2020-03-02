@@ -45,6 +45,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_batch_size					= info.batch_size;
 	v_subdivisions					= info.subdivisions;
 	v_iterations					= info.iterations;
+	v_resume_training				= info.resume_training;
+	v_delete_temp_weights			= info.delete_temp_weights;
 	v_saturation					= info.saturation;
 	v_exposure						= info.exposure;
 	v_hue							= info.hue;
@@ -110,6 +112,32 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("configuration", properties);
 	properties.clear();
 
+	std::string name;
+	const std::string darknet_weights = cfg().get_str("darknet_weights");
+	if (darknet_weights.empty() == false)
+	{
+		File f(darknet_weights);
+		if (f.existsAsFile())
+		{
+			name = f.getFileName().toStdString();
+		}
+	}
+	b = new BooleanPropertyComponent(v_resume_training, "resume training", (name.empty() ? "weights file not found" : name));
+	b->setTooltip("Resume training from an existing .weights file (normally *_best.weights)");
+	if (name.empty())
+	{
+		b->setState(false);
+		b->setEnabled(false);
+	}
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_delete_temp_weights, "delete temporary weights", "delete temporary weights");
+	b->setTooltip("Delete the temporary weights (1000, 2000, 3000, etc) and keep only the best and final weights.");
+	properties.add(b);
+
+	pp.addSection("weights", properties);
+	properties.clear();
+
 	s = new SliderPropertyComponent(v_saturation, "saturation", 0.0, 10.0, 0.001);
 	s->setTooltip("The intensity of the colour.");
 	properties.add(s);
@@ -160,7 +188,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 575);
+	r = r.withSizeKeepingCentre(550, 650);
 	setBounds(r);
 
 	setVisible(true);
@@ -283,6 +311,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue("darknet_batch_size"				, v_batch_size					);
 	cfg().setValue("darknet_subdivisions"			, v_subdivisions				);
 	cfg().setValue("darknet_iterations"				, v_iterations					);
+	cfg().setValue("darknet_resume_training"		, v_resume_training				);
+	cfg().setValue("darknet_delete_temp_weights"	, v_delete_temp_weights			);
 	cfg().setValue("darknet_saturation"				, v_saturation					);
 	cfg().setValue("darknet_exposure"				, v_exposure					);
 	cfg().setValue("darknet_hue"					, v_hue							);
@@ -298,6 +328,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.batch_size					= v_batch_size				.getValue();
 	info.subdivisions				= v_subdivisions			.getValue();
 	info.iterations					= v_iterations				.getValue();
+	info.resume_training			= v_resume_training			.getValue();
+	info.delete_temp_weights		= v_delete_temp_weights		.getValue();
 	info.saturation					= v_saturation				.getValue();
 	info.exposure					= v_exposure				.getValue();
 	info.hue						= v_hue						.getValue();
@@ -501,12 +533,16 @@ void dm::DarknetWnd::create_Darknet_files()
 
 	if (true)
 	{
-		const std::string cmd = info.darknet_dir + "/darknet detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + (info.enable_yolov3_tiny ? info.darknet_tiny_cfg_filename : info.darknet_full_cfg_filename);
+		std::string cmd = info.darknet_dir + "/darknet detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + (info.enable_yolov3_tiny ? info.darknet_tiny_cfg_filename : info.darknet_full_cfg_filename);
+		if (info.resume_training)
+		{
+			cmd += " " + cfg().get_str("darknet_weights");
+		}
 
 		std::stringstream ss;
 		ss	<< header
 			<< ""												<< std::endl
-			<< "rm -f " << info.project_name << "*.weights"		<< std::endl
+			<< "#rm -f " << info.project_name << "*.weights"	<< std::endl
 			<< "rm -f output.log"								<< std::endl
 			<< "rm -f chart.png"								<< std::endl
 			<< ""												<< std::endl
@@ -525,6 +561,12 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "echo \"ts3: ${ts3}\" >> output.log"				<< std::endl
 			<< "echo \"ts4: ${ts4}\" >> output.log"				<< std::endl
 			<< ""												<< std::endl;
+
+		if (info.delete_temp_weights)
+		{
+			ss	<< "find " << info.project_dir << " -maxdepth 1 -regex \".+_[0-9]+\\.weights\" -print -delete >> output.log" << std::endl
+				<< "" << std::endl;
+		}
 
 		const std::string data = ss.str();
 		File f(info.command_filename);

@@ -16,6 +16,8 @@ dm::ProjectInfo::ProjectInfo(const std::string & project_directory)
 	batch_size					= cfg().get_int	("darknet_batch_size"			);
 	subdivisions				= cfg().get_int	("darknet_subdivisions"			);
 	iterations					= cfg().get_int	("darknet_iterations"			);
+	resume_training				= cfg().get_bool("darknet_resume_training"		);
+	delete_temp_weights			= cfg().get_bool("darknet_delete_temp_weights"	);
 	saturation					= cfg().get_double("darknet_saturation"			);
 	exposure					= cfg().get_double("darknet_exposure"			);
 	hue							= cfg().get_double("darknet_hue"				);

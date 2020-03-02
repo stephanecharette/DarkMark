@@ -66,6 +66,8 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("darknet_batch_size"			, 64												);
 	insert_if_not_exist("darknet_subdivisions"			, 8													);
 	insert_if_not_exist("darknet_iterations"			, 4000												);
+	insert_if_not_exist("darknet_resume_training"		, false												);
+	insert_if_not_exist("darknet_delete_temp_weights"	, true												);
 	insert_if_not_exist("darknet_saturation"			, 1.50f												);
 	insert_if_not_exist("darknet_exposure"				, 1.50f												);
 	insert_if_not_exist("darknet_hue"					, 0.10f												);
