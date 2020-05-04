@@ -343,6 +343,20 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	{
 		info.rebuild();
 
+#if 0
+		// ***************************************************************
+		// TESTING TESTING TESTING TESTING TESTING TESTING TESTING TESTING
+		const std::string template_name		= "csresnext50-panet-spp-original-optimal.cfg";
+		const std::string input_filename	= "/home/stephane/darknet/cfg/"				+ template_name;
+		const std::string output_filename	= "/home/stephane/nn/stopsigns/stopsigns_"	+ template_name;
+		info.enable_yolov3_full = false;
+		info.enable_yolov3_tiny = true;
+		info.darknet_tiny_cfg_template = input_filename;
+		info.darknet_tiny_cfg_filename = output_filename;
+		// TESTING TESTING TESTING TESTING TESTING TESTING TESTING TESTING
+		// ***************************************************************
+#endif
+
 		create_YOLO_configuration_files();
 		create_Darknet_files();
 	}
@@ -599,12 +613,20 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "	rm -f chart.png"																			<< std::endl
 			<< ""																								<< std::endl
 			<< "	rsync --progress --times --compress gpurig:" << info.project_dir << "/\\* ."				<< std::endl
-			<< ""																								<< std::endl
-			<< "	if [ -e chart.png ]; then"																	<< std::endl
+			<< ""																								<< std::endl;
+
+			if (info.delete_temp_weights)
+			{
+				ss	<< "	find " << info.project_dir << " -maxdepth 1 -regex \".+_[0-9]+\\.weights\" -print -delete" << std::endl
+					<< "" << std::endl;
+			}
+
+		ss	<< "	if [ -e chart.png ]; then"																	<< std::endl
 			<< "		eog chart.png"																			<< std::endl
 			<< "	fi"																							<< std::endl
 			<< "fi"																								<< std::endl
 			<< ""																								<< std::endl;
+
 		const std::string data = ss.str();
 		File f = File(info.project_dir).getChildFile("get_results_from_gpu_rig.sh");
 		f.replaceWithData(data.c_str(), data.size());

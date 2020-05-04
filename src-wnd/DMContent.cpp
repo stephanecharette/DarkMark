@@ -734,6 +734,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 		slider.setValue(image_filename_index + 1);//, NotificationType::dontSendNotification);
 	}
 
+	bool exception_caught = false;
 	try
 	{
 		Log("loading image " + long_filename);
@@ -803,11 +804,22 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	}
 	catch(const std::exception & e)
 	{
+		exception_caught = true;
 		Log("Error: exception caught while loading " + long_filename + ": " + e.what());
 	}
 	catch(...)
 	{
+		exception_caught = true;
 		Log("Error: failed to load image " + long_filename);
+	}
+
+	if (exception_caught)
+	{
+		original_image = cv::Mat(32, 32, CV_8UC3, cv::Scalar(0, 0, 255)); // use a red square to indicate a problem
+		AlertWindow::showMessageBoxAsync(
+			AlertWindow::AlertIconType::WarningIcon,
+			"DarkMark",
+			"Failed to load image " + long_filename + ". See log file for details.");
 	}
 
 	resized();

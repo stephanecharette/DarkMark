@@ -1,0 +1,100 @@
+/** @page Configuration Configuration
+
+%Darknet comes with many sample @p .cfg files to use as templates.
+
+More than half of these configuration files are from many years ago, some dating from Joseph Redmon's original darknet repo.  On this page the @p .cfg files have been split into 2 tables (@ref ConfigNew "new" and @ref ConfigOld "old") *loosely* based on when a configuration file was last modified and/or if it is still considered relevant or outdated.
+
+@note In the tables below:
+@li @p voc refers to <a target="_blank" href="http://host.robots.ox.ac.uk/pascal/VOC/">PASCAL Visual Object Classes</a>, a dataset with 20 classes (person, car, bicycle, bus, motorbike, train, aeroplane, chair, ...)
+@li @p coco refers to <a target="_blank" href="http://cocodataset.org/">COCO</a>, a dataset with 80 classes (person, bicycle, car, motorcycle, airplane, bus, train, truck, ...)
+@li @p spp refers to <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/2859">spatial pyramid pooling</a>
+@li @p lstm refers to <a target="_blank" href="https://en.wikipedia.org/wiki/Long_short-term_memory">long short-term memory</a>
+
+@section ConfigBasic Getting Started
+
+If uncertain where to start when training your <b>own</b> neural network, try one of the following templates:
+
+Filename										| Layers	| Size		| Comments
+------------------------------------------------|-----------|-----------|---------
+@p csresnext50-panet-spp-original-optimal.cfg	| 138		| 215.9 MiB	| Best results, slowest speed.
+@p yolov3.cfg									| 107		| 234.9 MiB	| Medium results, medium speed.
+@p yolov3-tiny.cfg								| 24		|  33.1 MiB	| Decent results, fastest speed.  This is the one I use when setting up new projects.
+@p yolov4.cfg									| 162		| 245.7 MiB	| New! (2020-04-23)
+
+@section ConfigNew New Configuration
+
+The following configuration files are relatively new:
+
+Filename										| Lines	| Layers	| Size Of Weights	| Related To					| Updated	| Description																| Issue or URL
+------------------------------------------------|-------|-----------|-------------------|-------------------------------|-----------|---------------------------------------------------------------------------|-------------
+@p crnn.train.cfg								|    52	| 7			|					| @p rnn.train.cfg				| 2019		|																			| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/1624">1624</a>
+@p csresnext50-panet-spp.cfg					|  1018	| 138		|					|								| 2019		|																			| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/2859">2859 (SPP)</a>
+@p csresnext50-panet-spp-original-optimal.cfg	|  1044	| 138		| 215.9 MiB			| @p csresnext50-panet-spp.cfg	| 2020		| "the best model for detection"											| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>, <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/2859">2859 (SPP)</a>
+@p darknet53_448_xnor.cfg						|   619	| 79		|					|								| 2019		| "for Classification rather than Detection"								| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p efficientnet_b0.cfg							|  1009	| 137		|					|								| 2019		| "for Classification rather than Detection"								| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>, <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/3380">3380</a>
+@p efficientnet-lite3.cfg						|  1009	| 119		|					|								| 2020		|																			| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/3380">3380</a>
+@p enet-coco.cfg								|  1072	| 146		|					|								| 2019		| "partial residual network"												| <a target="_blank" href="https://github.com/WongKinYiu/PartialResidualNetworks">Enriching Variety of Layer-wise Learning Information by Gradient Combination</a>
+@p Gaussian_yolov3_BDD.cfg						|   807	| 107		|					|								| 2019		| "models are experimental"													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p lstm.train.cfg								|    35	| 6			|					|								| 2019		| "long short-term memory"													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/3114">3114</a>
+@p resnet101.cfg								|   990	| 138		|					|								| 2019		| "for Classification rather than Detection"								| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p resnet152.cfg								|  1463	| 206		|					|								| 2018		| "for Classification rather than Detection"								| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p resnet152_trident.cfg						|  2177	| 291		|					|								| 2020		| "models are experimental"													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p rnn.train.cfg								|    40	| 6			|					| @p crnn.train.cfg				| 2019		|																			| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/1624">1624</a>
+@p yolov3_5l.cfg								|   968	| 131		| 236.2 MiB			| @p yolov3.cfg					| 2018		| @p "5l" refers to 5 YOLO layers; "...or very small objects, or if you want to set high network resolution" | <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p yolov3.cfg									|   789	| 107		| 234.9 MiB			|								| 2018		| contains 3 YOLO layers													| &nbsp;
+@p yolov3.coco-giou-12.cfg						|   806	| 107		|					| @p yolov3.cfg					| 2019		| "models are experimental"													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a> <br> <a target="_blank" href="https://giou.stanford.edu/">Generalized Intersection over Union (GIoU)</a>
+@p yolov3-openimages.cfg						|   789	| 107		|					| @p yolov3.cfg					| 2018		| YOLOv3 but already setup for 601 classes									| <a target="_blank" href="https://github.com/openimages/dataset">OpenImage Dataset</a> (similar to PASCAL VOC and MS COCO)
+@p yolov3-spp.cfg								|   822	| 114		|					| @p yolov3.cfg					| 2018		| YOLOv3 but with extra layers for spacial pyramid pooling					| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/2859">2859</a>
+@p yolov3-tiny_3l.cfg							|   226	| 31		|  34.4 MiB			| @p yolov3-tiny.cfg			| 2019		| small objects; @p "3l" refers to 3 YOLO layers vs the usual 2 in "tiny"	| &nbsp;
+@p yolov3-tiny.cfg								|   182	| 24		|  33.1 MiB			|								| 2018		| contains 2 YOLO layers													| &nbsp;
+@p yolov3-tiny_obj.cfg							|   182	| 24		|  33.1 MiB			| @p yolov3-tiny.cfg			| 2018		| *Exactly* the same as @p yolov3-tiny.cfg.									| &nbsp;
+@p yolov3-tiny_occlusion_track.cfg				|   218	| 28		|					| @p yolov3-tiny.cfg			| 2919		| "object Detection & Tracking using conv-rnn layer on frames from video"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/2553">2553</a>
+@p yolov3-tiny-prn.cfg							|   199	| 28		|					| @p yolov3-tiny.cfg			| 2019		| "partial residual network"												| <a target="_blank" href="https://github.com/WongKinYiu/PartialResidualNetworks">Enriching Variety of Layer-wise Learning Information by Gradient Combination</a>
+@p yolov3-tiny_xnor.cfg							|   197	| 24		|					| @p yolov3-tiny.cfg			| 2018		| "XNOR-net ~2x faster than cuDNN on CUDA"									| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/3054">3054</a>
+@p yolov3-voc.cfg								|   785	| 107		|					| @p yolov3.cfg					| 2018		| similar to the usual @p yolov3.cfg but pre-configured for 20 VOC classes	| &nbsp;
+@p yolov3-voc.yolov3-giou-40.cfg				|   808	| 107		|					| @p yolov3-voc.cfg				| 2019		| "models are experimental"													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a> <br> <a target="_blank" href="https://giou.stanford.edu/">Generalized Intersection over Union (GIoU)</a>
+@p yolov4.cfg									|  1156 | 162		| 245.7 MiB			|								| 2020		| contains 3 YOLO layers													| <a target="_blank" href="https://arxiv.org/pdf/2004.10934.pdf">YOLOv4 whitepaper</a>
+
+@section ConfigOld Old Configuration
+
+The following configuration files are from older versions of %darknet:
+
+Filename				| Lines	| Layers	| Updated	| Description									| Issue or URL
+------------------------|-------|-----------|-----------|-----------------------------------------------|-------------
+@p alexnet.cfg			|    95	| 15		| 2015		| Joseph Redmon									| &nbsp;
+@p cifar.cfg			|   126	| 19		| 2016		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p cifar.test.cfg		|   119	| 18		| 2016		| Joseph Redmon									| &nbsp;
+@p darknet19_448.cfg	|   202	| 27		| 2017		|												| &nbsp;
+@p darknet19.cfg		|   194	| 27		| 2016		| Joseph Redmon									| &nbsp;
+@p darknet53.cfg		|   566	| 78		| 2018		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p darknet.cfg			|   111	| 17		| 2016		| Joseph Redmon									| &nbsp;
+@p densenet201.cfg		|  1954	| 306		| 2017		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p extraction22k.cfg	|   209	| 28		| 2016		| Joseph Redmon									| &nbsp;
+@p extraction.cfg		|   206	| 28		| 2016		| Joseph Redmon									| &nbsp;
+@p extraction.conv.cfg	|   179	| 27		| 2015		| Joseph Redmon									| &nbsp;
+@p go.test.cfg			|   131	| 16		| 2016		| Joseph Redmon									| &nbsp;
+@p gru.cfg				|    34	| 6			| 2016		| Joseph Redmon									| &nbsp;
+@p jnet-conv.cfg		|   118	| 18		| 2015		| Joseph Redmon									| &nbsp;
+@p resnet50.cfg			|   511	| 70		| 2017		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p resnext152-32x4d.cfg	|  1562	| 205		| 2018		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p rnn.cfg				|    40	| 6			| 2016		| Joseph Redmon									| &nbsp;
+@p strided.cfg			|   185	| 27		| 2015		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p t1.test.cfg			|   117	| 16		| 2016		| Joseph Redmon									| &nbsp;
+@p tiny.cfg				|   172	| 23		| 2016		| Joseph Redmon									| &nbsp;
+@p tiny-yolo.cfg		|   134	| 16		| 2016		| Joseph Redmon									| &nbsp;
+@p tiny-yolo_xnor.cfg	|   148	| 16		| 2018		| based on tiny-yolo.cfg						| &nbsp;
+@p tiny-yolo-voc.cfg	|   134	| 16		| 2016		| Joseph Redmon									| &nbsp;
+@p vgg-16.cfg			|   153	| 26		| 2015		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p vgg-conv.cfg			|   121	| 18		| 2015		| "for Classification rather than Detection"	| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
+@p writing.cfg			|    41	| 5			| 2015		| Joseph Redmon									| &nbsp;
+@p yolo.2.0.cfg			|   244	| 31		| 2017		|												| &nbsp;
+@p yolo9000.cfg			|   218	| 25		| 2017		|												| &nbsp;
+@p yolo.cfg				|   258	| 32		| 2016		|												| &nbsp;
+@p yolov2.cfg			|   258	| 32		| 2018		|												| &nbsp;
+@p yolov2-tiny.cfg		|   139	| 16		| 2018		|												| &nbsp;
+@p yolov2-tiny-voc.cfg	|   138	| 16		| 2018		|												| &nbsp;
+@p yolov2-voc.cfg		|   258	| 32		| 2018		|												| &nbsp;
+@p yolo-voc.2.0.cfg		|   244	| 31		| 2017		|												| &nbsp;
+@p yolo-voc.cfg			|   258	| 32		| 2016		| Joseph Redmon									| &nbsp;
+
+*/

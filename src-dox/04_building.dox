@@ -16,7 +16,7 @@ cd src/DarkMark/
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j
+make
 make package
 ~~~~
 
@@ -36,7 +36,7 @@ sudo apt-get install build-essential git cmake libopencv-dev
 git clone https://github.com/AlexeyAB/darknet.git
 cd darknet
 # edit Makefile and at a minimum set OPENCV=1, OPENMP=1, and LIBSO=1
-make -j
+make
 sudo cp libdarknet.so /usr/local/lib/
 sudo cp include/darknet.h /usr/local/include/
 sudo ldconfig
@@ -51,7 +51,8 @@ cd ~/src/DarkHelp
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j package
+make
+make package
 sudo dpkg -i darkhelp-*-Linux.deb
 @endcode
 
@@ -66,7 +67,8 @@ cd ~/src/DarkMark
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j package
+make
+make package
 sudo dpkg -i darkmark-*-Linux.deb
 @endcode
 
