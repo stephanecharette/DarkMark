@@ -20,7 +20,6 @@ namespace dm
 	class Cfg;
 	class DMWnd;
 	class Mark;
-	class DMCorner;
 	class DMCanvas;
 	class Notebook;
 	class DMContent;
@@ -55,7 +54,6 @@ namespace dm
 #include "ProjectInfo.hpp"
 #include "Notebook.hpp"
 #include "DMJumpWnd.hpp"
-#include "DMCorner.hpp"
 #include "ScrollField.hpp"
 #include "DMCanvas.hpp"
 #include "DMContent.hpp"
