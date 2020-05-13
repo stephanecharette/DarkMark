@@ -95,7 +95,9 @@ namespace dm
 			DMContent & save_screenshot(const bool full_size = true, const std::string & fn = "");
 
 			DMCanvas canvas;
-			std::vector<DMCorner*> corners;
+
+			ScrollField scrollfield;
+			int scrollfield_width;
 
 			VMarks marks;
 			VStr names;

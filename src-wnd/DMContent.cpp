@@ -10,6 +10,8 @@ using json = nlohmann::json;
 
 dm::DMContent::DMContent() :
 	canvas(*this),
+	scrollfield(*this),
+	scrollfield_width(cfg().get_int("scrollfield_width")),
 	empty_image_name_index(0),
 	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
@@ -31,13 +33,7 @@ dm::DMContent::DMContent() :
 	project_info(cfg().get_str("image_directory"))
 {
 	addAndMakeVisible(canvas);
-
-	for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
-	{
-		auto * c = new DMCorner(*this, type);
-		corners.push_back(c);
-		addAndMakeVisible(c);
-	}
+	addAndMakeVisible(scrollfield);
 
 	addAndMakeVisible(bubble_message);
 	bubble_message.setLookAndFeel(&look_and_feel_v3);
@@ -64,12 +60,6 @@ dm::DMContent::~DMContent(void)
 		save_text();
 	}
 
-	for (auto c : corners)
-	{
-		delete c;
-	}
-	corners.clear();
-
 	return;
 }
 
@@ -78,7 +68,7 @@ void dm::DMContent::resized()
 {
 	const double window_width	= getWidth();
 	const double window_height	= getHeight();
-	if(	window_width	< 1.0 ||
+	if(	window_width	< 1.0 or
 		window_height	< 1.0 )
 	{
 		// window hasn't been created yet?
@@ -87,68 +77,24 @@ void dm::DMContent::resized()
 
 	double image_width	= original_image.cols;
 	double image_height	= original_image.rows;
-	if (image_width		< 1.0 ||
+	if (image_width		< 1.0 or
 		image_height	< 1.0 )
 	{
 		// image hasn't been loaded yet?
-		image_width = 640;
-		image_height = 480;
+		image_width		= 640;
+		image_height	= 480;
 	}
 
-	// the wider the window, the larger the cells should be
-	const double pixels_per_cell				= std::floor(std::max(6.0, window_width / 85.0));	// 600=7, 800=9, 1000=11, 1600=18, ...
-
-	const double min_number_of_cells			= 5.0;
-	const double min_corner_width				= min_number_of_cells * (pixels_per_cell + 1);
-	const double number_of_corner_windows		= corners.size();
-	const double min_horizontal_spacer_height	= 2.0;
-
 	// determine the size of the image once it is scaled
-	const double width_ratio					= (window_width - min_corner_width) / image_width;
+	const double min_horizontal_spacer_height	= (scrollfield_width > 0 ? 2.0 : 0.0);
+	const double width_ratio					= (window_width - min_horizontal_spacer_height - scrollfield_width) / image_width;
 	const double height_ratio					= window_height / image_height;
 	const double ratio							= std::min(width_ratio, height_ratio);
 	const double new_image_width				= std::round(ratio * image_width);
 	const double new_image_height				= std::round(ratio * image_height);
 
-	// determine the size of each corner window
-	const double max_corner_width				= std::floor(window_width - new_image_width);
-	const double max_corner_height				= std::floor(window_height / number_of_corner_windows - (min_horizontal_spacer_height * (number_of_corner_windows - 1.0)));
-	const double number_of_horizontal_cells		= std::floor(max_corner_width	/ (pixels_per_cell + 1));
-	const double number_of_vertical_cells		= std::floor(max_corner_height	/ (pixels_per_cell + 1));
-	const double new_corner_width				= number_of_horizontal_cells	* (pixels_per_cell + 1) - 1;
-	const double new_corner_height				= number_of_vertical_cells		* (pixels_per_cell + 1) - 1;
-	const double horizontal_spacer_height		= std::floor((window_height - new_corner_height * number_of_corner_windows) / (number_of_corner_windows - 1.0));
-
-#if 0	// enable this to debug resizing
-	static size_t counter = 0;
-	counter ++;
-	if (counter % 10 == 0)
-	{
-		asm("int $3");
-	}
-
-	Log("resized:"
-			" window size: "		+ std::to_string((int)window_width)		+ "x" + std::to_string((int)window_height)		+
-			" new image size: "		+ std::to_string((int)new_image_width)	+ "x" + std::to_string((int)new_image_height)	+
-			" min corner size: "	+ std::to_string((int)min_corner_width)	+ "x" + std::to_string((int)new_corner_height)	+
-			" max corner size: "	+ std::to_string((int)max_corner_width)	+ "x" + std::to_string((int)max_corner_height)	+
-			" new corner size: "	+ std::to_string((int)new_corner_width)	+ "x" + std::to_string((int)new_corner_height)	+
-			" horizontal spacer: "	+ std::to_string((int)horizontal_spacer_height)											+
-			" pixels per cell: "	+ std::to_string((int)pixels_per_cell)													+
-			" horizontal cells: "	+ std::to_string((int)number_of_horizontal_cells)										+
-			" vertical cells: "		+ std::to_string((int)number_of_vertical_cells)											);
-#endif
-
 	canvas.setBounds(0, 0, new_image_width, new_image_height);
-	int y = 0;
-	for (auto c : corners)
-	{
-		c->setBounds(new_image_width, y, new_corner_width, new_corner_height);
-		y += new_corner_height + horizontal_spacer_height;
-		c->cell_size = pixels_per_cell;
-		c->cols = number_of_horizontal_cells;
-		c->rows = number_of_vertical_cells;
-	}
+	scrollfield.setBounds(window_width - scrollfield_width, 0, scrollfield_width, window_height);
 
 	// remember some of the important numbers so we don't have to re-calculate them later
 	scaled_image_size = cv::Size(new_image_width, new_image_height);
@@ -259,10 +205,9 @@ void dm::DMContent::rebuild_image_and_repaint()
 	canvas.need_to_rebuild_cache_image = true;
 	canvas.repaint();
 
-	for (auto c : corners)
+	if (scrollfield_width > 0)
 	{
-		c->need_to_rebuild_cache_image = true;
-		c->repaint();
+		scrollfield.draw_marker_at_current_image();
 	}
 
 	return;
@@ -631,6 +576,11 @@ dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
 
 	load_image(0);
 
+	if (scrollfield_width > 0)
+	{
+		scrollfield.rebuild_entire_field_on_thread();
+	}
+
 	return *this;
 }
 
@@ -735,17 +685,21 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	}
 
 	bool exception_caught = false;
+	std::string task = "[unknown]";
 	try
 	{
+		task = "loading image file " + long_filename;
 		Log("loading image " + long_filename);
 		original_image = cv::imread(image_filenames.at(image_filename_index));
 
 		if (full_load)
 		{
+			task = "loading json file " + json_filename;
 			bool success = load_json();
 			if (not success)
 			{
 				// only attempt to load the .txt file if there was no .json file to process
+				task = "importing text file " + text_filename;
 				success = load_text();
 			}
 
@@ -759,6 +713,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 			{
 				if (dmapp().darkhelp)
 				{
+					task = "getting predictions";
 					darkhelp().predict(original_image);
 					darknet_image_processing_time = darkhelp().duration_string();
 					Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
@@ -766,6 +721,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 //					std::cout << darkhelp().prediction_results << std::endl;
 
 					// convert the predictions into marks
+					task = "converting predictions";
 					for (auto prediction : darkhelp().prediction_results)
 					{
 						Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
@@ -779,6 +735,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 
 			// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
 			// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
+			task = "sorting marks";
 			std::sort(marks.begin(), marks.end(),
 					[](auto & lhs, auto & rhs)
 					{
@@ -805,12 +762,12 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	catch(const std::exception & e)
 	{
 		exception_caught = true;
-		Log("Error: exception caught while loading " + long_filename + ": " + e.what());
+		Log("Error: exception caught while " + task + ": " + e.what());
 	}
 	catch(...)
 	{
 		exception_caught = true;
-		Log("Error: failed to load image " + long_filename);
+		Log("Error: failed while " + task);
 	}
 
 	if (exception_caught)
@@ -819,7 +776,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 		AlertWindow::showMessageBoxAsync(
 			AlertWindow::AlertIconType::WarningIcon,
 			"DarkMark",
-			"Failed to load image " + long_filename + ". See log file for details.");
+			"Failure occurred while " + task + ". See log file for details.");
 	}
 
 	resized();
@@ -939,6 +896,12 @@ dm::DMContent & dm::DMContent::save_json()
 		{
 			// image has no markup -- delete the .json file if it existed
 			std::remove(json_filename.c_str());
+		}
+
+		if (scrollfield_width > 0)
+		{
+			scrollfield.update_index(image_filename_index);
+			scrollfield.need_to_rebuild_cache_image = true;
 		}
 	}
 
@@ -1371,6 +1334,14 @@ PopupMenu dm::DMContent::create_popup_menu()
 	m.addItem("review marks..."			, std::function<void()>( [&]{ review_marks();			} ));
 	m.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();		} ));
 	m.addItem("create darknet files..."	, std::function<void()>( [&]{ show_darknet_window();	} ));
+	m.addItem("other settings..."		, std::function<void()>( [&]
+	{
+		if (not dmapp().settings_wnd)
+		{
+			dmapp().settings_wnd.reset(new SettingsWnd(*this));
+		}
+		dmapp().settings_wnd->toFront(true);
+	}));
 
 	return m;
 }

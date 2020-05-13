@@ -81,6 +81,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("darknet_nms_threshold"			, 45												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#ac533cda5d4cbba691deb4df5d89da318
 	insert_if_not_exist("crosshair_colour"				, "ffffffff"										); // alpha + rgb
 	insert_if_not_exist("review_table_row_height"		, 75												);
+	insert_if_not_exist("scrollfield_width"				, 100												);
 
 	removeValue("darknet_enable_hue");	// this was changed to the float value darknet_hue
 	removeValue("darknet_trailing_percentage");	// typo:  "trailing" -> "training"

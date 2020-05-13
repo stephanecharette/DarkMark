@@ -36,6 +36,7 @@ namespace dm
 	class DMReviewWnd;
 	class DMReviewCanvas;
 	class DMContentRotateImages;
+	class ScrollField;
 	class CrosshairComponent;
 	class DarkMarkApplication;
 
@@ -55,6 +56,7 @@ namespace dm
 #include "Notebook.hpp"
 #include "DMJumpWnd.hpp"
 #include "DMCorner.hpp"
+#include "ScrollField.hpp"
 #include "DMCanvas.hpp"
 #include "DMContent.hpp"
 #include "DMStatsWnd.hpp"

@@ -48,6 +48,7 @@ Press @p "e" (see @ref Keyboard) to modify several settings:
 - The hierarchical threshold is used to decide whether following the tree to a more specific class is the right action to take. When this threshold is 0, the tree will basically follow the highest probability branch all the way to a leaf node.
 - Non-Maximal Suppression (NMS) suppresses overlapping bounding boxes and only retains the bounding box that has the maximum probability of object detection associated with it. It examines all bounding boxes and removes the least confident of the boxes that overlap with each other.
 - Colour used to draw the crosshairs.
+- The width of the @ref DarkMarkScrollField on the right side of the main window.  Set to @p 0 to hide the scrolling field.
 
 @section DarkMarkReview DarkMark Review
 
@@ -64,6 +65,14 @@ Right-mouse-click in the DarkMark Editor window to view statistics on all the ma
 @image html darkmark_statistics.png
 
 This can help identify which classes need better representation, or if any marks have been incorrectly set on unusually small or unusually large images.  Double-click on the @p "min size" or @p "max size" cell to immediately open that image in the @ref DarkMarkEditor window.
+
+@section DarkMarkScrollField DarkMark Scroll Field
+
+The scroll field on the right side of the main window shows which images have been marked up.  You can click, drag, or use the mouse wheel to move to a different image.
+
+@image html darkmark_scrollfield.png
+
+Use @ref DarkMarkSettings to hide the scrollfield (set the width to 0px) or set an explicit width.
 
 @section DarkMarkJump DarkMark Jump
 

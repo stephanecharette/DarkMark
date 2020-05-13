@@ -74,9 +74,12 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp->non_maximal_suppression_threshold);
 	}
 
+	v_scrollfield_width = content.scrollfield_width;
+
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
 	v_darkhelp_non_maximal_suppression_threshold.addListener(this);
+	v_scrollfield_width							.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
@@ -101,6 +104,9 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 
 	b = new CrosshairColourPicker("crosshair colour");
 	properties.add(b);
+
+	s = new SliderPropertyComponent(v_scrollfield_width, "scrollfield width", 0, 200, 10);
+	properties.add(s);
 
 	pp.addSection("drawing", properties);
 	properties.clear();
@@ -129,6 +135,7 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("darknet_threshold"			, v_darkhelp_threshold							.getValue()	);
 	cfg().setValue("darknet_hierarchy_threshold", v_darkhelp_hierchy_threshold					.getValue()	);
 	cfg().setValue("darknet_nms_threshold"		, v_darkhelp_non_maximal_suppression_threshold	.getValue()	);
+	cfg().setValue("scrollfield_width"			, v_scrollfield_width							.getValue()	);
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -187,6 +194,7 @@ void dm::SettingsWnd::valueChanged(Value & value)
 		dmapp().darkhelp->non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
 		dmapp().darkhelp->threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
 	}
+	content.scrollfield_width = v_scrollfield_width.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 
@@ -200,6 +208,10 @@ void dm::SettingsWnd::timerCallback()
 
 	stopTimer();
 
+	if (content.scrollfield.getWidth() != v_scrollfield_width)
+	{
+		content.resized();
+	}
 	content.load_image(content.image_filename_index);
 
 	return;
