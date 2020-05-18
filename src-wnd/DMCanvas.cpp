@@ -6,6 +6,7 @@
 
 
 dm::DMCanvas::DMCanvas(DMContent & c) :
+	CrosshairComponent(c),
 	content(c)
 {
 	setName("ImageCanvas");

@@ -9,7 +9,7 @@
 
 namespace dm
 {
-	class ScrollField final : public CrosshairComponent, public Timer, public Thread
+	class ScrollField final : public CrosshairComponent, public Thread
 	{
 		public:
 
@@ -26,8 +26,6 @@ namespace dm
 			virtual void mouseUp(const MouseEvent & event) override;
 			virtual void mouseDown(const MouseEvent & event) override;
 			virtual void mouseDrag(const MouseEvent & event) override;
-			virtual void mouseWheelMove(const MouseEvent & event, const MouseWheelDetails & wheel) override;
-			virtual void timerCallback() override;
 
 			virtual void jump_to_location(const MouseEvent & event, const bool full_load = false);
 

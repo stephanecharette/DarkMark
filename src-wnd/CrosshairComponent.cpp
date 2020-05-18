@@ -8,8 +8,9 @@
 Colour dm::CrosshairComponent::crosshair_colour = Colours::blue;
 
 
-dm::CrosshairComponent::CrosshairComponent() :
+dm::CrosshairComponent::CrosshairComponent(DMContent & c) :
 	Component("CrosshairComponent"),
+	content(c),
 	mouse_drag_is_enabled(false),
 	invalid_point(-1, -1),
 	invalid_rectangle(-1, -1, 0, 0),
@@ -247,28 +248,52 @@ void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 }
 
 
-#if 0
 void dm::CrosshairComponent::mouseWheelMove(const MouseEvent & event, const MouseWheelDetails & wheel)
 {
-	if (wheel.deltaY < 0)
+	#if 0
+	Log("DX="			+ std::to_string(wheel.deltaX)		+
+		", DY="			+ std::to_string(wheel.deltaY)		+
+		", inertial="	+ std::to_string(wheel.isInertial)	+
+		", reversed="	+ std::to_string(wheel.isReversed)	+
+		", smooth="		+ std::to_string(wheel.isSmooth)	);
+	#endif
+
+	const int idx = content.image_filename_index;
+
+	// Not obvious:
+	//
+	// - When deltaY is negative, that means the wheel is being scrolled DOWN, so we need to INCREASE the image index.
+	// - When deltaY is positive, that means the wheel is being scrolled UP, meaning we DECREASE the image index (but not past zero).
+	//
+	int change = 0;
+	if (wheel.deltaY < 0.0f)
 	{
-		zoom_factor *= 1.1;
-		need_to_rebuild_cache_image = true;
-		repaint();
+		change = 1;
 	}
-	else if (wheel.deltaY > 0)
+	else if (wheel.deltaY > 0.0f and idx > 0)
 	{
-		zoom_factor /= 1.1;
-		need_to_rebuild_cache_image = true;
-		repaint();
+		change = -1;
 	}
 
-	// limit zoom to some decent values
-	if (zoom_factor > 6.7275000) { zoom_factor = 6.7275000; }
-	if (zoom_factor < 0.0520987) { zoom_factor = 0.0520987; }
+	if (change != 0)
+	{
+		content.load_image(idx + change, false);
 
-	std::cout << "zoom=" << zoom_factor << std::endl;
+		startTimer(500); // request a callback -- in milliseconds -- at which point in time we'll fully load this image
+	}
+
+	Component::mouseWheelMove(event, wheel);
 
 	return;
 }
-#endif
+
+
+void dm::CrosshairComponent::timerCallback()
+{
+	// if we get called, then we've been sitting on the same image for some time so go ahead and load the full image including all the marks
+	stopTimer();
+
+	content.load_image(content.image_filename_index);
+
+	return;
+}

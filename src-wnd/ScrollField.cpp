@@ -8,6 +8,7 @@ using json = nlohmann::json;
 
 
 dm::ScrollField::ScrollField(DMContent & c) :
+	CrosshairComponent(c),
 	Thread("scrollfield loading thread"),
 	content(c),
 	line_width(0)
@@ -183,57 +184,6 @@ void dm::ScrollField::mouseDrag(const MouseEvent & event)
 	jump_to_location(event);
 
 	CrosshairComponent::mouseDrag(event);
-
-	return;
-}
-
-
-void dm::ScrollField::mouseWheelMove(const MouseEvent & event, const MouseWheelDetails & wheel)
-{
-	#if 0
-	Log("DX=" + std::to_string(wheel.deltaX) +
-		", DY=" + std::to_string(wheel.deltaY) +
-		", inertial=" + std::to_string(wheel.isInertial) +
-		", reversed=" + std::to_string(wheel.isReversed) +
-		", smooth=" + std::to_string(wheel.isSmooth));
-	#endif
-
-	const int idx = content.image_filename_index;
-
-	// Not obvious:
-	//
-	// - When deltaY is negative, that means the wheel is being scrolled DOWN, so we need to INCREASE the image index.
-	// - When deltaY is positive, that means the wheel is being scrolled UP, meaning we DECREASE the image index (but not past zero).
-	//
-	int change = 0;
-	if (wheel.deltaY < 0.0f)
-	{
-		change = 1;
-	}
-	else if (wheel.deltaY > 0.0f and idx > 0)
-	{
-		change = -1;
-	}
-
-	if (change != 0)
-	{
-		content.load_image(idx + change, false);
-
-		startTimer(500); // request a callback -- in milliseconds -- at which point in time we'll fully load this image
-	}
-
-	CrosshairComponent::mouseWheelMove(event, wheel);
-
-	return;
-}
-
-
-void dm::ScrollField::timerCallback()
-{
-	// if we get called, then we've been sitting on the same image for some time so go ahead and load the full image including all the marks
-	stopTimer();
-
-	content.load_image(content.image_filename_index);
 
 	return;
 }
