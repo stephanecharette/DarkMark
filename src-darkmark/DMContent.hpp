@@ -19,6 +19,15 @@ namespace dm
 		kRandom
 	};
 
+	/** The content of the main DarkMark window.  This is where all the action happens.  The @p DMContent window
+	 * is where the image is shown, where Darknet/DarkHelp is managed, where all the images are sorted, etc.
+	 *
+	 * There is a single instance of this class, and it is passed in by reference into a lot of other classes.
+	 *
+	 * @li The parent object is of type @ref DMWnd.
+	 * @li Important children are @ref DMCanvas (where images are drawn) and @ref ScrollField.
+	 * @li Also see @ref image_filenames and @ref project_info.
+	 */
 	class DMContent final : public Component
 	{
 		public:
@@ -27,9 +36,9 @@ namespace dm
 
 			virtual ~DMContent();
 
-			virtual void resized();
+			virtual void resized() override;
 
-			virtual bool keyPressed(const KeyPress &key);
+			virtual bool keyPressed(const KeyPress &key) override;
 
 			void start_darknet();
 

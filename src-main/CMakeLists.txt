@@ -9,6 +9,9 @@ ADD_EXECUTABLE ( DarkMark
 			${GUI_TYPE}
 			${DM_SOURCE}
 			$<TARGET_OBJECTS:dm_tools>
+			$<TARGET_OBJECTS:dm_darknet>
+			$<TARGET_OBJECTS:dm_darkmark>
+			$<TARGET_OBJECTS:dm_launcher>
 			$<TARGET_OBJECTS:dm_wnd>
 			)
 

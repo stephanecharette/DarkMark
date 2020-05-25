@@ -5,7 +5,7 @@
 #include "DarkMark.hpp"
 
 
-dm::DMAboutCanvas::DMAboutCanvas()
+dm::AboutCanvas::AboutCanvas()
 {
 	opacity_for_swirl	= 0.5;
 	opacity_for_darknet	= 0.8;
@@ -19,7 +19,7 @@ dm::DMAboutCanvas::DMAboutCanvas()
 }
 
 
-void dm::DMAboutCanvas::paint(Graphics & g)
+void dm::AboutCanvas::paint(Graphics & g)
 {
 	const Image white_background = AboutLogoWhiteBackground();
 	const int w = getWidth();
@@ -48,7 +48,7 @@ void dm::DMAboutCanvas::paint(Graphics & g)
 }
 
 
-void dm::DMAboutCanvas::timerCallback()
+void dm::AboutCanvas::timerCallback()
 {
 	opacity_for_swirl	+= delta_for_swirl;
 	opacity_for_darknet	+= delta_for_darknet;
@@ -67,7 +67,7 @@ void dm::DMAboutCanvas::timerCallback()
 }
 
 
-dm::DMAboutWnd::DMAboutWnd() :
+dm::AboutWnd::AboutWnd() :
 		DialogWindow("DarkMark v" DARKMARK_VERSION " by C Code Run", Colours::lightgrey, true)
 {
 	setContentNonOwned		(&canvas, true	);
@@ -90,13 +90,13 @@ dm::DMAboutWnd::DMAboutWnd() :
 }
 
 
-dm::DMAboutWnd::~DMAboutWnd()
+dm::AboutWnd::~AboutWnd()
 {
 	return;
 }
 
 
-void dm::DMAboutWnd::closeButtonPressed()
+void dm::AboutWnd::closeButtonPressed()
 {
 	// close button
 
@@ -106,7 +106,7 @@ void dm::DMAboutWnd::closeButtonPressed()
 }
 
 
-void dm::DMAboutWnd::userTriedToCloseWindow()
+void dm::AboutWnd::userTriedToCloseWindow()
 {
 	// ALT+F4
 

@@ -404,7 +404,7 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	{
 		if (not dmapp().about_wnd)
 		{
-			dmapp().about_wnd.reset(new DMAboutWnd);
+			dmapp().about_wnd.reset(new AboutWnd);
 		}
 		dmapp().about_wnd->toFront(true);
 		return true;

@@ -9,6 +9,12 @@
 
 namespace dm
 {
+	/** This is the actual class that draws the current image and all of the annotations/marks.  Most of the work is performed
+	 * in @ref rebuild_cache_image().  Also of importance is the mouse event handling to ensure that marks are created and
+	 * stretched correctly.
+	 *
+	 * This class is one of the children of @ref DMContent.
+	 */
 	class DMCanvas : public CrosshairComponent
 	{
 		public:

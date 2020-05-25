@@ -9,11 +9,11 @@
 
 namespace dm
 {
-	class DMAboutCanvas : public Component, public Timer
+	class AboutCanvas : public Component, public Timer
 	{
 		public:
 
-			DMAboutCanvas();
+			AboutCanvas();
 
 			virtual void paint(Graphics & g);
 
@@ -25,17 +25,17 @@ namespace dm
 			float delta_for_darknet;
 	};
 
-	class DMAboutWnd : public DialogWindow
+	class AboutWnd : public DialogWindow
 	{
 		public:
 
-			DMAboutWnd();
+			AboutWnd();
 
-			virtual ~DMAboutWnd();
+			virtual ~AboutWnd();
 
 			virtual void closeButtonPressed();
 			virtual void userTriedToCloseWindow();
 
-			DMAboutCanvas canvas;
+			AboutCanvas canvas;
 	};
 }
