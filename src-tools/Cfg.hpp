@@ -41,10 +41,10 @@ namespace dm
 			virtual std::string get_str(const std::string &key, const std::string &default_value);
 
 			/// The key must exist, otherwise an exception is thrown.
-			virtual int get_int(const std::string &key);
+			virtual int get_int(const std::string &key, const int default_value=0);
 
 			/// The key must exist, otherwise an exception is thrown.
-			virtual double get_double(const std::string &key);
+			virtual double get_double(const std::string &key, const double default_value=0.0f);
 
 			/// Return the corresponding value, or the default value if the key does not exist.
 			virtual bool get_bool(const std::string &key, const bool default_value=true);

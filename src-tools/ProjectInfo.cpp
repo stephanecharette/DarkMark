@@ -5,31 +5,34 @@
 #include "DarkMark.hpp"
 
 
-dm::ProjectInfo::ProjectInfo(const std::string & project_directory)
+dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 {
-	darknet_dir					= cfg().get_str	("darknet_dir"					);
-	enable_yolov3_tiny			= cfg().get_bool("darknet_enable_yolov3_tiny"	);
-	enable_yolov3_full			= cfg().get_bool("darknet_enable_yolov3_full"	);
-	train_with_all_images		= cfg().get_bool("darknet_train_with_all_images");
-	training_images_percentage	= cfg().get_int	("darknet_training_percentage"	) / 100.0;
-	image_size					= cfg().get_int	("darknet_image_size"			);
-	batch_size					= cfg().get_int	("darknet_batch_size"			);
-	subdivisions				= cfg().get_int	("darknet_subdivisions"			);
-	iterations					= cfg().get_int	("darknet_iterations"			);
-	resume_training				= cfg().get_bool("darknet_resume_training"		);
-	delete_temp_weights			= cfg().get_bool("darknet_delete_temp_weights"	);
-	saturation					= cfg().get_double("darknet_saturation"			);
-	exposure					= cfg().get_double("darknet_exposure"			);
-	hue							= cfg().get_double("darknet_hue"				);
-	enable_flip					= cfg().get_bool("darknet_enable_flip"			);
-	angle						= cfg().get_int	("darknet_angle"				);
-	enable_mosaic				= cfg().get_bool("darknet_mosaic"				);
-	enable_cutmix				= cfg().get_bool("darknet_cutmix"				);
-	enable_mixup				= cfg().get_bool("darknet_mixup"				);
+	// these settings are "global" (not project specific)
+	cfg_prefix					= prefix;
+	darknet_dir					= cfg().get_str		("darknet_dir"									, "");
+
+	// every other setting is project-specific (with default values if the settings does not yet exist in configuration)
+	cfg_template				= cfg().get_str		(cfg_prefix + "darknet_cfg_template"			, ""	);
+	train_with_all_images		= cfg().get_bool	(cfg_prefix + "darknet_train_with_all_images"	, false	);
+	training_images_percentage	= cfg().get_int		(cfg_prefix + "darknet_training_percentage"		, 80	) / 100.0;
+	image_size					= cfg().get_int		(cfg_prefix + "darknet_image_size"				, 416	);
+	batch_size					= cfg().get_int		(cfg_prefix + "darknet_batch_size"				, 64	);
+	subdivisions				= cfg().get_int		(cfg_prefix + "darknet_subdivisions"			, 8		);
+	iterations					= cfg().get_int		(cfg_prefix + "darknet_iterations"				, 4000	);
+	resume_training				= cfg().get_bool	(cfg_prefix + "darknet_resume_training"			, false	);
+	delete_temp_weights			= cfg().get_bool	(cfg_prefix + "darknet_delete_temp_weights"		, true	);
+	saturation					= cfg().get_double	(cfg_prefix + "darknet_saturation"				, 1.50f	);
+	exposure					= cfg().get_double	(cfg_prefix + "darknet_exposure"				, 1.50f	);
+	hue							= cfg().get_double	(cfg_prefix + "darknet_hue"						, 0.10f	);
+	enable_flip					= cfg().get_bool	(cfg_prefix + "darknet_enable_flip"				, true	);
+	angle						= cfg().get_int		(cfg_prefix + "darknet_angle"					, 0		);
+	enable_mosaic				= cfg().get_bool	(cfg_prefix + "darknet_mosaic"					, true	);
+	enable_cutmix				= cfg().get_bool	(cfg_prefix + "darknet_cutmix"					, false	);
+	enable_mixup				= cfg().get_bool	(cfg_prefix + "darknet_mixup"					, false	);
 
 	try
 	{
-		rebuild(project_directory);
+		rebuild(cfg().get_str(cfg_prefix + "dir"));
 	}
 	catch (const std::exception & e)
 	{
@@ -67,24 +70,22 @@ dm::ProjectInfo & dm::ProjectInfo::rebuild(const std::string & project_directory
 
 	project_dir					= f													.getFullPathName().toStdString();
 	project_name				= f										.getFileNameWithoutExtension().toStdString();
-	darknet_tiny_cfg_filename	= f.getChildFile(project_name + "_yolov3-tiny.cfg")	.getFullPathName().toStdString();
-	darknet_full_cfg_filename	= f.getChildFile(project_name + "_yolov3-full.cfg")	.getFullPathName().toStdString();
 	data_filename				= f.getChildFile(project_name + ".data")			.getFullPathName().toStdString();
 	names_filename				= f.getChildFile(project_name + ".names")			.getFullPathName().toStdString();
 	train_filename				= f.getChildFile(project_name + "_train.txt")		.getFullPathName().toStdString();
 	valid_filename				= f.getChildFile(project_name + "_valid.txt")		.getFullPathName().toStdString();
 	command_filename			= f.getChildFile(project_name + "_train.sh")		.getFullPathName().toStdString();
+	cfg_filename				= f.getChildFile(project_name + ".cfg")				.getFullPathName().toStdString();
 
-	darknet_tiny_cfg_template	= File(darknet_dir).getChildFile("cfg").getChildFile("yolov3-tiny.cfg"	).getFullPathName().toStdString();
-	darknet_full_cfg_template	= File(darknet_dir).getChildFile("cfg").getChildFile("yolov3.cfg"		).getFullPathName().toStdString();
-
-	// check to make sure the two YOLO template .cfg files are where we expect them to to be
-	for (const auto & fn : {darknet_tiny_cfg_template, darknet_full_cfg_template})
+	if (cfg_template.empty())
 	{
-		if (not File(fn).existsAsFile())
-		{
-			throw std::runtime_error("cannot find the darknet YOLOv3 template file " + fn);
-		}
+		cfg_template = File(darknet_dir).getChildFile("cfg").getChildFile("yolov3-tiny.cfg").getFullPathName().toStdString();
+	}
+
+	// check to make sure the template .cfg files actually exists
+	if (not File(cfg_template).existsAsFile())
+	{
+		throw std::runtime_error("cannot find the darknet configuration template file " + cfg_template);
 	}
 
 	return *this;

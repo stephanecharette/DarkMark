@@ -27,6 +27,7 @@ namespace dm
 	class DMStatsWnd;
 	class AboutWnd;
 	class DarknetWnd;
+	class WndCfgTemplates;
 	class StartupWnd;
 	class StartupCanvas;
 	class SettingsWnd;
@@ -62,6 +63,7 @@ namespace dm
 #include "DMReviewWnd.hpp"
 #include "DMReviewCanvas.hpp"
 #include "DarknetWnd.hpp"
+#include "WndCfgTemplates.hpp"
 #include "StartupWnd.hpp"
 #include "SettingsWnd.hpp"
 #include "StartupCanvas.hpp"

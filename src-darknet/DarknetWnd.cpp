@@ -5,6 +5,41 @@
 #include "DarkMark.hpp"
 
 
+class CfgTemplateButton : public ButtonPropertyComponent
+{
+	public:
+
+		virtual ~CfgTemplateButton()
+		{
+			return;
+		}
+
+		CfgTemplateButton(Value & v) : ButtonPropertyComponent("configuration template", false), value(v)
+		{
+			return;
+		}
+
+		virtual void buttonClicked()
+		{
+			dm::WndCfgTemplates wnd(value);
+			const int result = wnd.runModalLoop();
+
+			if (result == 0)
+			{
+				refresh(); // force the name change to show
+			}
+		}
+
+		virtual String getButtonText () const
+		{
+			return value.toString();
+		}
+
+		// This is where the configuration template filename needs to be stored.
+		Value & value;
+};
+
+
 dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	DocumentWindow("DarkMark v" DARKMARK_VERSION " - Darknet Output", Colours::darkgrey, TitleBarButtons::closeButton),
 	content(c),
@@ -37,8 +72,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	}
 
 	v_darknet_dir					= info.darknet_dir.c_str();
-	v_enable_yolov3_tiny			= info.enable_yolov3_tiny;
-	v_enable_yolov3_full			= info.enable_yolov3_full;
+	v_cfg_template					= info.cfg_template.c_str();
 	v_train_with_all_images			= info.train_with_all_images;
 	v_training_images_percentage	= std::round(100.0 * info.training_images_percentage);
 	v_image_size					= info.image_size;
@@ -64,18 +98,15 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	TextPropertyComponent		* t = nullptr;
 	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
+	ButtonPropertyComponent		* u = nullptr;
 
 	t = new TextPropertyComponent(v_darknet_dir, "darknet directory", 1000, false, true);
 	t->setTooltip("The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example YOLO .cfg files.");
 	properties.add(t);
 
-	b = new BooleanPropertyComponent(v_enable_yolov3_tiny, "export YOLOv3-tiny", "YOLOv3-tiny");
-	b->setTooltip("Using the configuration and data augmentation settings below combined with the YOLOv3-tiny template .cfg file, create a new YOLOv3-tiny configuration file which can be used to train a new network.");
-	properties.add(b);
-
-	b = new BooleanPropertyComponent(v_enable_yolov3_full, "export YOLOv3-full", "YOLOv3-full");
-	b->setTooltip("Using the configuration and data augmentation settings below combined with the YOLOv3 template .cfg file, create a new YOLOv3-full configuration file which can be used to train a new network.");
-	properties.add(b);
+	u = new CfgTemplateButton(v_cfg_template);
+	u->setTooltip("The darknet configuration file to use as a template for this project.");
+	properties.add(u);
 
 	pp.addSection("darknet", properties);
 	properties.clear();
@@ -113,7 +144,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	std::string name;
-	const std::string darknet_weights = cfg().get_str("darknet_weights");
+	const std::string darknet_weights = cfg().get_str(content.cfg_prefix + "weights");
 	if (darknet_weights.empty() == false)
 	{
 		File f(darknet_weights);
@@ -237,7 +268,7 @@ void dm::DarknetWnd::resized()
 	button_row.justifyContent = FlexBox::JustifyContent::flexEnd;
 	button_row.items.add(FlexItem(help_button).withWidth(100.0));
 	button_row.items.add(FlexItem().withFlex(1.0));
-	button_row.items.add(FlexItem(cancel_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+	button_row.items.add(FlexItem(cancel_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, margin_size)));
 	button_row.items.add(FlexItem(ok_button).withWidth(100.0));
 
 	FlexBox fb;
@@ -272,6 +303,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	// otherwise if we get here we need to validate the fields before we export the darknet files
 
 	const String darknet_dir	= v_darknet_dir	.getValue();
+	const String cfg_template	= v_cfg_template.getValue();
 	const int image_size		= v_image_size	.getValue();
 	const int batch_size		= v_batch_size	.getValue();
 	const int subdivisions		= v_subdivisions.getValue();
@@ -279,6 +311,12 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	if (darknet_dir.isEmpty() or File(darknet_dir).exists() == false or File(darknet_dir).getChildFile("cfg").exists() == false)
 	{
 		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The specified darknet directory is not valid.");
+		return;
+	}
+
+	if (cfg_template.isEmpty() or File(cfg_template).exists() == false)
+	{
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The configuration template filename is not valid.");
 		return;
 	}
 
@@ -302,26 +340,24 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 
 	canvas.setEnabled(false);
 
-	cfg().setValue("darknet_dir"					, v_darknet_dir					);
-	cfg().setValue("darknet_enable_yolov3_tiny"		, v_enable_yolov3_tiny			);
-	cfg().setValue("darknet_enable_yolov3_full"		, v_enable_yolov3_full			);
-	cfg().setValue("darknet_train_with_all_images"	, v_train_with_all_images		);
-	cfg().setValue("darknet_training_percentage"	, v_training_images_percentage	);
-	cfg().setValue("darknet_image_size"				, v_image_size					);
-	cfg().setValue("darknet_batch_size"				, v_batch_size					);
-	cfg().setValue("darknet_subdivisions"			, v_subdivisions				);
-	cfg().setValue("darknet_iterations"				, v_iterations					);
-	cfg().setValue("darknet_resume_training"		, v_resume_training				);
-	cfg().setValue("darknet_delete_temp_weights"	, v_delete_temp_weights			);
-	cfg().setValue("darknet_saturation"				, v_saturation					);
-	cfg().setValue("darknet_exposure"				, v_exposure					);
-	cfg().setValue("darknet_hue"					, v_hue							);
-	cfg().setValue("darknet_enable_flip"			, v_enable_flip					);
-	cfg().setValue("darknet_angle"					, v_angle						);
+	cfg().setValue(/* this one is a global value */ "darknet_dir"		, v_darknet_dir					);
+	cfg().setValue(content.cfg_prefix + "darknet_cfg_template"			, v_cfg_template				);
+	cfg().setValue(content.cfg_prefix + "darknet_train_with_all_images"	, v_train_with_all_images		);
+	cfg().setValue(content.cfg_prefix + "darknet_training_percentage"	, v_training_images_percentage	);
+	cfg().setValue(content.cfg_prefix + "darknet_image_size"			, v_image_size					);
+	cfg().setValue(content.cfg_prefix + "darknet_batch_size"			, v_batch_size					);
+	cfg().setValue(content.cfg_prefix + "darknet_subdivisions"			, v_subdivisions				);
+	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
+	cfg().setValue(content.cfg_prefix + "darknet_resume_training"		, v_resume_training				);
+	cfg().setValue(content.cfg_prefix + "darknet_delete_temp_weights"	, v_delete_temp_weights			);
+	cfg().setValue(content.cfg_prefix + "darknet_saturation"			, v_saturation					);
+	cfg().setValue(content.cfg_prefix + "darknet_exposure"				, v_exposure					);
+	cfg().setValue(content.cfg_prefix + "darknet_hue"					, v_hue							);
+	cfg().setValue(content.cfg_prefix + "darknet_enable_flip"			, v_enable_flip					);
+	cfg().setValue(content.cfg_prefix + "darknet_angle"					, v_angle						);
 
-	info.darknet_dir				= v_darknet_dir.toString().toStdString();
-	info.enable_yolov3_tiny			= v_enable_yolov3_tiny		.getValue();
-	info.enable_yolov3_full			= v_enable_yolov3_full		.getValue();
+	info.darknet_dir				= v_darknet_dir				.toString().toStdString();
+	info.cfg_template				= v_cfg_template			.toString().toStdString();
 	info.train_with_all_images		= v_train_with_all_images	.getValue();
 	info.training_images_percentage	= static_cast<double>(v_training_images_percentage.getValue()) / 100.0;
 	info.image_size					= v_image_size				.getValue();
@@ -342,20 +378,6 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	try
 	{
 		info.rebuild();
-
-#if 0
-		// ***************************************************************
-		// TESTING TESTING TESTING TESTING TESTING TESTING TESTING TESTING
-		const std::string template_name		= "csresnext50-panet-spp-original-optimal.cfg";
-		const std::string input_filename	= "/home/stephane/darknet/cfg/"				+ template_name;
-		const std::string output_filename	= "/home/stephane/nn/stopsigns/stopsigns_"	+ template_name;
-		info.enable_yolov3_full = false;
-		info.enable_yolov3_tiny = true;
-		info.darknet_tiny_cfg_template = input_filename;
-		info.darknet_tiny_cfg_filename = output_filename;
-		// TESTING TESTING TESTING TESTING TESTING TESTING TESTING TESTING
-		// ***************************************************************
-#endif
 
 		create_YOLO_configuration_files();
 		create_Darknet_files();
@@ -390,17 +412,14 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 		return;
 	}
 
-	VStr files_to_modify;
-	if (info.enable_yolov3_full)
+	if (File(info.cfg_template).existsAsFile() == false)
 	{
-		File(info.darknet_full_cfg_template).copyFileTo(File(info.darknet_full_cfg_filename));
-		files_to_modify.push_back(info.darknet_full_cfg_filename);
+		// nothing we can do without a configuration file to use as a template
+		return;
 	}
-	if (info.enable_yolov3_tiny)
-	{
-		File(info.darknet_tiny_cfg_template).copyFileTo(File(info.darknet_tiny_cfg_filename));
-		files_to_modify.push_back(info.darknet_tiny_cfg_filename);
-	}
+
+	// this is where the template is copied to a new configuration file, after which we edit the copy
+	File(info.cfg_template).copyFileTo(File(info.cfg_filename));
 
 	const bool enable_mosaic			= info.enable_mosaic;
 	const bool enable_cutmix			= info.enable_cutmix;
@@ -419,37 +438,34 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	const size_t width					= info.image_size;
 	const size_t height					= width;
 
-	for (const std::string & cfg_filename : files_to_modify)
+	const VStr commands =
 	{
-		const VStr commands =
-		{
-			"sed --in-place \"/^hue *=/ c\\hue="					+ std::to_string(hue)									+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^hue *=/ a\\flip="					+ std::string(enable_flip ? "1" : "0")					+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^hue *=/ a\\mosaic="					+ std::string(enable_mosaic ? "1" : "0")				+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^hue *=/ a\\cutmix="					+ std::string(enable_cutmix ? "1" : "0")				+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^hue *=/ a\\mixup="					+ std::string(enable_mixup ? "1" : "0")					+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^saturation *=/ c\\saturation="		+ std::to_string(saturation)							+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^exposure *=/ c\\exposure="			+ std::to_string(exposure)								+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(content.names.size() - 1)				+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^max_batches *=/ c\\max_batches="	+ std::to_string(number_of_iterations)					+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^steps *=/ c\\steps="				+ std::to_string(step1) + "," + std::to_string(step2)	+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^batch *=/ c\\batch="				+ std::to_string(batch)									+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^subdivisions *=/ c\\subdivisions="	+ std::to_string(subdivisions)							+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^filters *= *255/ c\\filters="		+ std::to_string(filters)								+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^height *=/ c\\height="				+ std::to_string(width)									+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^width *=/ c\\width="				+ std::to_string(height)								+ "\" "		+ cfg_filename,
-			"sed --in-place \"/^angle *=/ c\\angle="				+ std::to_string(angle)									+ "\" "		+ cfg_filename
-		};
+		"sed --in-place \"/^hue *=/ c\\hue="					+ std::to_string(hue)									+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^hue *=/ a\\flip="					+ std::string(enable_flip ? "1" : "0")					+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^hue *=/ a\\mosaic="					+ std::string(enable_mosaic ? "1" : "0")				+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^hue *=/ a\\cutmix="					+ std::string(enable_cutmix ? "1" : "0")				+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^hue *=/ a\\mixup="					+ std::string(enable_mixup ? "1" : "0")					+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^saturation *=/ c\\saturation="		+ std::to_string(saturation)							+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^exposure *=/ c\\exposure="			+ std::to_string(exposure)								+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(content.names.size() - 1)				+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^max_batches *=/ c\\max_batches="	+ std::to_string(number_of_iterations)					+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^steps *=/ c\\steps="				+ std::to_string(step1) + "," + std::to_string(step2)	+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^batch *=/ c\\batch="				+ std::to_string(batch)									+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^subdivisions *=/ c\\subdivisions="	+ std::to_string(subdivisions)							+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^filters *= *255/ c\\filters="		+ std::to_string(filters)								+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^height *=/ c\\height="				+ std::to_string(width)									+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^width *=/ c\\width="				+ std::to_string(height)								+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^angle *=/ c\\angle="				+ std::to_string(angle)									+ "\" "		+ info.cfg_filename
+	};
 
-		for (const std::string & cmd : commands)
+	for (const std::string & cmd : commands)
+	{
+		const int rc = system(cmd.c_str());
+		if (rc)
 		{
-			const int rc = system(cmd.c_str());
-			if (rc)
-			{
-				Log("failed to run command (rc=" + std::to_string(rc) + "): " + cmd);
-				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Command failed to run:\n\n" + cmd);
-				break;
-			}
+			Log("failed to run command (rc=" + std::to_string(rc) + "): " + cmd);
+			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Command failed to run:\n\n" + cmd);
+			break;
 		}
 	}
 
@@ -462,11 +478,11 @@ void dm::DarknetWnd::create_Darknet_files()
 	if (true)
 	{
 		std::ofstream fs(info.data_filename);
-		fs	<< "classes = "	<< content.names.size() - 1			<< std::endl
-			<< "train = "	<< info.train_filename				<< std::endl
-			<< "valid = "	<< info.valid_filename				<< std::endl
-			<< "names = "	<< cfg().get_str("darknet_names")	<< std::endl
-			<< "backup = "	<< info.project_dir					<< std::endl;
+		fs	<< "classes = "	<< content.names.size() - 1						<< std::endl
+			<< "train = "	<< info.train_filename							<< std::endl
+			<< "valid = "	<< info.valid_filename							<< std::endl
+			<< "names = "	<< cfg().get_str(content.cfg_prefix + "names")	<< std::endl
+			<< "backup = "	<< info.project_dir								<< std::endl;
 	}
 
 	size_t number_of_files_train = 0;
@@ -547,10 +563,10 @@ void dm::DarknetWnd::create_Darknet_files()
 
 	if (true)
 	{
-		std::string cmd = info.darknet_dir + "/darknet detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + (info.enable_yolov3_tiny ? info.darknet_tiny_cfg_filename : info.darknet_full_cfg_filename);
+		std::string cmd = info.darknet_dir + "/darknet detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
 		if (info.resume_training)
 		{
-			cmd += " " + cfg().get_str("darknet_weights");
+			cmd += " " + cfg().get_str(content.cfg_prefix + "weights");
 		}
 
 		std::stringstream ss;

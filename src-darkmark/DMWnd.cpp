@@ -5,11 +5,12 @@
 #include "DarkMark.hpp"
 
 
-dm::DMWnd::DMWnd() :
+dm::DMWnd::DMWnd(const std::string & prefix) :
 	DocumentWindow(
 		String("DarkMark v" DARKMARK_VERSION),
 		Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId),
-		DocumentWindow::TitleBarButtons::allButtons)
+		DocumentWindow::TitleBarButtons::allButtons),
+	content(prefix)
 {
 	setContentNonOwned(&content, false);
 

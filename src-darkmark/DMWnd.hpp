@@ -14,7 +14,7 @@ namespace dm
 	{
 		public:
 
-			DMWnd(void);
+			DMWnd(const std::string & prefix);
 
 			virtual ~DMWnd(void);
 

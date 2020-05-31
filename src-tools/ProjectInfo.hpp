@@ -14,23 +14,18 @@ namespace dm
 	{
 		public:
 
+			std::string cfg_prefix;					///< The text that needs to be prefixed to configuration items, such as @p "project_12345_".
 			std::string project_name;				///< e.g., @p flowers
-
 			std::string	darknet_dir;				///< e.g., @p /home/bob/darknet
 			std::string	project_dir;				///< e.g., @p /home/bob/nn/flowers
-			std::string	darknet_tiny_cfg_filename;	///< e.g., @p /home/bob/nn/flowers/flowers_yolov3-tiny.cfg
-			std::string	darknet_full_cfg_filename;	///< e.g., @p /home/bob/nn/flowers/flowers_yolov3-full.cfg
 			std::string data_filename;				///< e.g., @p /home/bob/nn/flowers/flowers.data
 			std::string names_filename;				///< e.g., @p /home/bob/nn/flowers/flowers.names
 			std::string train_filename;				///< e.g., @p /home/bob/nn/flowers/flowers_train.txt
 			std::string valid_filename;				///< e.g., @p /home/bob/nn/flowers/flowers_valid.txt
 			std::string command_filename;			///< e.g., @p /home/bob/nn/flowers/flowers_train.sh
+			std::string cfg_filename;				///< e.g., @p /home/bob/nn/flowers/flowers.cfg
+			std::string	cfg_template;				///< e.g., @p /home/bob/darknet/cfg/yolov3-tiny.cfg
 
-			std::string darknet_tiny_cfg_template;	///< e.g., @p /home/bob/darknet/cfg/yolov3-tiny.cfg
-			std::string darknet_full_cfg_template;	///< e.g., @p /home/bob/darknet/cfg/yolov3.cfg
-
-			bool		enable_yolov3_tiny;			///< @p TRUE if the *-tiny.cfg file should be created
-			bool		enable_yolov3_full;			///< @p TRUE if the *-full.cfg file should be created
 			bool		train_with_all_images;		///< should we train with *all* images, or should we use @ref training_images_percentage?
 			double		training_images_percentage;	///< between 0.0 and 1.0
 			int			image_size;					///< must be a multiple of 32 (416, 608, 832, ...)
@@ -48,7 +43,7 @@ namespace dm
 			bool		enable_cutmix;
 			bool		enable_mixup;
 
-			ProjectInfo(const std::string & project_directory);
+			ProjectInfo(const std::string & prefix);
 
 			/** Rebuild all the paths, but without changing the project name/dir.  For example, perhaps the location of the darknet
 			 * directory was changed, which would require some of the template paths to be updated.

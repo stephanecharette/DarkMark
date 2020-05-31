@@ -300,6 +300,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 			bool load_project				= true;
 			const String key				= notebook_canvas->cfg_key;
+			const String cfg_template		= notebook_canvas->darknet_configuration_template	.toString();
 			const String cfg_filename		= notebook_canvas->darknet_configuration_filename	.toString();
 			const String weights_filename	= notebook_canvas->darknet_weights_filename			.toString();
 			const String names_filename		= notebook_canvas->darknet_names_filename			.toString();
@@ -315,11 +316,11 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 			std::stringstream ss;
 			ss << std::endl << std::endl;
-			if (image_count		< 1)		{ ss << "- There are no images in the project directory."	<< std::endl;	error_count		++; }
-			if (dir_exists		== false)	{ ss << "- The project directory does not exist."			<< std::endl;	error_count		++; }
-			if (cfg_exists		== false)	{ ss << "- The .cfg file does not exist."					<< std::endl;	warning_count	++; }
-			if (weights_exits	== false)	{ ss << "- The .weights file does not exist."				<< std::endl;	warning_count	++; }
-			if (names_exists	== false)	{ ss << "- The .names file does not exist."					<< std::endl;	error_count		++; }
+			if (image_count			< 1)		{ ss << "- There are no images in the project directory."	<< std::endl;	error_count		++; }
+			if (dir_exists			== false)	{ ss << "- The project directory does not exist."			<< std::endl;	error_count		++; }
+			if (cfg_exists			== false)	{ ss << "- The .cfg file does not exist."					<< std::endl;	warning_count	++; }
+			if (weights_exits		== false)	{ ss << "- The .weights file does not exist."				<< std::endl;	warning_count	++; }
+			if (names_exists		== false)	{ ss << "- The .names file does not exist."					<< std::endl;	error_count		++; }
 
 			const size_t message_count = warning_count + error_count;
 			if (error_count > 0)
@@ -342,18 +343,22 @@ void dm::StartupWnd::buttonClicked(Button * button)
 			{
 				setVisible(false);
 
-				cfg().setValue("darknet_config"					, notebook_canvas->darknet_configuration_filename	);
-				cfg().setValue("darknet_weights"				, notebook_canvas->darknet_weights_filename			);
-				cfg().setValue("darknet_names"					, notebook_canvas->darknet_names_filename			);
-				cfg().setValue("image_directory"				, notebook_canvas->project_directory				);
-				cfg().setValue("project_" + key + "_timestamp"	, static_cast<int>(std::time(nullptr))				);
-				cfg().setValue("project_" + key + "_cfg"		, notebook_canvas->darknet_configuration_filename	);
-				cfg().setValue("project_" + key + "_weights"	, notebook_canvas->darknet_weights_filename			);
-				cfg().setValue("project_" + key + "_names"		, notebook_canvas->darknet_names_filename			);
+				const std::string prefix = "project_" + key.toStdString() + "_";
 
-				// see if we can import a few of the critical .cfg settings so that when the user re-creates the darknet
-				// configuration files we can do it with the exact same values (or as close as conveniently possible)
-				if (File(cfg_filename).existsAsFile())
+				cfg().setValue(prefix + "cfg"					, notebook_canvas->darknet_configuration_filename	);
+				cfg().setValue(prefix + "weights"				, notebook_canvas->darknet_weights_filename			);
+				cfg().setValue(prefix + "names"					, notebook_canvas->darknet_names_filename			);
+				cfg().setValue(prefix + "darknet_cfg_template"	, notebook_canvas->darknet_configuration_template	);
+				cfg().setValue(prefix + "timestamp"				, static_cast<int>(std::time(nullptr))				);
+
+				// Prior to 2020-05-30, there were many settings in configuration that were "global".  Every time a project
+				// was loaded, the settings were copied over to the global name.  Thi mess is because when it was first
+				// written, DarkMark didn't manage multiple projects.  It only managed a single project.
+				//
+				// All settings are now per-project.  So if we have one of the original project .cfg files that we can parse
+				// and obtain some of the key values, do this now so the users wont have any problems re-saving the Darknet
+				// project files.
+				if (File(cfg_filename).existsAsFile() and cfg().containsKey(prefix + "darknet_batch_size") == false)
 				{
 					// regex to find keyword/value pairs such as:   width=416
 					const std::regex rgx("^(\\w+)[ \t]*=[ \t]*([0-9.]+)$");
@@ -372,24 +377,23 @@ void dm::StartupWnd::buttonClicked(Button * button)
 							const bool	value_bool		= (value_float == 0.0 ? false : true);
 							const int	value_int		= static_cast<int>(value_float);
 
-							if (keyword == "batch"			) cfg().setValue("darknet_batch_size"	, value_int);
-							if (keyword == "subdivisions"	) cfg().setValue("darknet_subdivisions"	, value_int);
-							if (keyword == "width"			) cfg().setValue("darknet_image_size"	, value_int);
-							if (keyword == "max_batches"	) cfg().setValue("darknet_iterations"	, value_int);
-							if (keyword == "saturation"		) cfg().setValue("darknet_saturation"	, value_float);
-							if (keyword == "exposure"		) cfg().setValue("darknet_exposure"		, value_float);
-							if (keyword == "hue"			) cfg().setValue("darknet_hue"			, value_float);
-//							if (keyword == "hue"			) cfg().setValue("darknet_enable_hue"	, value_bool);
-							if (keyword == "flip"			) cfg().setValue("darknet_enable_flip"	, value_bool);
-							if (keyword == "angle"			) cfg().setValue("darknet_angle"		, value_int);
-							if (keyword == "mosaic"			) cfg().setValue("darknet_mosaic"		, value_bool);
-							if (keyword == "cutmix"			) cfg().setValue("darknet_cutmix"		, value_bool);
-							if (keyword == "mixup"			) cfg().setValue("darknet_mixup"		, value_bool);
+							if (keyword == "batch"			) cfg().insert_if_not_exist(prefix + "darknet_batch_size"	, value_int);
+							if (keyword == "subdivisions"	) cfg().insert_if_not_exist(prefix + "darknet_subdivisions"	, value_int);
+							if (keyword == "width"			) cfg().insert_if_not_exist(prefix + "darknet_image_size"	, value_int);
+							if (keyword == "max_batches"	) cfg().insert_if_not_exist(prefix + "darknet_iterations"	, value_int);
+							if (keyword == "saturation"		) cfg().insert_if_not_exist(prefix + "darknet_saturation"	, value_float);
+							if (keyword == "exposure"		) cfg().insert_if_not_exist(prefix + "darknet_exposure"		, value_float);
+							if (keyword == "hue"			) cfg().insert_if_not_exist(prefix + "darknet_hue"			, value_float);
+							if (keyword == "flip"			) cfg().insert_if_not_exist(prefix + "darknet_enable_flip"	, value_bool);
+							if (keyword == "angle"			) cfg().insert_if_not_exist(prefix + "darknet_angle"		, value_int);
+							if (keyword == "mosaic"			) cfg().insert_if_not_exist(prefix + "darknet_mosaic"		, value_bool);
+							if (keyword == "cutmix"			) cfg().insert_if_not_exist(prefix + "darknet_cutmix"		, value_bool);
+							if (keyword == "mixup"			) cfg().insert_if_not_exist(prefix + "darknet_mixup"		, value_bool);
 						}
 					}
 				}
 
-				dmapp().wnd.reset(new DMWnd);
+				dmapp().wnd.reset(new DMWnd(prefix));
 				dmapp().startup_wnd.reset(nullptr);
 			}
 			else

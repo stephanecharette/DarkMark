@@ -169,6 +169,7 @@ void dm::DMStatsWnd::paintRowBackground(Graphics & g, int rowNumber, int width, 
 	// draw the cell bottom divider between rows
 	g.setColour( Colours::black.withAlpha( 0.5f ) );
 	g.drawLine( 0, height, width, height );
+
 	return;
 }
 

@@ -32,7 +32,7 @@ namespace dm
 	{
 		public:
 
-			DMContent();
+			DMContent(const std::string & prefix);
 
 			virtual ~DMContent();
 
@@ -102,6 +102,9 @@ namespace dm
 			 * @param [in] fn If not blank, the screenshot will be saved to this file.  Should end in @p .png or @p .jpg.
 			 */
 			DMContent & save_screenshot(const bool full_size = true, const std::string & fn = "");
+
+			/// The text prefix used to store keys in configuration.  This differs for every project.
+			std::string cfg_prefix;
 
 			DMCanvas canvas;
 

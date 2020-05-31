@@ -39,10 +39,12 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	newest_markup		= "...";
 	oldest_markup		= "...";
 
-	darknet_configuration_filename	= cfg().getValue("project_" + key + "_cfg"		);
-	darknet_weights_filename		= cfg().getValue("project_" + key + "_weights"	);
-	darknet_names_filename			= cfg().getValue("project_" + key + "_names"	);
+	darknet_configuration_template	= cfg().getValue("project_" + key + "_darknet_cfg_template"	);
+	darknet_configuration_filename	= cfg().getValue("project_" + key + "_cfg"					);
+	darknet_weights_filename		= cfg().getValue("project_" + key + "_weights"				);
+	darknet_names_filename			= cfg().getValue("project_" + key + "_names"				);
 
+	darknet_configuration_template	.addListener(this);
 	darknet_configuration_filename	.addListener(this);
 	darknet_weights_filename		.addListener(this);
 	darknet_names_filename			.addListener(this);
@@ -57,6 +59,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	properties.add(new TextPropertyComponent(number_of_marks				, "number of marks"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(newest_markup					, "newest markup"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(oldest_markup					, "oldest markup"			, 1000, false, false));
+	properties.add(new TextPropertyComponent(darknet_configuration_template	, "darknet template"		, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_configuration_filename	, "darknet configuration"	, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_weights_filename		, "darknet weights"			, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_names_filename			, "classes/names"			, 1000, false, true));

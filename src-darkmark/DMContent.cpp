@@ -8,7 +8,8 @@
 using json = nlohmann::json;
 
 
-dm::DMContent::DMContent() :
+dm::DMContent::DMContent(const std::string & prefix) :
+	cfg_prefix(prefix),
 	canvas(*this),
 	scrollfield(*this),
 	scrollfield_width(cfg().get_int("scrollfield_width")),
@@ -30,7 +31,7 @@ dm::DMContent::DMContent() :
 	scale_factor(1.0),
 	most_recent_class_idx(0),
 	image_filename_index(0),
-	project_info(cfg().get_str("image_directory"))
+	project_info(cfg_prefix)
 {
 	addAndMakeVisible(canvas);
 	addAndMakeVisible(scrollfield);
@@ -125,9 +126,9 @@ void dm::DMContent::resized()
 void dm::DMContent::start_darknet()
 {
 	Log("loading darknet neural network");
-	const std::string darknet_cfg		= cfg().get_str("darknet_config"	);
-	const std::string darknet_weights	= cfg().get_str("darknet_weights"	);
-	const std::string darknet_names		= cfg().get_str("darknet_names"		);
+	const std::string darknet_cfg		= cfg().get_str(cfg_prefix + "cfg"		);
+	const std::string darknet_weights	= cfg().get_str(cfg_prefix + "weights"	);
+	const std::string darknet_names		= cfg().get_str(cfg_prefix + "names"	);
 	names.clear();
 
 	if (darknet_cfg		.empty() == false	and
@@ -515,7 +516,7 @@ dm::DMContent & dm::DMContent::set_class(const size_t class_idx)
 		if (class_idx >= names.size() - 1)
 		{
 			Log("class idx \"" + std::to_string(class_idx) + "\" is beyond the last index");
-			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Class id #" + std::to_string(class_idx) + " is beyond the highest class defined in " + cfg().get_str("darknet_names") + ".");
+			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Class id #" + std::to_string(class_idx) + " is beyond the highest class defined in " + cfg().get_str(cfg_prefix + "names") + ".");
 		}
 		else
 		{
@@ -681,7 +682,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	if (dmapp().jump_wnd)
 	{
 		Slider & slider = dmapp().jump_wnd->slider;
-		slider.setValue(image_filename_index + 1);//, NotificationType::dontSendNotification);
+		slider.setValue(image_filename_index + 1);
 	}
 
 	bool exception_caught = false;

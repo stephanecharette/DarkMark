@@ -30,8 +30,7 @@ namespace dm
 			void create_Darknet_files();
 
 			Value v_darknet_dir;
-			Value v_enable_yolov3_tiny;
-			Value v_enable_yolov3_full;
+			Value v_cfg_template;
 			Value v_train_with_all_images;
 			Value v_training_images_percentage;
 			Value v_image_size;
