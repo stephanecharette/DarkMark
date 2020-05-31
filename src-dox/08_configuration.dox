@@ -2,6 +2,10 @@
 
 %Darknet comes with many sample @p .cfg files to use as templates.
 
+To select which configuration file to use as a template, click on the configuration template button at the top of the @ref DarkMarkDarknet "darknet output" window:
+
+@image html darknet_config_templates_with_mouse.png
+
 More than half of these configuration files are from many years ago, some dating from Joseph Redmon's original darknet repo.  On this page the @p .cfg files have been split into 2 tables (@ref ConfigNew "new" and @ref ConfigOld "old") *loosely* based on when a configuration file was last modified and/or if it is still considered relevant or outdated.
 
 @note In the tables below:

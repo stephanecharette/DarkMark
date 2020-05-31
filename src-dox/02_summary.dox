@@ -38,6 +38,12 @@ filename						| description
 @p send_files_to_gpu_rig.sh		| use rsync to copy all of the source files to the GPU rig
 @p get_results_from_gpu_rig.sh	| use rsync to copy the results back from the GPU rig
 
+@section DarkMarkCfgTemplate Darknet Configuration Template
+
+Choose which @p ".cfg" file DarkMark should use as a template to build the Darknet configuration.
+
+@image html darknet_config_templates.png
+
 @section DarkMarkSettings DarkMark Settings
 
 Press @p "e" (see @ref Keyboard) to modify several settings:

@@ -465,12 +465,14 @@ void dm::WndCfgTemplates::run()
 		else if (short_name == "yolov4.cfg")
 		{
 			row.field[Fields::kNotes		] = "contains 3 YOLO layers";
+			row.field[Fields::kWeightsSize	] = "245.7 MiB";
 			row.field[Fields::kLink1		] = "YOLOv4 whitepaper";
 			row.field[Fields::kUrl1			] = "https://arxiv.org/pdf/2004.10934.pdf";
 		}
 		else if (short_name == "yolov4-custom.cfg")
 		{
 			row.field[Fields::kRelated		] = "yolov4.cfg";
+			row.field[Fields::kWeightsSize	] = "245.7 MiB";
 			row.field[Fields::kLink1		] = "YOLOv4 whitepaper";
 			row.field[Fields::kUrl1			] = "https://arxiv.org/pdf/2004.10934.pdf";
 		}
