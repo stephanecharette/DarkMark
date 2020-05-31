@@ -251,7 +251,7 @@ void dm::WndCfgTemplates::run()
 
 			if (line.startsWith("["))
 			{
-				Log(file.getFileName().toStdString() + " #" + std::to_string(number_of_lines) + ": " + line.toStdString());
+//				Log(file.getFileName().toStdString() + " #" + std::to_string(number_of_lines) + ": " + line.toStdString());
 				number_of_layers ++;
 				if (line.startsWithIgnoreCase("[yolo"))
 				{
