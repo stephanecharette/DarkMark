@@ -126,6 +126,7 @@ void dm::ScrollField::update_index(const size_t idx)
 		}
 		else
 		{
+			cv::line(field, cv::Point(0, idx), cv::Point(field.cols, idx), {0.0, 0.0, 0.0}, 1, cv::LINE_4); // start with a black background
 			for (auto m : root["mark"])
 			{
 				const int class_idx = m["class_idx"];

@@ -87,7 +87,11 @@ void dm::CrosshairComponent::paint(Graphics & g)
 			if (y1 > y2) { std::swap(y1, y2); }
 
 			juce::Rectangle<int> r(x1, y1, x2 - x1, y2 - y1);
-			g.setColour(crosshair_colour);
+
+			const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx);
+			const juce::Colour colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
+
+			g.setColour(colour);
 			g.drawRect(r, 1);
 		}
 		else if (mouse_current_loc != invalid_point)
