@@ -583,6 +583,9 @@ dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
 		cfg().setValue("sort_order", tmp);
 	}
 
+	// remember the current image filename so we can scroll back to the same one once we're done sorting
+	const std::string old_filename = image_filenames[image_filename_index];
+
 	switch (sort_order)
 	{
 		case ESort::kRandom:
@@ -612,7 +615,19 @@ dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
 		}
 	}
 
-	load_image(0);
+	size_t idx = 0;
+	if (sort_order != ESort::kRandom)
+	{
+		// as long as the sort order isn't random, then find the previous image within the newly sorted images
+		for (idx = 0; idx < image_filenames.size(); idx ++)
+		{
+			if (old_filename == image_filenames[idx])
+			{
+				break;
+			}
+		}
+	}
+	load_image(idx);
 
 	if (scrollfield_width > 0)
 	{
