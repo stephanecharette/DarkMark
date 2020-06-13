@@ -39,11 +39,13 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	newest_markup		= "...";
 	oldest_markup		= "...";
 
+	exclusion_regex					= cfg().getValue("project_" + key + "_exclusion_regex"	);
 	darknet_configuration_template	= cfg().getValue("project_" + key + "_darknet_cfg_template"	);
 	darknet_configuration_filename	= cfg().getValue("project_" + key + "_cfg"					);
 	darknet_weights_filename		= cfg().getValue("project_" + key + "_weights"				);
 	darknet_names_filename			= cfg().getValue("project_" + key + "_names"				);
 
+	exclusion_regex					.addListener(this);
 	darknet_configuration_template	.addListener(this);
 	darknet_configuration_filename	.addListener(this);
 	darknet_weights_filename		.addListener(this);
@@ -59,7 +61,15 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	properties.add(new TextPropertyComponent(number_of_marks				, "number of marks"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(newest_markup					, "newest markup"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(oldest_markup					, "oldest markup"			, 1000, false, false));
-	properties.add(new TextPropertyComponent(darknet_configuration_template	, "darknet template"		, 1000, false, true));
+
+	auto tmp = new TextPropertyComponent(exclusion_regex					, "exclusion regex"			, 1000, false, true);
+	tmp->setTooltip("Exclusion regex is used to temporarily exclude a subset of images from the project. The regex will be applied individually to each image path and filename.\n\nFor example, set to \"car|truck\" to exclude all images that contains either the text \"car\" or \"truck\" anywhere in the path or filename.\n\nNormally, this field should be left blank.");
+	properties.add(tmp);
+
+	tmp = new TextPropertyComponent(darknet_configuration_template			, "darknet template"		, 1000, false, true);
+	tmp->setTooltip("The configuration template will be filled in once you select a configuration file within the Darknet Options window. It indicates which Darknet configuration file is used as a template when creating the project's configuration.");
+	properties.add(tmp);
+
 	properties.add(new TextPropertyComponent(darknet_configuration_filename	, "darknet configuration"	, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_weights_filename		, "darknet weights"			, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_names_filename			, "classes/names"			, 1000, false, true));
@@ -88,7 +98,7 @@ dm::StartupCanvas::~StartupCanvas()
 void dm::StartupCanvas::resized()
 {
 	const int margin_size		= 5;
-	const int number_of_lines	= 11;
+	const int number_of_lines	= 13;
 	const int height_per_line	= 25;
 	const int total_pp_height	= number_of_lines * height_per_line;
 

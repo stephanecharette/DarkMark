@@ -45,8 +45,43 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	VStr json_filenames;
 	std::atomic<bool> done = false;
 	find_files(File(project_info.project_dir), image_filenames, json_filenames, done);
-
 	Log("number of images found in " + project_info.project_dir + ": " + std::to_string(image_filenames.size()));
+
+	const std::string exclusion_regex = cfg().get_str(cfg_prefix + "exclusion_regex");
+	if (exclusion_regex.empty() == false)
+	{
+		try
+		{
+			const std::regex rx(exclusion_regex);
+
+			VStr v;
+			for (auto && fn : image_filenames)
+			{
+				const bool result = std::regex_search(fn, rx);
+				if (result == false)
+				{
+					v.push_back(fn);
+				}
+			}
+
+			if (v.size() != image_filenames.size())
+			{
+				v.swap(image_filenames);
+				AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::InfoIcon, "DarkMark",
+						"This project has an exclusion regex:\n\n"
+						"\t\t" + exclusion_regex + "\n\n" +
+						std::to_string(v.size() - image_filenames.size()) + " images were excluded by this filter, bringing the total number of images down from " +
+						std::to_string(v.size()) + " to " + std::to_string(image_filenames.size()) + ".\n\n"
+						"Clear the \"exclusion regex\" field in the launcher window to include all images in the project."
+						);
+			}
+		}
+		catch (...)
+		{
+			AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The \"exclusion regex\" for this project has caused an error and has been skipped.");
+		}
+	}
+
 	set_sort_order(sort_order);
 
 	return;

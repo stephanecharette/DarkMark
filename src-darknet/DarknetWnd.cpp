@@ -112,7 +112,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
-	b->setTooltip("Enable this option to use the full list of images for both training and validation (recommended), otherwise use the percentage defined below.");
+	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. This should only be enabled if you have a very small number of images, and you are looking to bootstrap your first neural network to help mark up additional images.");
 	properties.add(b);
 
 	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);

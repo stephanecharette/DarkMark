@@ -345,6 +345,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 				const std::string prefix = "project_" + key.toStdString() + "_";
 
+				cfg().setValue(prefix + "exclusion_regex"		, notebook_canvas->exclusion_regex					);
 				cfg().setValue(prefix + "cfg"					, notebook_canvas->darknet_configuration_filename	);
 				cfg().setValue(prefix + "weights"				, notebook_canvas->darknet_weights_filename			);
 				cfg().setValue(prefix + "names"					, notebook_canvas->darknet_names_filename			);
