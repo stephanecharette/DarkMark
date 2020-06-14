@@ -1,5 +1,16 @@
 /** @page Summary Summary
 
+@tableofcontents
+
+@section Demo DarkMark (and DarkHelp) Demo
+
+@htmlonly[block]
+<iframe width="560" height="315" src="https://www.youtube.com/embed/w1lTCO2Kmsc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+@endhtmlonly
+
+@li Click in the table of contents on the right or scroll down to the individual sections below for a brief explanation of each window in DarkMark.
+@li For information on the open-source C++ class DarkHelp to access your Darknet neural network within a C++ application, see <a target="_blank" href="https://www.ccoderun.ca/darkhelp/api/">the DarkHelp web site</a>.
+
 @section DarkMarkLauncher DarkMark Launcher
 
 You first choose which project DarkMark needs to load.  This is the DarkMark Launcher window:
