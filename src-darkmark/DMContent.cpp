@@ -738,6 +738,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	}
 
 	bool exception_caught = false;
+	std::string what_msg;
 	std::string task = "[unknown]";
 	try
 	{
@@ -816,11 +817,13 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	{
 		exception_caught = true;
 		Log("Error: exception caught while " + task + ": " + e.what());
+		what_msg = e.what();
 	}
 	catch(...)
 	{
 		exception_caught = true;
 		Log("Error: failed while " + task);
+		what_msg = "\"unknown\"";
 	}
 
 	if (exception_caught)
@@ -829,7 +832,11 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 		AlertWindow::showMessageBoxAsync(
 			AlertWindow::AlertIconType::WarningIcon,
 			"DarkMark",
-			"Failure occurred while " + task + ". See log file for details.");
+			"Failure occurred while " + task + ". See log file for details.\n"
+			"\n"
+			"The most likely cause of this failure is when Darknet has been recently updated, but the version of DarkHelp installed is for an older version of libdarknet. If this is the case, then rebuilding DarkHelp should fix the issue.\n"
+			"\n"
+			"The exact error message logged is: " + what_msg);
 	}
 
 	resized();
