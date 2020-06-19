@@ -5,9 +5,6 @@
 #include "DarkMark.hpp"
 
 
-Colour dm::CrosshairComponent::crosshair_colour = Colours::blue;
-
-
 dm::CrosshairComponent::CrosshairComponent(DMContent & c) :
 	Component("CrosshairComponent"),
 	content(c),
@@ -88,10 +85,10 @@ void dm::CrosshairComponent::paint(Graphics & g)
 
 			juce::Rectangle<int> r(x1, y1, x2 - x1, y2 - y1);
 
-			const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx);
-			const juce::Colour colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
+//			const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx);
+//			const juce::Colour colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 
-			g.setColour(colour);
+			g.setColour(content.crosshair_colour);
 			g.drawRect(r, 1);
 		}
 		else if (mouse_current_loc != invalid_point)
@@ -116,7 +113,7 @@ void dm::CrosshairComponent::paint_crosshairs(Graphics & g)
 		const int w = getWidth();
 
 		g.setOpacity(1.0f);
-		g.setColour(crosshair_colour);
+		g.setColour(content.crosshair_colour);
 		g.drawHorizontalLine(	mouse_current_loc.y, 0, w);
 		g.drawVerticalLine(		mouse_current_loc.x, 0, h);
 	}

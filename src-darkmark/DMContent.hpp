@@ -50,6 +50,8 @@ namespace dm
 
 			DMContent & set_labels(const EToggle toggle);
 
+			DMContent & toggle_shade_rectangles();
+
 			DMContent & toggle_bold_labels();
 
 			DMContent & toggle_show_predictions(const EToggle toggle);
@@ -146,6 +148,7 @@ namespace dm
 			size_t number_of_predictions;
 
 			double alpha_blend_percentage;
+			bool shade_rectangles;
 			bool all_marks_are_bold;
 			bool show_processing_time;
 			bool need_to_save;
@@ -154,6 +157,9 @@ namespace dm
 			std::string darknet_image_processing_time;	///< How long it took darknet to make predictions for the current image.
 
 			DarkHelp::VColours annotation_colours;
+
+			/// The most recently used class now determines the colour to use for the crosshairs.
+			Colour crosshair_colour;
 
 			cv::Mat original_image;
 			cv::Mat scaled_image;

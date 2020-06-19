@@ -18,7 +18,8 @@ Key							| Saves Modified Marks First	| Description
 @p TAB						|								| Move focus to the next marking.
 @p SHIFT + @p TAB			|								| Move focus to the previous marking.
 @p a						|								| Accept all Darknet predictions (if any) for the current image as actual markings.
-@p b						|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
+@p b (lowercase)			|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
+@p B (uppercase)			|								| Toggle @em shade mode.  All marked rectangles will be shaded in a semi-transparent colour.
 @p c						|								| Display the 'class' menu (see @p ENTER key).
 @p e						|								| Settings not exposed in right-mouse-click menu.
 @p j						| yes							| Jump to a different image.

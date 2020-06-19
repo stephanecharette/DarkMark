@@ -135,10 +135,21 @@ void dm::DMCanvas::rebuild_cache_image()
 		const int thickness		= (is_selected or content.all_marks_are_bold ? 2 : 1);
 
 		cv::Mat tmp = content.scaled_image(r).clone();
+
+		if (content.shade_rectangles)
+		{
+			const double shade_divider = (is_selected ? 4.0 : 2.0);
+			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, CV_FILLED);
+			const double alpha = content.alpha_blend_percentage / shade_divider;
+			const double beta = 1.0 - alpha;
+			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, tmp);
+		}
+
 		cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
 
 		if (m.is_prediction)
 		{
+			// draw an "X" through the middle of the rectangle
 			cv::line(tmp, cv::Point(0, 0), cv::Point(tmp.cols, tmp.rows), colour, 1, cv::LINE_8);
 			cv::line(tmp, cv::Point(0, tmp.rows), cv::Point(tmp.cols, 0), colour, 1, cv::LINE_8);
 		}
@@ -291,6 +302,8 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 
 	if (previous_selected_mark != content.selected_mark)
 	{
+		const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx);
+		content.crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 		content.rebuild_image_and_repaint();
 	}
 

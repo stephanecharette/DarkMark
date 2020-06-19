@@ -10,7 +10,7 @@ class CrosshairColourPicker : public ButtonPropertyComponent, public ChangeListe
 	public:
 
 		CrosshairColourPicker(const String & propertyName) : ButtonPropertyComponent(propertyName, true) { return; }
-		virtual String getButtonText()const override { return dm::CrosshairComponent::crosshair_colour.toDisplayString(false); }
+		virtual String getButtonText()const override { return Colours::white.toDisplayString(false); }
 		virtual void buttonClicked() override
 		{
 			ColourSelector * cs = new ColourSelector(
@@ -18,7 +18,7 @@ class CrosshairColourPicker : public ButtonPropertyComponent, public ChangeListe
 				ColourSelector::editableColour	|
 				ColourSelector::showColourspace	);
 
-			cs->setCurrentColour(dm::CrosshairComponent::crosshair_colour);
+			cs->setCurrentColour(Colours::white);
 			cs->setName("Crosshair Colour");
 			cs->setSize(200, 200);
 			cs->addChangeListener(this);
@@ -36,7 +36,7 @@ class CrosshairColourPicker : public ButtonPropertyComponent, public ChangeListe
 			if (cs)
 			{
 				const auto colour = cs->getCurrentColour();
-				dm::CrosshairComponent::crosshair_colour = colour;
+//				dm::CrosshairComponent::crosshair_colour = colour;
 				refresh();
 			}
 			return;
@@ -85,7 +85,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 //	TextPropertyComponent		* t = nullptr;
 //	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
-	ButtonPropertyComponent		* b = nullptr;
+//	ButtonPropertyComponent		* b = nullptr;
 
 	s = new SliderPropertyComponent(v_darkhelp_threshold, "detection threshold", 0, 100, 1);
 	s->setTooltip("Detection threshold is used to determine whether or not there is an object in the predicted bounding box.");
@@ -102,8 +102,9 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	pp.addSection("darknet", properties);
 	properties.clear();
 
-	b = new CrosshairColourPicker("crosshair colour");
-	properties.add(b);
+//	b = new CrosshairColourPicker("crosshair colour");
+//	b->setEnabled(false);
+//	properties.add(b);
 
 	s = new SliderPropertyComponent(v_scrollfield_width, "scrollfield width", 0, 200, 10);
 	properties.add(s);
@@ -131,7 +132,7 @@ void dm::SettingsWnd::closeButtonPressed()
 {
 	// close button
 
-	cfg().setValue("crosshair_colour"			, CrosshairComponent::crosshair_colour			.toString()	);
+//	cfg().setValue("crosshair_colour"			, CrosshairComponent::crosshair_colour			.toString()	);
 	cfg().setValue("darknet_threshold"			, v_darkhelp_threshold							.getValue()	);
 	cfg().setValue("darknet_hierarchy_threshold", v_darkhelp_hierchy_threshold					.getValue()	);
 	cfg().setValue("darknet_nms_threshold"		, v_darkhelp_non_maximal_suppression_threshold	.getValue()	);

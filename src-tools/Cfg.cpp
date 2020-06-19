@@ -52,12 +52,12 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("show_predictions"				, static_cast<int>(EToggle::kAuto)					);
 	insert_if_not_exist("show_marks"					, true												);
 	insert_if_not_exist("alpha_blend_percentage"		, 65												);
+	insert_if_not_exist("shade_rectangles"				, true												);
 	insert_if_not_exist("all_marks_are_bold"			, false												);
 	insert_if_not_exist("show_processing_time"			, true												);
 	insert_if_not_exist("darknet_threshold"				, 50												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7e956a7d74f8d576e573da4ea92310f1
 	insert_if_not_exist("darknet_hierarchy_threshold"	, 50												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7766c935160b80d696e232067afe8430
 	insert_if_not_exist("darknet_nms_threshold"			, 45												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#ac533cda5d4cbba691deb4df5d89da318
-	insert_if_not_exist("crosshair_colour"				, "ffffffff"										); // alpha + rgb
 	insert_if_not_exist("review_table_row_height"		, 75												);
 	insert_if_not_exist("scrollfield_width"				, 100												);
 
@@ -65,6 +65,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	removeValue("darknet_trailing_percentage");	// typo:  "trailing" -> "training"
 	removeValue("darknet_enable_yolov3_tiny");	// this was changed to project-specific template
 	removeValue("darknet_enable_yolov3_full");	// this was changed to project-specific template
+	removeValue("crosshair_colour"); // crosshairs are now the colour of the last-used class
 
 	// global settings that have since been converted to be per-project
 	removeValue("darknet_config"				);

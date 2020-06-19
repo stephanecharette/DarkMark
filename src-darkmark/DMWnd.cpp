@@ -31,8 +31,6 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 		restoreWindowStateFromString( cfg().getValue("DMWnd") );
 	}
 
-	CrosshairComponent::crosshair_colour = Colour::fromString(cfg().get_str("crosshair_colour"));
-
 	// This next line can take a while to run.  Loading the neural network is very slow.
 	// May want to investigate putting this on a thread.
 	content.start_darknet();

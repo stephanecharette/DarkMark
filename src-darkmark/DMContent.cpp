@@ -24,6 +24,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	number_of_marks(0),
 	number_of_predictions(0),
 	alpha_blend_percentage(static_cast<double>(cfg().get_int("alpha_blend_percentage")) / 100.0),
+	shade_rectangles(cfg().get_bool("shade_rectangles")),
 	all_marks_are_bold(cfg().get_bool("all_marks_are_bold")),
 	show_processing_time(cfg().get_bool("show_processing_time")),
 	need_to_save(false),
@@ -39,6 +40,8 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	addAndMakeVisible(bubble_message);
 	bubble_message.setLookAndFeel(&look_and_feel_v3);
 	bubble_message.toFront(false);
+
+	crosshair_colour = Colours::white;
 
 	setWantsKeyboardFocus(true);
 
@@ -229,6 +232,11 @@ void dm::DMContent::start_darknet()
 	names.push_back("* empty image *");
 
 	annotation_colours = DarkHelp::get_default_annotation_colours();
+	if (annotation_colours.empty() == false)
+	{
+		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
+		crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
+	}
 
 	load_image(0);
 
@@ -321,6 +329,9 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 			const Mark & m = marks.at(selected_mark);
 			most_recent_class_idx = m.class_idx;
 			most_recent_size = m.get_normalized_bounding_rect().size();
+
+			const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
+			crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 		}
 
 		rebuild_image_and_repaint();
@@ -488,6 +499,11 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		toggle_bold_labels();
 		return true;
 	}
+	else if (keychar == 'B')
+	{
+		toggle_shade_rectangles();
+		return true;
+	}
 	else if (keychar == 'c' or keycode == KeyPress::returnKey)
 	{
 		create_class_menu().showMenuAsync(PopupMenu::Options());
@@ -557,15 +573,20 @@ dm::DMContent & dm::DMContent::set_class(const size_t class_idx)
 		}
 		else
 		{
-			most_recent_class_idx = class_idx;
-
 			auto & m = marks[selected_mark];
 			m.class_idx = class_idx;
 			m.name = names.at(m.class_idx);
 			m.description = names.at(m.class_idx);
 			need_to_save = true;
-			rebuild_image_and_repaint();
 		}
+	}
+
+	if (class_idx < names.size() - 1)
+	{
+		most_recent_class_idx = class_idx;
+		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
+		crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
+		rebuild_image_and_repaint();
 	}
 
 	return *this;
@@ -647,6 +668,18 @@ dm::DMContent & dm::DMContent::set_labels(const EToggle toggle)
 
 		rebuild_image_and_repaint();
 	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::toggle_shade_rectangles()
+{
+	shade_rectangles = not shade_rectangles;
+
+	cfg().setValue("shade_rectangles", shade_rectangles);
+
+	rebuild_image_and_repaint();
 
 	return *this;
 }
@@ -1351,6 +1384,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	view.addItem("show darknet processing time"		, (show_predictions != EToggle::kOff	), (show_processing_time				), std::function<void()>( [&]{ toggle_show_processing_time();			} ));
 	view.addSeparator();
 	view.addItem("show marks"						, true									, show_marks							,  std::function<void()>( [&]{ toggle_show_marks();						} ));
+	view.addItem("shade"							, true									, shade_rectangles						,  std::function<void()>( [&]{ toggle_shade_rectangles();				} ));
 
 	const size_t number_of_darknet_marks = [&]
 	{
