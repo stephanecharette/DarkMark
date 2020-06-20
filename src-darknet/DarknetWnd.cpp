@@ -79,7 +79,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_batch_size					= info.batch_size;
 	v_subdivisions					= info.subdivisions;
 	v_iterations					= info.iterations;
-	v_resume_training				= info.resume_training;
+	v_restart_training				= info.restart_training;
 	v_delete_temp_weights			= info.delete_temp_weights;
 	v_saturation					= info.saturation;
 	v_exposure						= info.exposure;
@@ -153,8 +153,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 			name = f.getFileName().toStdString();
 		}
 	}
-	b = new BooleanPropertyComponent(v_resume_training, "resume training", (name.empty() ? "weights file not found" : name));
-	b->setTooltip("Resume training from an existing .weights file (normally *_best.weights)");
+	b = new BooleanPropertyComponent(v_restart_training, "re-use existing weights", (name.empty() ? "weights file not found" : name));
+	b->setTooltip("Restart training using an existing .weights file (normally *_best.weights). This clears the 'images seen' counter in the weights file to restart training at zero. Do not use this if you've added, removed, or re-ordered lines in your .names file since you last trained the network.");
 	if (name.empty())
 	{
 		b->setState(false);
@@ -170,15 +170,15 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	s = new SliderPropertyComponent(v_saturation, "saturation", 0.0, 10.0, 0.001);
-	s->setTooltip("The intensity of the colour.");
+	s->setTooltip("The intensity of the colour. Default value is 1.5.");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_exposure, "exposure", 0.0, 10.0, 0.001);
-	s->setTooltip("The amount of white or black added to a colour to create a new shade.");
+	s->setTooltip("The amount of white or black added to a colour to create a new shade. Default value is 1.5.");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_hue, "hue", 0.0, 1.0, 0.001);
-	s->setTooltip("If the network you are training contains classes based on colour, then you'll want to disable this or use a very low value to prevent darknet from altering the hue during data augmentation. Set to 0.5 or higher if the colour does not matter.");
+	s->setTooltip("If the network you are training contains classes based on colour, then you'll want to disable this or use a very low value to prevent darknet from altering the hue during data augmentation. Set to 0.5 or higher if the colour does not matter. Default value is 0.1.");
 	properties.add(s);
 
 	pp.addSection("data augmentation [colour]", properties);
@@ -348,7 +348,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_batch_size"			, v_batch_size					);
 	cfg().setValue(content.cfg_prefix + "darknet_subdivisions"			, v_subdivisions				);
 	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
-	cfg().setValue(content.cfg_prefix + "darknet_resume_training"		, v_resume_training				);
+	cfg().setValue(content.cfg_prefix + "darknet_restart_training"		, v_restart_training			);
 	cfg().setValue(content.cfg_prefix + "darknet_delete_temp_weights"	, v_delete_temp_weights			);
 	cfg().setValue(content.cfg_prefix + "darknet_saturation"			, v_saturation					);
 	cfg().setValue(content.cfg_prefix + "darknet_exposure"				, v_exposure					);
@@ -364,7 +364,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.batch_size					= v_batch_size				.getValue();
 	info.subdivisions				= v_subdivisions			.getValue();
 	info.iterations					= v_iterations				.getValue();
-	info.resume_training			= v_resume_training			.getValue();
+	info.restart_training			= v_restart_training		.getValue();
 	info.delete_temp_weights		= v_delete_temp_weights		.getValue();
 	info.saturation					= v_saturation				.getValue();
 	info.exposure					= v_exposure				.getValue();
@@ -564,9 +564,10 @@ void dm::DarknetWnd::create_Darknet_files()
 	if (true)
 	{
 		std::string cmd = info.darknet_dir + "/darknet detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
-		if (info.resume_training)
+		if (info.restart_training)
 		{
 			cmd += " " + cfg().get_str(content.cfg_prefix + "weights");
+			cmd += " -clear 1";
 		}
 
 		std::stringstream ss;

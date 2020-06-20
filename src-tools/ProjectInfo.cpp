@@ -19,7 +19,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	batch_size					= cfg().get_int		(cfg_prefix + "darknet_batch_size"				, 64	);
 	subdivisions				= cfg().get_int		(cfg_prefix + "darknet_subdivisions"			, 8		);
 	iterations					= cfg().get_int		(cfg_prefix + "darknet_iterations"				, 4000	);
-	resume_training				= cfg().get_bool	(cfg_prefix + "darknet_resume_training"			, false	);
+	restart_training			= cfg().get_bool	(cfg_prefix + "darknet_restart_training"		, false	);
 	delete_temp_weights			= cfg().get_bool	(cfg_prefix + "darknet_delete_temp_weights"		, true	);
 	saturation					= cfg().get_double	(cfg_prefix + "darknet_saturation"				, 1.50f	);
 	exposure					= cfg().get_double	(cfg_prefix + "darknet_exposure"				, 1.50f	);

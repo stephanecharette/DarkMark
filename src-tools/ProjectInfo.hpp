@@ -32,7 +32,7 @@ namespace dm
 			int			batch_size;					///< e.g., @p 64
 			int			subdivisions;				///< e.g., @p 8
 			int			iterations;					///< number of iterations; e.g., @p 20,000
-			bool		resume_training;			///< whether training should start from previous *_best.weights file or start new
+			bool		restart_training;			///< whether training should use the previous *_best.weights file or start new
 			bool		delete_temp_weights;		///< whether the temporary .weights files should be deleted once training has finished
 			float		saturation;
 			float		exposure;

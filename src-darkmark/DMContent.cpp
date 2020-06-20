@@ -606,8 +606,13 @@ dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
 		cfg().setValue("sort_order", tmp);
 	}
 
+	if (image_filenames.empty())
+	{
+		return *this;
+	}
+
 	// remember the current image filename so we can scroll back to the same one once we're done sorting
-	const std::string old_filename = image_filenames[image_filename_index];
+	const std::string old_filename = image_filenames.at(image_filename_index);
 
 	switch (sort_order)
 	{
