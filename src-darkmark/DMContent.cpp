@@ -497,11 +497,13 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	else if (keychar == 'b')
 	{
 		toggle_bold_labels();
+		show_message("bold: " + std::string(all_marks_are_bold ? "enable" : "disable"));
 		return true;
 	}
 	else if (keychar == 'B')
 	{
 		toggle_shade_rectangles();
+		show_message("shade: " + std::string(shade_rectangles ? "enable" : "disable"));
 		return true;
 	}
 	else if (keychar == 'c' or keycode == KeyPress::returnKey)
@@ -665,7 +667,6 @@ dm::DMContent & dm::DMContent::set_labels(const EToggle toggle)
 	{
 		show_labels = toggle;
 		cfg().setValue("show_labels", static_cast<int>(show_labels));
-
 		rebuild_image_and_repaint();
 	}
 
@@ -676,9 +677,7 @@ dm::DMContent & dm::DMContent::set_labels(const EToggle toggle)
 dm::DMContent & dm::DMContent::toggle_shade_rectangles()
 {
 	shade_rectangles = not shade_rectangles;
-
 	cfg().setValue("shade_rectangles", shade_rectangles);
-
 	rebuild_image_and_repaint();
 
 	return *this;
@@ -688,9 +687,7 @@ dm::DMContent & dm::DMContent::toggle_shade_rectangles()
 dm::DMContent & dm::DMContent::toggle_bold_labels()
 {
 	all_marks_are_bold = not all_marks_are_bold;
-
 	cfg().setValue("all_marks_are_bold", all_marks_are_bold);
-
 	rebuild_image_and_repaint();
 
 	return *this;

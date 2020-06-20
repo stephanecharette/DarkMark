@@ -168,12 +168,22 @@ void dm::DMCanvas::rebuild_cache_image()
 			cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
 		}
 
-		// draw the label (if the area is large enough to warrant a label)
-		if (content.show_labels == EToggle::kOn or content.all_marks_are_bold or (content.show_labels == EToggle::kAuto and (is_selected or (tmp.cols >= 30 and tmp.rows >= 30))))
-		{
-			int baseline = 0;
-			auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
+		// We calculate the width and height of the text compared to the mark rectangle to determine if the label
+		// would end up being bigger than the mark.  If the label is >= the size of the mark rectangle, then
+		// we'll skip displaying the label when the mode is set to "auto".
+		int baseline = 0;
+		const auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
 
+		// draw the label (if the area is large enough to warrant a label)
+		if	(content.show_labels == EToggle::kOn	or
+			(content.show_labels == EToggle::kAuto	and
+				(is_selected or
+					(	text_size.width		<= tmp.cols and
+						text_size.height	<= tmp.rows
+					)
+				)
+			))
+		{
 			// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
 			const int x_offset = r.width - text_size.width - 2;
 
