@@ -11,3 +11,5 @@ FIND_LIBRARY ( LIBMAGIC			magic			) # sudo apt-get install libmagic-dev
 FIND_PACKAGE ( GTest			QUIET			)
 
 SET ( DM_LIBRARIES ${DARKHELP} ${DARKNET} ${XEXT} ${OpenCV_LIBS} ${LIBMAGIC} )
+
+INCLUDE_DIRECTORIES ( ${OpenCV_INCLUDE_DIRS} )

@@ -14,6 +14,34 @@
 #include <JuceHeader.h>
 
 
+/* OpenCV4 has renamed some common defines and placed them in the cv namespace.
+ * Need to deal with this until older versions of OpenCV are no longer in use.
+ */
+#if 0
+#ifndef CV_INTER_CUBIC
+#define CV_INTER_CUBIC cv::INTER_CUBIC
+#endif
+#ifndef CV_INTER_AREA
+#define CV_INTER_AREA cv::INTER_AREA
+#endif
+#ifndef CV_AA
+#define CV_AA cv::LINE_AA
+#endif
+#endif
+#ifndef CV_FILLED
+#define CV_FILLED cv::FILLED
+#endif
+#ifndef CV_IMWRITE_PNG_COMPRESSION
+#define CV_IMWRITE_PNG_COMPRESSION cv::ImwriteFlags::IMWRITE_PNG_COMPRESSION
+#endif
+#ifndef CV_IMWRITE_JPEG_OPTIMIZE
+#define CV_IMWRITE_JPEG_OPTIMIZE cv::ImwriteFlags::IMWRITE_JPEG_OPTIMIZE
+#endif
+#ifndef CV_IMWRITE_JPEG_QUALITY
+#define CV_IMWRITE_JPEG_QUALITY cv::ImwriteFlags::IMWRITE_JPEG_QUALITY
+#endif
+
+
 // forward declare a few classes
 namespace dm
 {

@@ -32,7 +32,7 @@ These are the steps required to install/build Darknet, DarkHelp, and DarkMark in
 Do this first:
 @code{.sh}
 cd ~
-sudo apt-get install build-essential git cmake libopencv-dev
+sudo apt-get install build-essential git libopencv-dev
 git clone https://github.com/AlexeyAB/darknet.git
 cd darknet
 # edit Makefile and at a minimum set OPENCV=1, OPENMP=1, and LIBSO=1
@@ -45,7 +45,7 @@ sudo ldconfig
 @subsection BuildingDarkHelp DarkHelp
 Do this second.  <a target="_blank" href="https://www.ccoderun.ca/download/">Download</a> and install the pre-built package of DarkHelp, or build it from source:
 @code{.sh}
-sudo apt-get install libtclap-dev
+sudo apt-get install cmake libtclap-dev libmagic-dev libopencv-dev
 # download the DarkHelp source code from https://www.ccoderun.ca/download/
 cd ~/src/DarkHelp
 mkdir build
