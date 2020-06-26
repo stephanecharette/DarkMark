@@ -21,6 +21,14 @@ Projects are simple:  each neural network "project" is a directory.  These direc
 
 Once you select a tab and click on @p "Load...", the launcher window is hidden and the DarkMark editor window is shown instead.
 
+@section DarkMarkImportVideoFrames DarkMark Import Video Frames
+
+If you have video files instead of images, you can use the import tool to extract individual video frames as images and import them into your %DarkMark project.
+
+@image html import_video.png
+
+The options allow you to limit the number of imported frames, resize each frame as it is extracted, and select the output image format.
+
 @section DarkMarkEditor DarkMark Editor
 
 The editor is the main window for the DarkMark application.  This is where you can browse through all the images located within that project and create, edit, or delete individual marks:
@@ -64,7 +72,6 @@ Press @p "e" (see @ref Keyboard) to modify several settings:
 - Detection threshold is used to determine whether or not there is an object in the predicted bounding box.
 - The hierarchical threshold is used to decide whether following the tree to a more specific class is the right action to take. When this threshold is 0, the tree will basically follow the highest probability branch all the way to a leaf node.
 - Non-Maximal Suppression (NMS) suppresses overlapping bounding boxes and only retains the bounding box that has the maximum probability of object detection associated with it. It examines all bounding boxes and removes the least confident of the boxes that overlap with each other.
-- Colour used to draw the crosshairs.
 - The width of the @ref DarkMarkScrollField on the right side of the main window.  Set to @p 0 to hide the scrolling field.
 
 @section DarkMarkReview DarkMark Review
