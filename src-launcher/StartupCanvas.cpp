@@ -31,19 +31,6 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	table.setModel(this);
 
 	project_directory	= dir.c_str();
-	size_of_directory	= "...";
-	number_of_images	= "...";
-	number_of_json		= "...";
-	number_of_classes	= "...";
-	number_of_marks		= "...";
-	newest_markup		= "...";
-	oldest_markup		= "...";
-
-	exclusion_regex					= cfg().getValue("project_" + key + "_exclusion_regex"	);
-	darknet_configuration_template	= cfg().getValue("project_" + key + "_darknet_cfg_template"	);
-	darknet_configuration_filename	= cfg().getValue("project_" + key + "_cfg"					);
-	darknet_weights_filename		= cfg().getValue("project_" + key + "_weights"				);
-	darknet_names_filename			= cfg().getValue("project_" + key + "_names"				);
 
 	exclusion_regex					.addListener(this);
 	darknet_configuration_template	.addListener(this);
@@ -80,7 +67,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	hide_some_weight_files.setToggleState(true, NotificationType::sendNotification);
 	hide_some_weight_files.addListener(this);
 
-	t = std::thread(&StartupCanvas::initialize_on_thread, this);
+	refresh();
 
 	return;
 }
@@ -365,6 +352,35 @@ void dm::StartupCanvas::find_all_darknet_files()
 	{
 		number_of_classes = "?";
 	}
+
+	return;
+}
+
+
+void dm::StartupCanvas::refresh()
+{
+	done = true;
+	if (t.joinable())
+	{
+		t.join();
+	}
+
+	size_of_directory	= "...";
+	number_of_images	= "...";
+	number_of_json		= "...";
+	number_of_classes	= "...";
+	number_of_marks		= "...";
+	newest_markup		= "...";
+	oldest_markup		= "...";
+
+	exclusion_regex					= cfg().getValue("project_" + cfg_key + "_exclusion_regex"	);
+	darknet_configuration_template	= cfg().getValue("project_" + cfg_key + "_darknet_cfg_template"	);
+	darknet_configuration_filename	= cfg().getValue("project_" + cfg_key + "_cfg"					);
+	darknet_weights_filename		= cfg().getValue("project_" + cfg_key + "_weights"				);
+	darknet_names_filename			= cfg().getValue("project_" + cfg_key + "_names"				);
+
+	done = false;
+	t = std::thread(&StartupCanvas::initialize_on_thread, this);
 
 	return;
 }

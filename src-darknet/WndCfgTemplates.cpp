@@ -476,6 +476,13 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kLink1		] = "YOLOv4 whitepaper";
 			row.field[Fields::kUrl1			] = "https://arxiv.org/pdf/2004.10934.pdf";
 		}
+		else if (short_name == "yolov4-tiny.cfg")
+		{
+			row.field[Fields::kNotes		] = "contains 2 YOLO layers";
+			row.field[Fields::kWeightsSize	] = "23.1 MiB";
+			row.field[Fields::kLink1		] = "5346";
+			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/5346#issuecomment-649566598";
+		}
 		else if (
 			short_name == "cifar.cfg"				or
 			short_name == "darknet53.cfg"			or

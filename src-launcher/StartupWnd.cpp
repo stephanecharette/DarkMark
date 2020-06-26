@@ -3,12 +3,16 @@
  */
 
 #include "DarkMark.hpp"
+#include <magic.h>
 
 
 dm::StartupWnd::StartupWnd() :
 		DocumentWindow("DarkMark v" DARKMARK_VERSION " Launcher", Colours::darkgrey, TitleBarButtons::allButtons),
 		add_button("Add..."),
 		delete_button("Delete..."),
+		import_video_button("Import video..."),
+		open_folder_button("Open folder..."),
+		refresh_button("Refresh"),
 		ok_button("Load..."),
 		cancel_button("Cancel")
 {
@@ -20,6 +24,9 @@ dm::StartupWnd::StartupWnd() :
 	canvas.addAndMakeVisible(notebook);
 	canvas.addAndMakeVisible(add_button);
 	canvas.addAndMakeVisible(delete_button);
+	canvas.addAndMakeVisible(import_video_button);
+	canvas.addAndMakeVisible(open_folder_button);
+	canvas.addAndMakeVisible(refresh_button);
 	canvas.addAndMakeVisible(ok_button);
 	canvas.addAndMakeVisible(cancel_button);
 
@@ -54,10 +61,13 @@ dm::StartupWnd::StartupWnd() :
 	}
 	notebook.setCurrentTabIndex(0);
 
-	add_button		.addListener(this);
-	delete_button	.addListener(this);
-	ok_button		.addListener(this);
-	cancel_button	.addListener(this);
+	add_button			.addListener(this);
+	delete_button		.addListener(this);
+	import_video_button	.addListener(this);
+	open_folder_button	.addListener(this);
+	refresh_button		.addListener(this);
+	ok_button			.addListener(this);
+	cancel_button		.addListener(this);
 
 	setIcon(DarkMarkLogo());
 	ComponentPeer *peer = getPeer();
@@ -133,8 +143,12 @@ void dm::StartupWnd::resized()
 	button_row.items.add(FlexItem(add_button)	.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 	button_row.items.add(FlexItem(delete_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 	button_row.items.add(FlexItem()				.withFlex(1.0));
-	button_row.items.add(FlexItem(cancel_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-	button_row.items.add(FlexItem(ok_button)	.withWidth(100.0));
+	button_row.items.add(FlexItem(import_video_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+	button_row.items.add(FlexItem(open_folder_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+	button_row.items.add(FlexItem()				.withFlex(1.0));
+	button_row.items.add(FlexItem(refresh_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+	button_row.items.add(FlexItem(ok_button		).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+	button_row.items.add(FlexItem(cancel_button	).withWidth(100.0));
 
 	FlexBox fb;
 	fb.flexDirection = FlexBox::Direction::column;
@@ -154,6 +168,75 @@ void dm::StartupWnd::buttonClicked(Button * button)
 	if (button == &cancel_button)
 	{
 		closeButtonPressed();
+	}
+	else if (button == &open_folder_button)
+	{
+		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
+		if (notebook_canvas)
+		{
+			File dir(notebook_canvas->project_directory.toString());
+			dir.revealToUser();
+		}
+	}
+	else if (button == &refresh_button)
+	{
+		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
+		if (notebook_canvas)
+		{
+			notebook_canvas->refresh();
+		}
+	}
+	else if (button == &import_video_button)
+	{
+		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
+		if (notebook_canvas)
+		{
+			const auto base_directory = notebook_canvas->project_directory.toString();
+			FileChooser fc("Video to import...", base_directory, "*");
+			if (fc.browseForMultipleFilesToOpen())
+			{
+				bool ok_to_proceed = true;
+
+				// check to make sure all the files selected are video files
+				magic_t magic_cookie = magic_open(MAGIC_MIME_TYPE);
+				magic_load(magic_cookie, nullptr);
+
+				VStr v;
+				for (auto && file : fc.getResults())
+				{
+					const std::string filename = file.getFullPathName().toStdString();
+					const std::string filetype = magic_file(magic_cookie, filename.c_str());
+					Log("video import mime type: " + filetype + " " + filename);
+					if (filetype.find("video/") != std::string::npos)
+					{
+						v.push_back(filename);
+					}
+					else
+					{
+						AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon,
+							"DarkMark",
+							"The selected file \"" + file.getFileName() + "\" does not appear to be a valid video file.\n"
+							"\n"
+							"Expected the MIME type to be video/*, but the type appears to be \"" + filetype + "\".\n"
+							"\n" + filename);
+						ok_to_proceed = false;
+						break;
+					}
+				}
+				magic_close(magic_cookie);
+
+				if (ok_to_proceed)
+				{
+					VideoImportWindow viw(base_directory.toStdString(), v);
+					viw.runModalLoop();
+					if (viw.number_of_processed_frames > 0)
+					{
+						// re-scan this project now that we have more image files
+						notebook_canvas->refresh();
+					}
+				}
+			}
+		}
 	}
 	else if (button == &add_button)
 	{

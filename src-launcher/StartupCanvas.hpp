@@ -41,6 +41,8 @@ namespace dm
 		/// Sets the @ref need_to_rebuild_cache_image flag, which eventually results in a call to @ref rebuild_cache_image().
 		virtual void resized();
 
+		void refresh();
+
 		virtual int getNumRows();
 		virtual void paintRowBackground(Graphics &g, int rowNumber, int width, int height, bool rowIsSelected);
 		virtual void paintCell(Graphics & g, int rowNumber, int columnId, int width, int height, bool rowIsSelected);

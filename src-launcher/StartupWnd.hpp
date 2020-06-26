@@ -30,6 +30,9 @@ namespace dm
 			Notebook notebook;
 			TextButton add_button;
 			TextButton delete_button;
+			TextButton import_video_button;
+			TextButton open_folder_button;
+			TextButton refresh_button;
 			TextButton ok_button;
 			TextButton cancel_button;
 	};

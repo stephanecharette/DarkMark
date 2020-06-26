@@ -21,12 +21,12 @@
 #ifndef CV_INTER_CUBIC
 #define CV_INTER_CUBIC cv::INTER_CUBIC
 #endif
-#ifndef CV_INTER_AREA
-#define CV_INTER_AREA cv::INTER_AREA
-#endif
 #ifndef CV_AA
 #define CV_AA cv::LINE_AA
 #endif
+#endif
+#ifndef CV_INTER_AREA
+#define CV_INTER_AREA cv::INTER_AREA
 #endif
 #ifndef CV_FILLED
 #define CV_FILLED cv::FILLED
@@ -58,6 +58,7 @@ namespace dm
 	class WndCfgTemplates;
 	class StartupWnd;
 	class StartupCanvas;
+	class VideoImportWindow;
 	class SettingsWnd;
 	class ProjectInfo;
 	class DMContentReview;
@@ -92,6 +93,7 @@ namespace dm
 #include "DMReviewCanvas.hpp"
 #include "DarknetWnd.hpp"
 #include "WndCfgTemplates.hpp"
+#include "VideoImportWindow.hpp"
 #include "StartupWnd.hpp"
 #include "SettingsWnd.hpp"
 #include "StartupCanvas.hpp"
