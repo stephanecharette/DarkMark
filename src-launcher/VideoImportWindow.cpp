@@ -7,11 +7,16 @@
 
 
 dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v) :
-	DocumentWindow("DarkMark - Import Video Frames", Colours::darkgrey, TitleBarButtons::allButtons),
+	DocumentWindow("DarkMark - Import Video Frames", Colours::darkgrey, TitleBarButtons::closeButton),
 	ThreadWithProgressWindow("DarkMark", true, true							),
 	base_directory			(dir											),
 	filenames				(v												),
 	tb_extract_all			("extract all frames"							),
+	tb_extract_sequences	("extract sequences of sequential frames"		),
+	sl_sequences			(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
+	txt_sequences			("", "sequences"								),
+	sl_consecutive_frames	(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
+	txt_consecutive_frames	("", "consecutive frames"						),
 	tb_extract_maximum		("maximum number of random frames to extract:"	),
 	sl_maximum				(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
 	tb_extract_percentage	("percentage of random frames to extract:"		),
@@ -26,7 +31,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	txt_jpeg_quality		("", "image quality:"							),
 	sl_jpeg_quality			(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
 	cancel					("Cancel"),
-	ok						("Start..."),
+	ok						("Import"),
 	number_of_processed_frames(0)
 {
 	setContentNonOwned		(&canvas, true	);
@@ -36,6 +41,11 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 
 	canvas.addAndMakeVisible(header_message			);
 	canvas.addAndMakeVisible(tb_extract_all			);
+	canvas.addAndMakeVisible(tb_extract_sequences	);
+	canvas.addAndMakeVisible(sl_sequences			);
+	canvas.addAndMakeVisible(txt_sequences			);
+	canvas.addAndMakeVisible(sl_consecutive_frames	);
+	canvas.addAndMakeVisible(txt_consecutive_frames	);
 	canvas.addAndMakeVisible(tb_extract_maximum		);
 	canvas.addAndMakeVisible(sl_maximum				);
 	canvas.addAndMakeVisible(tb_extract_percentage	);
@@ -55,6 +65,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	canvas.addAndMakeVisible(ok						);
 
 	tb_extract_all			.setRadioGroupId(1);
+	tb_extract_sequences	.setRadioGroupId(1);
 	tb_extract_maximum		.setRadioGroupId(1);
 	tb_extract_percentage	.setRadioGroupId(1);
 
@@ -68,6 +79,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	tb_save_as_jpeg			.setRadioGroupId(4);
 
 	tb_extract_all			.addListener(this);
+	tb_extract_sequences	.addListener(this);
 	tb_extract_maximum		.addListener(this);
 	tb_extract_percentage	.addListener(this);
 	tb_do_not_resize		.addListener(this);
@@ -79,10 +91,18 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	cancel					.addListener(this);
 	ok						.addListener(this);
 
-	tb_extract_all			.setToggleState(true, NotificationType::sendNotification);
+	tb_extract_sequences	.setToggleState(true, NotificationType::sendNotification);
 	tb_do_not_resize		.setToggleState(true, NotificationType::sendNotification);
 	tb_keep_aspect_ratio	.setToggleState(true, NotificationType::sendNotification);
 	tb_save_as_jpeg			.setToggleState(true, NotificationType::sendNotification);
+
+	sl_sequences			.setRange(1.0, 999.0, 1.0);
+	sl_sequences			.setNumDecimalPlacesToDisplay(0);
+	sl_sequences			.setValue(10);
+
+	sl_consecutive_frames	.setRange(10.0, 9999.0, 1.0);
+	sl_consecutive_frames	.setNumDecimalPlacesToDisplay(0);
+	sl_consecutive_frames	.setValue(30);
 
 	sl_maximum				.setRange(1.0, 9999.0, 1.0);
 	sl_maximum				.setNumDecimalPlacesToDisplay(0);
@@ -148,7 +168,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	}
 	else
 	{
-		centreWithSize(400, 600);
+		centreWithSize(380, 530);
 	}
 
 	setVisible(true);
@@ -204,6 +224,22 @@ void dm::VideoImportWindow::resized()
 
 	fb_rows.items.add(FlexItem(header_message			).withHeight(height * 4));
 	fb_rows.items.add(FlexItem(tb_extract_all			).withHeight(height).withMargin(new_row_indent));
+	fb_rows.items.add(FlexItem(tb_extract_sequences		).withHeight(height));
+
+	FlexBox fb_sequences_1;
+	fb_sequences_1.flexDirection	= FlexBox::Direction::row;
+	fb_sequences_1.justifyContent	= FlexBox::JustifyContent::flexStart;
+	fb_sequences_1.items.add(FlexItem(sl_sequences		).withHeight(height).withWidth(150.0f));
+	fb_sequences_1.items.add(FlexItem(txt_sequences		).withHeight(height).withWidth(150.0f));
+	fb_rows.items.add(FlexItem(fb_sequences_1			).withHeight(height).withMargin(left_indent));
+
+	FlexBox fb_sequences_2;
+	fb_sequences_2.flexDirection	= FlexBox::Direction::row;
+	fb_sequences_2.justifyContent	= FlexBox::JustifyContent::flexStart;
+	fb_sequences_2.items.add(FlexItem(sl_consecutive_frames	).withHeight(height).withWidth(150.0f));
+	fb_sequences_2.items.add(FlexItem(txt_consecutive_frames).withHeight(height).withWidth(150.0f));
+	fb_rows.items.add(FlexItem(fb_sequences_2			).withHeight(height).withMargin(left_indent));
+
 	fb_rows.items.add(FlexItem(tb_extract_maximum		).withHeight(height));
 	fb_rows.items.add(FlexItem(sl_maximum				).withHeight(height).withWidth(150.0f).withMargin(left_indent));
 	fb_rows.items.add(FlexItem(tb_extract_percentage	).withHeight(height));
@@ -259,6 +295,12 @@ void dm::VideoImportWindow::buttonClicked(Button * button)
 	bool b = tb_extract_maximum.getToggleState();
 	sl_maximum.setEnabled(b);
 
+	b = tb_extract_sequences.getToggleState();
+	sl_sequences.setEnabled(b);
+	txt_sequences.setEnabled(b);
+	sl_consecutive_frames.setEnabled(b);
+	txt_consecutive_frames.setEnabled(b);
+
 	b = tb_extract_percentage.getToggleState();
 	sl_percentage.setEnabled(b);
 
@@ -296,8 +338,11 @@ void dm::VideoImportWindow::run()
 	try
 	{
 		const bool extract_all_frames		= tb_extract_all		.getToggleState();
+		const bool extract_sequences		= tb_extract_sequences	.getToggleState();
 		const bool extract_maximum_frames	= tb_extract_maximum	.getToggleState();
 		const bool extract_percentage		= tb_extract_percentage	.getToggleState();
+		const double number_of_sequences	= sl_sequences			.getValue();
+		const double consecutive_frames		= sl_consecutive_frames	.getValue();
 		const double maximum_to_extract		= sl_maximum			.getValue();
 		const double percent_to_extract		= sl_percentage			.getValue() / 100.0;
 		const bool resize_frame				= tb_resize				.getToggleState();
@@ -326,6 +371,11 @@ void dm::VideoImportWindow::run()
 			if (extract_all_frames)
 			{
 				work_to_be_done += number_of_frames;
+			}
+			if (extract_sequences)
+			{
+				const double work = number_of_sequences * consecutive_frames;
+				work_to_be_done += std::min(work, number_of_frames);
 			}
 			else if (extract_maximum_frames)
 			{
@@ -365,7 +415,55 @@ void dm::VideoImportWindow::run()
 			std::uniform_int_distribution<size_t> uni(0, number_of_frames - 1);
 
 			std::set<size_t> frames_needed;
-			if (extract_maximum_frames)
+			if (extract_sequences)
+			{
+				/* Say the video is this long:
+				 *
+				 *		[...............................]
+				 *
+				 * If we need to extract 3 sequences, then we divide it into 3+1 sections:
+				 *
+				 *		[...............................]
+				 *		|		|		|		|		|
+				 *		0		1		2		3		4
+				 *
+				 * Each of those numbered sections becomes the mid-point of a sequence,
+				 * so we take some frames before and some frames after each mid-point.
+				 */
+				for (size_t sequence_counter = 1; sequence_counter <= number_of_sequences; sequence_counter ++)
+				{
+					const size_t mid_point = number_of_frames * sequence_counter / (number_of_sequences + 1);
+					const size_t half = consecutive_frames / 2;
+					size_t min_point = 0;
+					size_t max_point = mid_point + half;
+					if (mid_point > half)
+					{
+						min_point = mid_point - half;
+					}
+					if (max_point > number_of_frames - 1)
+					{
+						max_point = number_of_frames - 1;
+					}
+
+					// if the number of frames is even, then the mid point + 2 * half will give us 1 too many frames
+					if (max_point - min_point + 1 > consecutive_frames)
+					{
+						max_point -= 1;
+					}
+
+					Log("sequence counter .. " + std::to_string(sequence_counter));
+					Log("-> min point ...... " + std::to_string(min_point));
+					Log("-> mid point ...... " + std::to_string(mid_point));
+					Log("-> max point ...... " + std::to_string(max_point));
+					Log("-> total frames ... " + std::to_string(max_point - min_point + 1));
+
+					for (size_t frame = min_point; frame <= max_point; frame ++)
+					{
+						frames_needed.insert(frame);
+					}
+				}
+			}
+			else if (extract_maximum_frames)
 			{
 				while (threadShouldExit() == false and frames_needed.size() < std::min(number_of_frames, maximum_to_extract))
 				{
@@ -385,7 +483,7 @@ void dm::VideoImportWindow::run()
 			size_t frame_number = 0;
 			while (threadShouldExit() == false)
 			{
-				if (extract_maximum_frames or extract_percentage)
+				if (extract_sequences or extract_maximum_frames or extract_percentage)
 				{
 					if (frames_needed.empty())
 					{
@@ -393,10 +491,14 @@ void dm::VideoImportWindow::run()
 						break;
 					}
 
-					// we need to skip to a specific frame
-					frame_number = *frames_needed.begin();
-					frames_needed.erase(frame_number);
-					cap.set(cv::VideoCaptureProperties::CAP_PROP_POS_FRAMES, static_cast<double>(frame_number));
+					const auto next_frame_needed = *frames_needed.begin();
+					frames_needed.erase(next_frame_needed);
+					if (frame_number != next_frame_needed)
+					{
+						// only explicitely set the absolute frame position if the frames are not consecutive
+						cap.set(cv::VideoCaptureProperties::CAP_PROP_POS_FRAMES, static_cast<double>(next_frame_needed));
+						frame_number = next_frame_needed;
+					}
 				}
 
 				cv::Mat mat;

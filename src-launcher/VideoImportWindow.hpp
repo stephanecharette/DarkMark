@@ -31,6 +31,11 @@ namespace dm
 
 			Label			header_message;
 			ToggleButton	tb_extract_all;
+			ToggleButton	tb_extract_sequences;
+			Slider			sl_sequences;
+			Label			txt_sequences;
+			Slider			sl_consecutive_frames;
+			Label			txt_consecutive_frames;
 			ToggleButton	tb_extract_maximum;
 			Slider			sl_maximum;
 			ToggleButton	tb_extract_percentage;
