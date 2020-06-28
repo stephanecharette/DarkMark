@@ -539,22 +539,6 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		}
 		dmapp().settings_wnd->toFront(true);
 	}
-	#if 0
-	else if (keychar == 'z')
-	{
-		const auto old_image_index = image_filename_index;
-		show_predictions = EToggle::kOn;
-		show_marks = false;
-		for (size_t idx = 0; idx < image_filenames.size(); idx ++)
-		{
-			load_image(idx);
-			std::stringstream ss;
-			ss << "frame_" << std::setfill('0') << std::setw(4) << idx << ".png";
-			save_screenshot(true, ss.str());
-		}
-		load_image(old_image_index);
-	}
-	#endif
 	else
 	{
 		show_message("ignoring unknown key '" + key.getTextDescription().toStdString() + "'");
@@ -740,12 +724,42 @@ dm::DMContent & dm::DMContent::toggle_show_processing_time()
 
 dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_load)
 {
-//	if (marks.empty() == false)
 	if (need_to_save)
 	{
 		save_json();
 		save_text();
 	}
+
+	#if (DARKMARK_ENABLE_OPENCV_CSRT_TRACKER > 0)
+	VMarks previous_marks;
+	cv::Mat previous_original_image;
+	bool enable_opencv_tracker = false;
+	if (full_load)
+	{
+//		if (short_filename.find("_frame_") != std::string::npos)
+		{
+			if (sort_order == ESort::kAlphabetical)
+			{
+				if (new_idx == image_filename_index + 1 or new_idx + 1 == image_filename_index)
+				{
+					if (marks.empty() == false)
+					{
+						// if we get here, then we're looking at consecutive frames in what is likely to be a video import,
+						// so we can enable the OpenCV CSRT object tracker if the new image does not have any predictions
+						previous_marks = marks;
+						previous_original_image = original_image;
+						enable_opencv_tracker = true;
+					}
+				}
+			}
+		}
+	}
+	if (enable_opencv_tracker == false and object_trackers.empty() == false)
+	{
+		Log("clearing " + std::to_string(object_trackers.size()) + " object trackers");
+		object_trackers.clear();
+	}
+	#endif
 
 	darknet_image_processing_time = "";
 	selected_mark	= -1;
@@ -820,6 +834,99 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 						marks.push_back(m);
 					}
 				}
+
+				#if (DARKMARK_ENABLE_OPENCV_CSRT_TRACKER > 0)
+				if (marks.empty() and enable_opencv_tracker)
+				{
+					// we have zero predictions, zero markup, but maybe we can use the OpenCV tracker to make some predictions
+
+					if (object_trackers.empty())
+					{
+						// if possible, get rid of predictions and keep just the real markup
+						bool delete_predictions = false;
+						for (const auto & m : previous_marks)
+						{
+							if (m.is_prediction == false)
+							{
+								// we found an actual mark, this means we can ignore (delete) any predictions
+								delete_predictions = true;
+								break;
+							}
+						}
+						if (delete_predictions)
+						{
+							auto iter = previous_marks.begin();
+							while (iter != previous_marks.end())
+							{
+								if (iter->is_prediction)
+								{
+									iter = previous_marks.erase(iter);
+								}
+								else
+								{
+									iter ++;
+								}
+							}
+						}
+
+						// whatever is left in "previous_marks" we know we want to attempt to track
+						for (const auto & old_mark : previous_marks)
+						{
+							cv::Rect2d r2d = old_mark.get_normalized_bounding_rect();
+							double x = r2d.x		* previous_original_image.cols;
+							double y = r2d.y		* previous_original_image.rows;
+							double w = r2d.width	* previous_original_image.cols;
+							double h = r2d.height	* previous_original_image.rows;
+							r2d = { cv::Point2d(x, y), cv::Size2d(w, h) };
+
+							ObjectTracker ot;
+							ot.class_idx = old_mark.class_idx;
+							ot.tracker = cv::TrackerCSRT::create();
+							ot.tracker->init(previous_original_image, r2d);
+
+							Log("-> creating a tracker for class #" + std::to_string(ot.class_idx));
+
+							object_trackers.push_back(ot);
+						}
+					}
+
+					Log("need to udpate " + std::to_string(object_trackers.size()) + " trackers");
+					for (auto & ot : object_trackers)
+					{
+						Log("-> updating a tracker (class #" + std::to_string(ot.class_idx) + ")");
+						cv::Rect2d output;
+						const bool ok = ot.tracker->update(original_image, output);
+						if (ok)
+						{
+							// create a new mark from this output
+							const double w = output.width	/ original_image.cols;
+							const double h = output.height	/ original_image.rows;
+							const double x = output.x / original_image.cols + w / 2.0;
+							const double y = output.y / original_image.rows + h / 2.0;
+
+							Log("-> tracker was successful"
+								" (x=" + std::to_string(x) +
+								", y=" + std::to_string(y) +
+								", w=" + std::to_string(w) +
+								", h=" + std::to_string(h) +
+								")");
+								
+							const cv::Point2d normalized_point(x, y);
+							const cv::Size2d normalized_size(w, h);
+
+							Mark m(normalized_point, normalized_size, original_image.size(), ot.class_idx);
+							m.name = names.at(m.class_idx);
+							m.description = m.name;
+							m.is_prediction = true;
+							marks.push_back(m);
+						}
+						else
+						{
+							Log("-> tracker was LOST!");
+						}
+					}
+				}
+				#endif
 			}
 
 			// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when

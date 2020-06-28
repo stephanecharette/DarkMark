@@ -19,6 +19,22 @@ namespace dm
 		kRandom
 	};
 
+
+	#if (DARKMARK_ENABLE_OPENCV_CSRT_TRACKER > 0)
+	/* Not enabled by default.  See CM_definitions.cmake for details.
+	 * Unless you are specifically working on CSRT I suggest that this option remain disabled.
+	 *
+	 * Each OpenCV object tracker needs to also have a class index so we know which class to apply.
+	 */
+	struct ObjectTracker
+	{
+		size_t class_idx;
+		cv::Ptr<cv::Tracker> tracker;
+	};
+	typedef std::vector<ObjectTracker> ObjectTrackers;
+	#endif
+
+
 	/** The content of the main DarkMark window.  This is where all the action happens.  The @p DMContent window
 	 * is where the image is shown, where Darknet/DarkHelp is managed, where all the images are sorted, etc.
 	 *
@@ -185,5 +201,10 @@ namespace dm
 
 			LookAndFeel_V3 look_and_feel_v3; // V4 is way too dark, it is impossible to read, so stick to v3 when building bubble messages
 			BubbleMessageComponent bubble_message;
+
+			#if (DARKMARK_ENABLE_OPENCV_CSRT_TRACKER > 0)
+			/// OpenCV object trackers (e.g., CSRT).
+			ObjectTrackers object_trackers;
+			#endif
 	};
 }
