@@ -189,7 +189,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_mosaic, "enable mosaic", "mosaic");
-//	b->setTooltip("...?");
+	b->setTooltip("Issue #6105: \"Mosaic degrades accuracy for tiny model.\"");
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_cutmix, "enable cutmix", "cutmix");
@@ -355,6 +355,9 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_hue"					, v_hue							);
 	cfg().setValue(content.cfg_prefix + "darknet_enable_flip"			, v_enable_flip					);
 	cfg().setValue(content.cfg_prefix + "darknet_angle"					, v_angle						);
+	cfg().setValue(content.cfg_prefix + "darknet_mosaic"				, v_mosaic						);
+	cfg().setValue(content.cfg_prefix + "darknet_cutmix"				, v_cutmix						);
+	cfg().setValue(content.cfg_prefix + "darknet_mixup"					, v_mixup						);
 
 	info.darknet_dir				= v_darknet_dir				.toString().toStdString();
 	info.cfg_template				= v_cfg_template			.toString().toStdString();

@@ -79,7 +79,7 @@ dm::ProjectInfo & dm::ProjectInfo::rebuild(const std::string & project_directory
 
 	if (cfg_template.empty())
 	{
-		cfg_template = File(darknet_dir).getChildFile("cfg").getChildFile("yolov3-tiny.cfg").getFullPathName().toStdString();
+		cfg_template = File(darknet_dir).getChildFile("cfg").getChildFile("yolov4-tiny.cfg").getFullPathName().toStdString();
 	}
 
 	// check to make sure the template .cfg files actually exists
