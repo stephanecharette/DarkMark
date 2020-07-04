@@ -29,4 +29,4 @@ ADD_DEFINITIONS ( "-Wall" ) # -Wextra -Werror -Wno-unused-parameter" )
 # I've left the code in DarkMark for future use, tests, and for me to keep working on it.  But I've commented it out
 # since I don't feel it is ready for use.
 #
-ADD_DEFINITIONS(DARKMARK_ENABLE_OPENCV_CSRT_TRACKER=0)
+ADD_DEFINITIONS(-DDARKMARK_ENABLE_OPENCV_CSRT_TRACKER=0)
