@@ -17,6 +17,8 @@ dm::ScrollField::ScrollField(DMContent & c) :
 
 	mouse_drag_is_enabled = false;
 
+	bubble.addToDesktop(ComponentPeer::StyleFlags::windowIsTemporary + ComponentPeer::StyleFlags::windowIgnoresKeyPresses);
+
 	return;
 }
 
@@ -40,8 +42,9 @@ void dm::ScrollField::rebuild_entire_field_on_thread()
 		field			= cv::Mat();
 		resized_image	= cv::Mat();
 		cached_image	= juce::Image();
+		map_idx_imagesets.clear();
 
-		startThread();
+		startThread(); // see ScrollField::run()
 	}
 
 	return;
@@ -53,6 +56,7 @@ void dm::ScrollField::run()
 	field			= cv::Mat();
 	resized_image	= cv::Mat();
 	cached_image	= juce::Image();
+	map_idx_imagesets.clear();
 
 	const size_t number_of_images = content.image_filenames.size();
 	const size_t number_of_classes = content.names.size();
@@ -77,6 +81,37 @@ void dm::ScrollField::run()
 		update_index(idx);
 	}
 
+	if (content.sort_order == dm::ESort::kAlphabetical)
+	{
+		File previous_parent;
+
+		const std::string parent = content.project_info.project_dir;
+		
+		// find all of the different image sets so we can display the white "arrow"
+		for (size_t idx = 0; idx < number_of_images; idx ++)
+		{
+			if (threadShouldExit())
+			{
+				break;
+			}
+
+			File fn(content.image_filenames.at(idx));
+			File dir = fn.getParentDirectory();
+			if (previous_parent != dir)
+			{
+				// this is a new image set!
+				Log("starting a new image set at index=" + std::to_string(idx) + ", fn=" + content.image_filenames.at(idx));
+
+				std::string name = dir.getFullPathName().toStdString();
+				if (name.size() > parent.size() + 1)
+				{
+					name.erase(0, parent.size() + 1);
+				}
+				map_idx_imagesets[idx] = name;
+				previous_parent = dir;
+			}
+		}
+	}
 
 	need_to_rebuild_cache_image = true;
 	repaint();
@@ -190,6 +225,39 @@ void dm::ScrollField::mouseDrag(const MouseEvent & event)
 }
 
 
+void dm::ScrollField::mouseMove(const MouseEvent & event)
+{
+	if (map_idx_imagesets.empty() == false)
+	{
+		const int triangle_size			= 5;
+		const double height				= static_cast<double>(resized_image.rows);
+		const double number_of_images	= static_cast<double>(content.image_filenames.size());
+
+		for (auto iter : map_idx_imagesets)
+		{
+			const double idx = iter.first;
+			const int y = std::round(idx / number_of_images * height);
+
+			if (event.x <= triangle_size and std::abs(event.y - y) <= triangle_size)
+			{
+				AttributedString str;
+				str.setText(iter.second);
+				str.setColour(Colours::white);
+				str.setWordWrap(AttributedString::WordWrap::none);
+
+				const auto r = getScreenBounds();
+				bubble.showAt(juce::Rectangle<int>(r.getX(), r.getY() + y, 1, 1), str, 2000);
+				break;
+			}
+		}
+	}
+
+	CrosshairComponent::mouseMove(event);
+
+	return;
+}
+
+
 void dm::ScrollField::jump_to_location(const MouseEvent & event, const bool full_load)
 {
 	// If the mouse is dragged beyond the border of the window, the Y will be negative,
@@ -226,9 +294,41 @@ void dm::ScrollField::rebuild_cache_image()
 
 		cv::resize(field, resized_image, cv::Size(w, h));
 
+		draw_triangles_at_image_sets();
 		draw_marker_at_current_image();
 
 		need_to_rebuild_cache_image = false;
+	}
+
+	return;
+}
+
+
+void dm::ScrollField::draw_triangles_at_image_sets()
+{
+	if (map_idx_imagesets.empty() == false)
+	{
+		const int triangle_size			= 5;
+		const double height				= static_cast<double>(resized_image.rows);
+		const double number_of_images	= static_cast<double>(content.image_filenames.size());
+		VContours contours;
+
+		for (auto iter : map_idx_imagesets)
+		{
+			const double idx = iter.first;
+			const int y = std::round(idx / number_of_images * height);
+
+			const Contour contour =
+			{
+				cv::Point(0, y - triangle_size),
+				cv::Point(triangle_size, y),
+				cv::Point(0, y + triangle_size)
+			};
+
+			contours.push_back(contour);
+		}
+
+		cv::fillPoly(resized_image, contours, {255.0, 255.0, 255.0});
 	}
 
 	return;

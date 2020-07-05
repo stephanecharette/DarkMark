@@ -26,10 +26,12 @@ namespace dm
 			virtual void mouseUp(const MouseEvent & event) override;
 			virtual void mouseDown(const MouseEvent & event) override;
 			virtual void mouseDrag(const MouseEvent & event) override;
+			virtual void mouseMove(const MouseEvent & event) override;
 
 			virtual void jump_to_location(const MouseEvent & event, const bool full_load = false);
 
 			virtual void rebuild_cache_image();
+			virtual void draw_triangles_at_image_sets();
 			virtual void draw_marker_at_current_image();
 
 			/// Link to the parent which manages the content.
@@ -43,5 +45,10 @@ namespace dm
 
 			/// The @ref field image resized to fit exactly within the window.
 			cv::Mat resized_image;
+
+			/// Track at which index the image sets can be found so we can draw our little triangles.
+			MIdxStr map_idx_imagesets;
+
+			BubbleMessageComponent bubble;
 	};
 }
