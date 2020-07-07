@@ -38,7 +38,6 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	addAndMakeVisible(scrollfield);
 
 	addAndMakeVisible(bubble_message);
-	bubble_message.setLookAndFeel(&look_and_feel_v3);
 	bubble_message.toFront(false);
 
 	crosshair_colour = Colours::white;
@@ -529,6 +528,11 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	else if (keychar == 'y')
 	{
 		copy_marks_from_previous_image();
+		return true;
+	}
+	else if (keychar == 'Y')
+	{
+		copy_marks_from_next_image();
 		return true;
 	}
 	else if (keychar == 'e')
@@ -1250,6 +1254,142 @@ dm::DMContent & dm::DMContent::delete_current_image()
 }
 
 
+bool dm::DMContent::copy_marks_from_given_image(const std::string & fn)
+{
+	File f = File(fn).withFileExtension(".json");
+	if (f.existsAsFile() == false)
+	{
+		// keep looking
+		return false;
+	}
+
+	json root;
+	try
+	{
+		root = json::parse(f.loadFileAsString().toStdString());
+	}
+	catch (const std::exception & e)
+	{
+		// ignore the error, nothing we can do about broken .json files
+	}
+
+	if (root["mark"].empty())
+	{
+		// no marks, so keep looking for a better image we can use
+		return false;
+	}
+
+	// if we get here then we've found an image from which we'll copy marks
+
+	size_t count_added		= 0;
+	size_t count_skipped	= 0;
+
+	// re-create the marks from the content of the .json file
+	for (auto m : root["mark"])
+	{
+		Mark new_mark;
+		new_mark.class_idx		= m["class_idx"];
+		new_mark.name			= m["name"];
+		new_mark.description	= new_mark.name;
+		new_mark.normalized_all_points.clear();
+		for (size_t point_idx = 0; point_idx < m["points"].size(); point_idx ++)
+		{
+			cv::Point2d p;
+			p.x = m["points"][point_idx]["x"];
+			p.y = m["points"][point_idx]["y"];
+			new_mark.normalized_all_points.push_back(p);
+		}
+		new_mark.rebalance();
+
+		// check to see if we already have this mark
+		bool already_exists = false;
+		for (const auto & old_mark : marks)
+		{
+			if (old_mark.normalized_corner_points == new_mark.normalized_corner_points && old_mark.class_idx == new_mark.class_idx)
+			{
+				count_skipped ++;
+				already_exists = true;
+				break;
+			}
+		}
+		if (already_exists == false)
+		{
+			marks.push_back(new_mark);
+			count_added ++;
+		}
+	}
+
+	std::stringstream ss;
+	if (count_added)
+	{
+		ss << "copied " << count_added << " mark" << (count_added == 1 ? "" : "s");
+	}
+	if (count_skipped)
+	{
+		if (count_added)
+		{
+			ss << " and ";
+		}
+		
+		ss << "skipped " << count_skipped << " identical mark" << (count_skipped == 1 ? "" : "s");
+	}
+	ss << " from " << File(fn).getFileName().toStdString();
+
+	show_message(ss.str());
+
+	if (count_added)
+	{
+		need_to_save = true;
+		rebuild_image_and_repaint();
+	}
+
+	// we've now copied over all the old marks we need, so stop looking at other images
+
+	return true;
+}
+
+
+dm::DMContent & dm::DMContent::copy_marks_from_next_image()
+{
+	// first we need to make a copy of the image list and sort it alphabetically;
+	// this helps us identify exactly which image is "previous" (assuming images are numbered!)
+	auto alphabetical_image_filenames = image_filenames;
+	std::sort(alphabetical_image_filenames.begin(), alphabetical_image_filenames.end());
+
+	// find the current index within the alphabetical list
+	size_t idx;
+	for (idx = 0; idx < alphabetical_image_filenames.size(); idx ++)
+	{
+		if (alphabetical_image_filenames[idx] == image_filenames[image_filename_index])
+		{
+			break;
+		}
+	}
+
+	// now go through all the following images one at a time until we find one that has marks we can copy
+	bool done = false;
+	while (not done)
+	{
+		if (idx == alphabetical_image_filenames.size() - 1)
+		{
+			// there is no more previous images -- nothing we can do
+			break;
+		}
+
+		idx ++;
+
+		done = copy_marks_from_given_image(alphabetical_image_filenames.at(idx));
+	}
+
+	if (not done)
+	{
+		show_message("no images with marks were found");
+	}
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::copy_marks_from_previous_image()
 {
 	// first we need to make a copy of the image list and sort it alphabetically;
@@ -1267,11 +1407,9 @@ dm::DMContent & dm::DMContent::copy_marks_from_previous_image()
 		}
 	}
 
-	size_t count_added = 0;
-	size_t count_skipped = 0;
-
 	// now go through all the previous images one at a time until we find one that has marks we can copy
-	while (true)
+	bool done = false;
+	while (not done)
 	{
 		if (idx == 0)
 		{
@@ -1281,97 +1419,12 @@ dm::DMContent & dm::DMContent::copy_marks_from_previous_image()
 
 		idx --;
 
-		File f = File(alphabetical_image_filenames[idx]).withFileExtension(".json");
-		if (f.existsAsFile() == false)
-		{
-			// keep looking
-			continue;
-		}
-
-		json root;
-		try
-		{
-			root = json::parse(f.loadFileAsString().toStdString());
-		}
-		catch (const std::exception & e)
-		{
-			// ignore the error, nothing we can do about broken .json files
-		}
-
-		if (root["mark"].empty())
-		{
-			// no marks, so keep looking for a better image we can use
-			continue;
-		}
-
-		// if we get here then we've found the "previous" image from which we'll copy marks
-
-		// re-create the marks from the content of the .json file
-		for (auto m : root["mark"])
-		{
-			Mark new_mark;
-			new_mark.class_idx		= m["class_idx"];
-			new_mark.name			= m["name"];
-			new_mark.description	= new_mark.name;
-			new_mark.normalized_all_points.clear();
-			for (size_t point_idx = 0; point_idx < m["points"].size(); point_idx ++)
-			{
-				cv::Point2d p;
-				p.x = m["points"][point_idx]["x"];
-				p.y = m["points"][point_idx]["y"];
-				new_mark.normalized_all_points.push_back(p);
-			}
-			new_mark.rebalance();
-
-			// check to see if we already have this mark
-			bool already_exists = false;
-			for (const auto & old_mark : marks)
-			{
-				if (old_mark.normalized_corner_points == new_mark.normalized_corner_points && old_mark.class_idx == new_mark.class_idx)
-				{
-					count_skipped ++;
-					already_exists = true;
-					break;
-				}
-			}
-			if (already_exists == false)
-			{
-				marks.push_back(new_mark);
-				count_added ++;
-			}
-		}
-
-		std::stringstream ss;
-		if (count_added)
-		{
-			ss << "copied " << count_added << " mark" << (count_added == 1 ? "" : "s");
-		}
-		if (count_skipped)
-		{
-			if (count_added)
-			{
-				ss << " and ";
-			}
-
-			ss << "skipped " << count_skipped << " identical mark" << (count_skipped == 1 ? "" : "s");
-		}
-		ss << " from " << File(alphabetical_image_filenames[idx]).getFileName().toStdString();
-
-		show_message(ss.str());
-
-		if (count_added)
-		{
-			need_to_save = true;
-			rebuild_image_and_repaint();
-		}
-
-		// we've now copied over all the old marks we need, so stop looking at previous images
-		break;
+		done = copy_marks_from_given_image(alphabetical_image_filenames.at(idx));
 	}
 
-	if (count_added == 0 && count_skipped == 0)
+	if (not done)
 	{
-		show_message("no previous images with marks were found");
+		show_message("no images with marks were found");
 	}
 
 	return *this;
@@ -1639,8 +1692,12 @@ dm::DMContent & dm::DMContent::show_message(const std::string & msg)
 	}
 	else
 	{
+		AttributedString str;
+		str.setText(msg);
+		str.setColour(Colours::white);
+
 		const Rectangle<int> r(getWidth()/2, 1, 1, 1);
-		bubble_message.showAt(r, AttributedString(msg), 4000, true, false);
+		bubble_message.showAt(r, str, 4000, true, false);
 	}
 
 	return *this;

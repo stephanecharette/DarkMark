@@ -92,6 +92,10 @@ namespace dm
 
 			DMContent & delete_current_image();
 
+			bool copy_marks_from_given_image(const std::string & fn);
+
+			DMContent & copy_marks_from_next_image();
+
 			DMContent & copy_marks_from_previous_image();
 
 			DMContent & accept_all_marks();
@@ -199,7 +203,6 @@ namespace dm
 
 			ProjectInfo project_info;
 
-			LookAndFeel_V3 look_and_feel_v3; // V4 is way too dark, it is impossible to read, so stick to v3 when building bubble messages
 			BubbleMessageComponent bubble_message;
 
 			#if (DARKMARK_ENABLE_OPENCV_CSRT_TRACKER > 0)
