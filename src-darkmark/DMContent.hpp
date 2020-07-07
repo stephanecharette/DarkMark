@@ -92,12 +92,18 @@ namespace dm
 
 			DMContent & delete_current_image();
 
+			/** Attempt to copy the marks from the given image (or rather, from the corresponding .json file).
+			 * @returns @p true if at least 1 mark was copied
+			 * @returns @p false if there was no .json file or no marks.
+			 */
 			bool copy_marks_from_given_image(const std::string & fn);
 
 			DMContent & copy_marks_from_next_image();
 
 			DMContent & copy_marks_from_previous_image();
 
+			DMContent & accept_current_mark();
+			
 			DMContent & accept_all_marks();
 
 			DMContent & erase_all_marks();

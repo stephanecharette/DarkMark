@@ -468,6 +468,11 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		accept_all_marks();
 		return true; // event has been handled
 	}
+	else if (keychar == 'A')
+	{
+		accept_current_mark();
+		return true; // event has been handled
+	}
 	else if (keychar == 'p')
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_predictions) + 1) % 3 );
@@ -1431,17 +1436,58 @@ dm::DMContent & dm::DMContent::copy_marks_from_previous_image()
 }
 
 
-dm::DMContent & dm::DMContent::accept_all_marks()
+dm::DMContent & dm::DMContent::accept_current_mark()
 {
-	for (auto & m : marks)
+	if (selected_mark >= 0 and (size_t)selected_mark < marks.size())
 	{
-		m.is_prediction	= false;
-		m.name			= names.at(m.class_idx);
-		m.description	= names.at(m.class_idx);
+		auto & m = marks.at(selected_mark);
+		if (m.is_prediction)
+		{
+			m.is_prediction	= false;
+			m.name			= names.at(m.class_idx);
+			m.description	= names.at(m.class_idx);
+			need_to_save	= true;
+			rebuild_image_and_repaint();
+		}
+	}
+	else
+	{
+		// if no specific mark is selected, then accept all marks
+		accept_all_marks();
 	}
 
-	need_to_save = true;
-	rebuild_image_and_repaint();
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::accept_all_marks()
+{
+	if (marks.empty() == false)
+	{
+		// do nothing if we already have 1 or more full marks
+		bool ok_to_continue = true;
+		for (auto & m : marks)
+		{
+			if (m.is_prediction == false)
+			{
+				ok_to_continue = false;
+				break;
+			}
+		}
+
+		if (ok_to_continue)
+		{
+			for (auto & m : marks)
+			{
+				m.is_prediction	= false;
+				m.name			= names.at(m.class_idx);
+				m.description	= names.at(m.class_idx);
+			}
+
+			need_to_save = true;
+			rebuild_image_and_repaint();
+		}
+	}
 
 	return *this;
 }

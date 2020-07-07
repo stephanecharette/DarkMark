@@ -6,8 +6,10 @@ Key							| Saves Modified Marks First	| Description
 ----------------------------|-------------------------------|------------
 @p LEFT						| yes							| Go to previous image.  If at the first image, do nothing.
 @p RIGHT					| yes							| Go to the next image.  If at the last image, do nothing.
-@p PAGEUP					| yes							| Go to the previous image which has not yet been marked.
-@p PAGEDOWN					| yes							| Go to the next image which has not yet been marked.
+@p UP						|								| Increase Darknet threshold.
+@p DOWN						|								| Decrease Darknet threshold.
+@p PAGEUP					| yes							| Go to the previous image which has not yet been marked.  (Also see @p 'Y'.)
+@p PAGEDOWN					| yes							| Go to the next image which has not yet been marked.  (Also see @p 'y'.)
 @p HOME						| yes							| Go to the first image.
 @p END						| yes							| Go to the last image.
 @p ENTER (or @p RETURN)		|								| Display the 'class' menu (see @p 'c' key).
@@ -17,11 +19,12 @@ Key							| Saves Modified Marks First	| Description
 @p F1						|								| About DarkMark.
 @p TAB						|								| Move focus to the next marking.
 @p SHIFT + @p TAB			|								| Move focus to the previous marking.
-@p a						|								| Accept all Darknet predictions (if any) for the current image as actual markings.
+@p a (lowercase)			|								| Accept all Darknet predictions (if any) for the current image as actual markings.
+@p A (uppercase)			|								| Accept only the currently-selected prediction and discard all other predictions.  If none are selected, then this behaves like @p 'a' where all predictions are accepted.
 @p b (lowercase)			|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
 @p B (uppercase)			|								| Toggle @em shade mode.  All marked rectangles will be shaded in a semi-transparent colour.
 @p c						|								| Display the 'class' menu (see @p ENTER key).
-@p e						|								| Settings not exposed in right-mouse-click menu.
+@p e						|								| Miscellaneous settings window.
 @p j						| yes							| Jump to a different image.
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).
