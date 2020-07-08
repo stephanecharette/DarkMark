@@ -11,7 +11,8 @@ dm::ScrollField::ScrollField(DMContent & c) :
 	CrosshairComponent(c),
 	Thread("scrollfield loading thread"),
 	content(c),
-	line_width(0)
+	line_width(0),
+	triangle_size(cfg().get_int("scrollfield_marker_size"))
 {
 	setName("ScrollField");
 
@@ -229,7 +230,6 @@ void dm::ScrollField::mouseMove(const MouseEvent & event)
 {
 	if (map_idx_imagesets.empty() == false)
 	{
-		const int triangle_size			= 5;
 		const double height				= static_cast<double>(resized_image.rows);
 		const double number_of_images	= static_cast<double>(content.image_filenames.size());
 
@@ -260,14 +260,30 @@ void dm::ScrollField::mouseMove(const MouseEvent & event)
 
 void dm::ScrollField::jump_to_location(const MouseEvent & event, const bool full_load)
 {
-	// If the mouse is dragged beyond the border of the window, the Y will be negative,
-	// which makes us wrap back around which is confusing, so ignore negative values.
-	const double y		= std::max(0, event.getPosition().getY());
-	const double h		= getHeight();
-	const double ratio	= y / h;
-	const size_t idx	= std::round(ratio * (double)content.image_filenames.size());
+	const double number_of_images	= static_cast<double>(content.image_filenames.size());
+	const double height				= static_cast<double>(resized_image.rows);
+	const double y					= std::max(0, event.getPosition().getY()); // if user is dragging up past the window border then Y can be negative, so cap it at zero
+	const double factor				= height / number_of_images;
 
-//	Log("Y=" + std::to_string(y) + " H=" + std::to_string(h) + " ratio=" + std::to_string(ratio) + " idx=" + std::to_string(idx));
+	// if the user has clicked on one of the markers, then we should snap to that index, so check that first
+	if (full_load and event.getPosition().getX() <= triangle_size)
+	{
+		for (auto iter : map_idx_imagesets)
+		{
+			const double marker_idx	= iter.first;
+			const double marker_y	= marker_idx * factor;
+
+			if (std::abs(y - marker_y) <= triangle_size)
+			{
+				content.load_image(marker_idx, full_load);
+				return;
+			}
+		}
+	}
+
+	// if we get here then the user is still scrolling, or did *not* click on a marker
+
+	const size_t idx = std::round(y / factor);
 
 	if (full_load or idx != content.image_filename_index)
 	{
@@ -306,9 +322,8 @@ void dm::ScrollField::rebuild_cache_image()
 
 void dm::ScrollField::draw_triangles_at_image_sets()
 {
-	if (map_idx_imagesets.empty() == false)
+	if (map_idx_imagesets.empty() == false and triangle_size > 0)
 	{
-		const int triangle_size			= 5;
 		const double height				= static_cast<double>(resized_image.rows);
 		const double number_of_images	= static_cast<double>(content.image_filenames.size());
 		VContours contours;

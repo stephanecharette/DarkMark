@@ -28,6 +28,7 @@ namespace dm
 			Value v_darkhelp_hierchy_threshold;
 			Value v_darkhelp_non_maximal_suppression_threshold;
 			Value v_scrollfield_width;
+			Value v_scrollfield_marker_size;
 
 			DMContent & content;
 			Component canvas;

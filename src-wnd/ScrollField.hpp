@@ -49,6 +49,9 @@ namespace dm
 			/// Track at which index the image sets can be found so we can draw our little triangles.
 			MIdxStr map_idx_imagesets;
 
+			/// The size -- in pixels -- of the triangle markers used to show the different image sets.
+			int triangle_size;
+
 			BubbleMessageComponent bubble;
 	};
 }

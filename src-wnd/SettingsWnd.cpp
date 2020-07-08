@@ -5,6 +5,7 @@
 #include "DarkMark.hpp"
 
 
+#if 0
 class CrosshairColourPicker : public ButtonPropertyComponent, public ChangeListener
 {
 	public:
@@ -42,6 +43,7 @@ class CrosshairColourPicker : public ButtonPropertyComponent, public ChangeListe
 			return;
 		}
 };
+#endif
 
 
 dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
@@ -75,11 +77,13 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	}
 
 	v_scrollfield_width = content.scrollfield_width;
+	v_scrollfield_marker_size = content.scrollfield.triangle_size;
 
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
 	v_darkhelp_non_maximal_suppression_threshold.addListener(this);
 	v_scrollfield_width							.addListener(this);
+	v_scrollfield_marker_size					.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
@@ -106,7 +110,10 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 //	b->setEnabled(false);
 //	properties.add(b);
 
-	s = new SliderPropertyComponent(v_scrollfield_width, "scrollfield width", 0, 200, 10);
+	s = new SliderPropertyComponent(v_scrollfield_width, "scrollfield width", 0.0, 200.0, 10.0);
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_scrollfield_marker_size, "scrollfield marker size", 0.0, 9.0, 1.0);
 	properties.add(s);
 
 	pp.addSection("drawing", properties);
@@ -132,11 +139,12 @@ void dm::SettingsWnd::closeButtonPressed()
 {
 	// close button
 
-//	cfg().setValue("crosshair_colour"			, CrosshairComponent::crosshair_colour			.toString()	);
-	cfg().setValue("darknet_threshold"			, v_darkhelp_threshold							.getValue()	);
-	cfg().setValue("darknet_hierarchy_threshold", v_darkhelp_hierchy_threshold					.getValue()	);
-	cfg().setValue("darknet_nms_threshold"		, v_darkhelp_non_maximal_suppression_threshold	.getValue()	);
-	cfg().setValue("scrollfield_width"			, v_scrollfield_width							.getValue()	);
+//	cfg().setValue("crosshair_colour"			, CrosshairComponent::crosshair_colour			.toString());
+	cfg().setValue("darknet_threshold"			, v_darkhelp_threshold							.getValue());
+	cfg().setValue("darknet_hierarchy_threshold", v_darkhelp_hierchy_threshold					.getValue());
+	cfg().setValue("darknet_nms_threshold"		, v_darkhelp_non_maximal_suppression_threshold	.getValue());
+	cfg().setValue("scrollfield_width"			, v_scrollfield_width							.getValue());
+	cfg().setValue("scrollfield_marker_size"	, v_scrollfield_marker_size						.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -196,6 +204,7 @@ void dm::SettingsWnd::valueChanged(Value & value)
 		dmapp().darkhelp->threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
 	}
 	content.scrollfield_width = v_scrollfield_width.getValue();
+	content.scrollfield.triangle_size = v_scrollfield_marker_size.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 
@@ -209,11 +218,9 @@ void dm::SettingsWnd::timerCallback()
 
 	stopTimer();
 
-	if (content.scrollfield.getWidth() != v_scrollfield_width)
-	{
-		content.resized();
-	}
+	content.scrollfield.rebuild_cache_image();
 	content.load_image(content.image_filename_index);
+	content.resized();
 
 	return;
 }
