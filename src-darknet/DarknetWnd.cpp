@@ -79,6 +79,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_batch_size					= info.batch_size;
 	v_subdivisions					= info.subdivisions;
 	v_iterations					= info.iterations;
+	v_max_chart_loss				= info.max_chart_loss;
 	v_restart_training				= info.restart_training;
 	v_delete_temp_weights			= info.delete_temp_weights;
 	v_saturation					= info.saturation;
@@ -138,6 +139,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	s = new SliderPropertyComponent(v_iterations, "max_batches", 1000.0, 100000.0, 1.0);
 	s->setTooltip("The total number of iterations to run. As a general rule of thumb, at the very least this should be 2000x more than the number of classes defined.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_max_chart_loss, "max loss for chart.png", 1.0, 20.0, 0.1);
+	s->setTooltip("The maximum amount of loss to display on the output image \"chart.png\". This sets the maximum value to use for the Y-axis, and is for display purposes only; it has zero impact on how the neural network is trained.");
 	properties.add(s);
 
 	pp.addSection("configuration", properties);
@@ -348,6 +353,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_batch_size"			, v_batch_size					);
 	cfg().setValue(content.cfg_prefix + "darknet_subdivisions"			, v_subdivisions				);
 	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
+	cfg().setValue(content.cfg_prefix + "darknet_max_chart_loss"		, v_max_chart_loss				);
 	cfg().setValue(content.cfg_prefix + "darknet_restart_training"		, v_restart_training			);
 	cfg().setValue(content.cfg_prefix + "darknet_delete_temp_weights"	, v_delete_temp_weights			);
 	cfg().setValue(content.cfg_prefix + "darknet_saturation"			, v_saturation					);
@@ -367,6 +373,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.batch_size					= v_batch_size				.getValue();
 	info.subdivisions				= v_subdivisions			.getValue();
 	info.iterations					= v_iterations				.getValue();
+	info.max_chart_loss				= v_max_chart_loss			.getValue();
 	info.restart_training			= v_restart_training		.getValue();
 	info.delete_temp_weights		= v_delete_temp_weights		.getValue();
 	info.saturation					= v_saturation				.getValue();
@@ -428,6 +435,7 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	const bool enable_cutmix			= info.enable_cutmix;
 	const bool enable_mixup				= info.enable_mixup;
 	const bool enable_flip				= info.enable_flip;
+	const float max_chart_loss			= info.max_chart_loss;
 	const float saturation				= info.saturation;
 	const float exposure				= info.exposure;
 	const float hue						= info.hue;
@@ -448,6 +456,7 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 		"sed --in-place \"/^hue *=/ a\\mosaic="					+ std::string(enable_mosaic ? "1" : "0")				+ "\" "		+ info.cfg_filename,
 		"sed --in-place \"/^hue *=/ a\\cutmix="					+ std::string(enable_cutmix ? "1" : "0")				+ "\" "		+ info.cfg_filename,
 		"sed --in-place \"/^hue *=/ a\\mixup="					+ std::string(enable_mixup ? "1" : "0")					+ "\" "		+ info.cfg_filename,
+		"sed --in-place \"/^hue *=/ a\\max_chart_loss="			+ std::to_string(max_chart_loss)						+ "\" "		+ info.cfg_filename,
 		"sed --in-place \"/^saturation *=/ c\\saturation="		+ std::to_string(saturation)							+ "\" "		+ info.cfg_filename,
 		"sed --in-place \"/^exposure *=/ c\\exposure="			+ std::to_string(exposure)								+ "\" "		+ info.cfg_filename,
 		"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(content.names.size() - 1)				+ "\" "		+ info.cfg_filename,
