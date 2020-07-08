@@ -84,6 +84,13 @@ dm::DMContent::DMContent(const std::string & prefix) :
 		}
 	}
 
+	if (image_filenames.empty())
+	{
+		// projects without images shouldn't be allowed to load,
+		// but just in case this happens insert a dummy image so the vector isn't empty
+		image_filenames.push_back(project_info.project_dir + "/no_image_found.png");
+	}
+
 	set_sort_order(sort_order);
 
 	return;
