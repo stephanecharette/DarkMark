@@ -414,7 +414,7 @@ void dm::WndCfgTemplates::run()
 		{
 			row.field[Fields::kWeightsSize	] = "34.4 MiB";
 			row.field[Fields::kRelated		] = "yolov3-tiny.cfg";
-			row.field[Fields::kNotes		] = "small objects; \"3l\" refers to 3 YOLO layers vs the usual 2 in \"tiny\"";
+			row.field[Fields::kNotes		] = "better at finding small objects; \"3l\" refers to 3 YOLO layers vs the usual 2 in \"tiny\"";
 		}
 		else if (short_name == "yolov3-tiny.cfg")
 		{
@@ -475,6 +475,12 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kWeightsSize	] = "245.7 MiB";
 			row.field[Fields::kLink1		] = "YOLOv4 whitepaper";
 			row.field[Fields::kUrl1			] = "https://arxiv.org/pdf/2004.10934.pdf";
+		}
+		else if (short_name == "yolov4-tiny-3l.cfg")
+		{
+			row.field[Fields::kWeightsSize	] = "23.3 MiB";
+			row.field[Fields::kRelated		] = "yolov4-tiny.cfg";
+			row.field[Fields::kNotes		] = "better at finding small objects; \"3l\" refers to 3 YOLO layers vs the usual 2 in \"tiny\"";
 		}
 		else if (short_name == "yolov4-tiny.cfg")
 		{

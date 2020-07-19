@@ -20,10 +20,11 @@ If uncertain where to start when training your <b>own</b> neural network, try on
 
 Filename										| Layers	| Size		| Comments
 ------------------------------------------------|-----------|-----------|---------
-@p yolov3.cfg									| 107		| 234.9 MiB	| Medium results, medium speed.
-@p yolov3-tiny.cfg								| 24		|  33.1 MiB	| Decent results, fastest speed.  This is the one I use when setting up new projects.
-@p yolov4.cfg									| 162		| 245.7 MiB	| New! (2020-04-23)
-@p yolov4-tiny.cfg								| 38		|  23.1 MiB | New! (2020-06-25)
+@p yolov3.cfg									| 107		| 234.9 MiB	| Medium results, medium speed.  Been replaced by @p yolov4.cfg.
+@p yolov3-tiny.cfg								| 24		|  33.1 MiB	| Decent results, fastest speed.  Been replaced by @p yolov4-tiny.cfg.
+@p yolov4.cfg									| 162		| 245.7 MiB	| New! (2020-04-23)  Has 3 YOLO layers.  Best configuration to use, but much slower than "tiny".
+@p yolov4-tiny.cfg								| 38		|  23.1 MiB | New! (2020-06-25)  Has 2 YOLO layers.  Decent configuration, quite fast.  This is what I typically use when setting up new projects.
+@p yolov4-tiny-3l.cfg							| 45		|  23.3 MiB	| New! (2020-07-11)  Has 3 YOLO layers.  Better than "tiny" at finding very small objects.
 
 @section ConfigNew New Configuration
 
@@ -58,6 +59,7 @@ Filename										| Lines	| Layers	| Size Of Weights	| Related To					| Updated	
 @p yolov3-voc.cfg								|   785	| 107		|					| @p yolov3.cfg					| 2018		| similar to the usual @p yolov3.cfg but pre-configured for 20 VOC classes	| &nbsp;
 @p yolov3-voc.yolov3-giou-40.cfg				|   808	| 107		|					| @p yolov3-voc.cfg				| 2019		| "models are experimental"													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a> <br> <a target="_blank" href="https://giou.stanford.edu/">Generalized Intersection over Union (GIoU)</a>
 @p yolov4.cfg									|  1156	| 162		| 245.7 MiB			|								| 2020		| contains 3 YOLO layers													| <a target="_blank" href="https://arxiv.org/pdf/2004.10934.pdf">YOLOv4 whitepaper</a>
+@p yolov4-tiny-3l.cfg							|   333	| 45		| 23.3 MiB			| @p yolov4-tiny.cfg			| 2020		| small objects; @p "3l" refers to 3 YOLO layers vs the usual 2 in "tiny"	| &nbsp;
 @p yolov4-tiny.cfg								|   282	| 38		| 23.1 MiB			|								| 2020		| contains 2 YOLO layers													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5346#issuecomment-649566598">5346</a>
 
 @section ConfigOld Old Configuration
