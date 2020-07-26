@@ -414,23 +414,140 @@ void dm::DarknetWnd::valueChanged(Value & value)
 }
 
 
+void updateNetSection(dm::VStr & v, dm::MStr m)
+{
+	// regex to help us find all the key in the [net] section
+	const std::regex key_value_regex("^[ \t]*([^ \t=]+)[ \t]*=[ \t]*(.*)$");
+
+	bool found_net = false;
+	size_t non_blank_line = 0;
+
+	for (size_t line_number = 0; line_number < v.size(); line_number ++)
+	{
+		std::string & line = v.at(line_number);
+
+		if (line.empty())
+		{
+			continue;
+		}
+
+		if (line == "[net]")
+		{
+			found_net = true;
+		}
+		else if (found_net and line.find("[") == 0)
+		{
+			// we found the start of the next section
+			break;
+		}
+
+		if (found_net)
+		{
+			non_blank_line = line_number;
+
+			std::smatch what;
+			const bool valid = std::regex_match(line, what, key_value_regex);
+			if (valid)
+			{
+				const std::string key = what.str(1);
+
+				if (m.count(key) == 1)
+				{
+					line = key + "=" + m[key];
+					m.erase(key);
+				}
+			}
+		}
+	}
+
+	// whatever is left in the map at this point are new key-value pairs that we need to insert into the vector
+	dm::VStr new_items;
+	for (auto iter : m)
+	{
+		const auto & key = iter.first;
+		const auto & val = iter.second;
+		new_items.push_back(key + "=" + val);
+	}
+	auto iter = v.begin() + non_blank_line + 1;
+	v.insert(iter, new_items.begin(), new_items.end());
+
+	return;
+}
+
+
+void fixYoloSections(dm::VStr & v, const size_t & number_of_classes, const size_t & number_of_filters)
+{
+	for (size_t line_number = 0; line_number < v.size(); line_number ++)
+	{
+		if (v.at(line_number) == "[yolo]")
+		{
+			/* Example of a YOLO section:
+			 * 
+			 *		[yolo]
+			 *		mask = 6,7,8
+			 *		anchors = 12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401
+			 *		classes=1
+			 *		num=9
+			 *
+			 * The line we want to find and change is "classes=..." after [yolo].
+			 */
+			for (size_t new_line_number = line_number + 1; new_line_number < v.size(); new_line_number ++)
+			{
+				std::string & line = v.at(new_line_number);
+				if (line.find("classes=") == 0)
+				{
+					// this is the line we need to fix
+					line = "classes=" + std::to_string(number_of_classes);
+					break;
+				}
+				if (line.find("[") == 0)
+				{
+					// found a new section so stop searching
+					break;
+				}
+			}
+
+			/* Several lines prior to [yolo] is a "filters=..." line that we need to fix.  It normally looks like this:
+			 *
+			 *		[convolutional]
+			 *		size=1
+			 *		stride=1
+			 *		pad=1
+			 *		filters=18
+			 *		activation=linear
+			 *		
+			 *		[yolo]
+			 *		mask = 6,7,8
+			 *		anchors = 12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401
+			 *		classes=1
+			 *		num=9
+			 *
+			 * Note the "filters=18" about 3 lines prior to "[yolo]".  That is the line we need to find.
+			 */
+			for (size_t new_line_number = line_number - 1; new_line_number > 0 and line_number - new_line_number < 10; new_line_number --)
+			{
+				std::string & line = v.at(new_line_number);
+				if (line.find("filters=") == 0)
+				{
+					// this is the line we need to fix
+					line = "filters=" + std::to_string(number_of_filters);
+					break;
+				}
+				if (line.find("[") == 0)
+				{
+					// found a new section so stop searching
+					break;
+				}
+			}
+		}
+	}
+
+	return;
+}
+
+
 void dm::DarknetWnd::create_YOLO_configuration_files()
 {
-	if (info.darknet_dir.empty())
-	{
-		// nothing we can do without the darknet directory
-		return;
-	}
-
-	if (File(info.cfg_template).existsAsFile() == false)
-	{
-		// nothing we can do without a configuration file to use as a template
-		return;
-	}
-
-	// this is where the template is copied to a new configuration file, after which we edit the copy
-	File(info.cfg_template).copyFileTo(File(info.cfg_filename));
-
 	const bool enable_mosaic			= info.enable_mosaic;
 	const bool enable_cutmix			= info.enable_cutmix;
 	const bool enable_mixup				= info.enable_mixup;
@@ -449,36 +566,68 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	const size_t width					= info.image_size;
 	const size_t height					= width;
 
-	const VStr commands =
+	const MStr m =
 	{
-		"sed --in-place \"/^hue *=/ c\\hue="					+ std::to_string(hue)									+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^hue *=/ a\\flip="					+ std::string(enable_flip ? "1" : "0")					+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^hue *=/ a\\mosaic="					+ std::string(enable_mosaic ? "1" : "0")				+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^hue *=/ a\\cutmix="					+ std::string(enable_cutmix ? "1" : "0")				+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^hue *=/ a\\mixup="					+ std::string(enable_mixup ? "1" : "0")					+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^hue *=/ a\\max_chart_loss="			+ std::to_string(max_chart_loss)						+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^saturation *=/ c\\saturation="		+ std::to_string(saturation)							+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^exposure *=/ c\\exposure="			+ std::to_string(exposure)								+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^classes *=/ c\\classes="			+ std::to_string(content.names.size() - 1)				+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^max_batches *=/ c\\max_batches="	+ std::to_string(number_of_iterations)					+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^steps *=/ c\\steps="				+ std::to_string(step1) + "," + std::to_string(step2)	+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^batch *=/ c\\batch="				+ std::to_string(batch)									+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^subdivisions *=/ c\\subdivisions="	+ std::to_string(subdivisions)							+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^filters *= *255/ c\\filters="		+ std::to_string(filters)								+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^height *=/ c\\height="				+ std::to_string(width)									+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^width *=/ c\\width="				+ std::to_string(height)								+ "\" "		+ info.cfg_filename,
-		"sed --in-place \"/^angle *=/ c\\angle="				+ std::to_string(angle)									+ "\" "		+ info.cfg_filename
+		{"flip"				, enable_flip	? "1" : "0"		},
+		{"mosaic"			, enable_mosaic	? "1" : "0"		},
+		{"cutmix"			, enable_cutmix	? "1" : "0"		},
+		{"mixup"			, enable_mixup	? "1" : "0"		},
+		{"max_chart_loss"	, std::to_string(max_chart_loss)},
+		{"hue"				, std::to_string(hue)			},
+		{"saturation"		, std::to_string(saturation)	},
+		{"exposure"			, std::to_string(exposure)		},
+		{"max_batches"		, std::to_string(number_of_iterations)},
+		{"steps"			, std::to_string(step1) + "," + std::to_string(step2)},
+		{"batch"			, std::to_string(batch)			},
+		{"subdivisions"		, std::to_string(subdivisions)	},
+		{"height"			, std::to_string(width)			},
+		{"width"			, std::to_string(height)		},
+		{"angle"			, std::to_string(angle)			}
 	};
 
-	for (const std::string & cmd : commands)
+	VStr v;
+	std::ifstream ifs(info.cfg_template);
+	if (ifs.good())
 	{
-		const int rc = system(cmd.c_str());
-		if (rc)
+		std::string line;
+		while (std::getline(ifs, line))
 		{
-			Log("failed to run command (rc=" + std::to_string(rc) + "): " + cmd);
-			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Command failed to run:\n\n" + cmd);
-			break;
+			v.push_back(line);
 		}
+
+		if (v.empty() == false)
+		{
+			updateNetSection(v, m);
+			fixYoloSections(v, content.names.size() - 1, filters);
+		}
+	}
+
+	// write the configuration file at the new location
+	std::ofstream ofs(info.cfg_filename);
+	if (ofs.good() and v.size() > m.size())
+	{
+		ofs	<< "# DarkMark v" << DARKMARK_VERSION << " output for Darknet"																<< std::endl
+			<< "# Project .... " << info.project_dir																					<< std::endl
+			<< "# Config ..... " << info.cfg_filename																					<< std::endl
+			<< "# Template ... " << info.cfg_template																					<< std::endl
+			<< "# Username ... " << SystemStats::getLogonName().toStdString() << "@" << SystemStats::getComputerName().toStdString()	<< std::endl
+			<< "# Timestamp .. " << Time::getCurrentTime().formatted("%a %Y-%m-%d %H:%M:%S %Z").toStdString()							<< std::endl
+			<< "#"																														<< std::endl
+			<< "# WARNING:  If you re-generate the darknet files for this project you'll"												<< std::endl
+			<< "#           lose any customizations you are about to make in this file!"												<< std::endl
+			<< "#"																														<< std::endl
+			<< ""																														<< std::endl;
+
+		for (const auto & line : v)
+		{
+			ofs << line << std::endl;
+		}
+	}
+	else
+	{
+		// something is very wrong if we get here
+		Log("cannot save configuration file " + info.cfg_filename + " (v=" + std::to_string(v.size()) + ", template=" + info.cfg_template + ")");
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Failed to create a new configuration file " + info.cfg_filename + " from the template file " + info.cfg_template + ".");
 	}
 
 	return;
@@ -558,7 +707,6 @@ void dm::DarknetWnd::create_Darknet_files()
 		}
 	}
 
-	const std::string timestamp = Time::getCurrentTime().formatted("%a %Y-%m-%d %H:%M:%S %Z").toStdString();
 	std::string header;
 
 	if (true)
@@ -569,7 +717,9 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "cd " << info.project_dir	<< std::endl
 			<< ""							<< std::endl
 			<< "# Warning: this file is automatically created/updated by DarkMark v" << DARKMARK_VERSION << "!" << std::endl
-			<< "# Created on " << timestamp << " by " << SystemStats::getLogonName().toStdString() << "@" << SystemStats::getComputerName().toStdString() << "." << std::endl;
+			<< "# Created on " << Time::getCurrentTime().formatted("%a %Y-%m-%d %H:%M:%S %Z").toStdString()
+			<< " by " << SystemStats::getLogonName().toStdString()
+			<< "@" << SystemStats::getComputerName().toStdString() << "." << std::endl;
 		header = ss.str();
 	}
 
@@ -699,10 +849,12 @@ void dm::DarknetWnd::create_Darknet_files()
 
 	if (true)
 	{
+		const bool singular = (content.names.size() == 2); // two because the "empty" class is appended to the names, but it does not get output
+
 		std::stringstream ss;
 		ss	<< "The necessary files to run darknet have been saved to " << info.project_dir << "." << std::endl
 			<< std::endl
-			<< "There are " << content.names.size() - 1 << " classes with a total of "
+			<< "There " << (singular ? "is " : "are ") << (content.names.size() - 1) << " class" << (singular ? "" : "es") << " with a total of "
 			<< number_of_files_train << " training files and "
 			<< number_of_files_valid << " validation files. The average is "
 			<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
