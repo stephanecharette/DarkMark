@@ -28,7 +28,8 @@ namespace dm
 
 			bool		train_with_all_images;		///< should we train with *all* images, or should we use @ref training_images_percentage?
 			double		training_images_percentage;	///< between 0.0 and 1.0
-			int			image_size;					///< must be a multiple of 32 (416, 608, 832, ...)
+			int			image_width;				///< must be a multiple of 32 (416, 608, 832, ...)
+			int			image_height;				///< must be a multiple of 32 (416, 608, 832, ...)
 			int			batch_size;					///< e.g., @p 64
 			int			subdivisions;				///< e.g., @p 8
 			int			iterations;					///< number of iterations; e.g., @p 20,000

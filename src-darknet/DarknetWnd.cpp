@@ -75,7 +75,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_cfg_template					= info.cfg_template.c_str();
 	v_train_with_all_images			= info.train_with_all_images;
 	v_training_images_percentage	= std::round(100.0 * info.training_images_percentage);
-	v_image_size					= info.image_size;
+	v_image_width					= info.image_width;
+	v_image_height					= info.image_height;
 	v_batch_size					= info.batch_size;
 	v_subdivisions					= info.subdivisions;
 	v_iterations					= info.iterations;
@@ -112,21 +113,12 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("darknet", properties);
 	properties.clear();
 
-	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
-	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. This should only be enabled if you have a very small number of images, and you are looking to bootstrap your first neural network to help mark up additional images.");
-	properties.add(b);
-
-	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
-	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
-	percentage_slider = s; // remember this slider, because we need to enable/disable it based on the previous boolean toggle
-	if (v_train_with_all_images.getValue())
-	{
-		s->setEnabled(false);
-	}
+	s = new SliderPropertyComponent(v_image_width, "image width", 32.0, 2048.0, 32.0);
+	s->setTooltip("Image width. Must be a multiple of 32. Default is 448.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_image_size, "image size", 32.0, 2048.0, 32.0);
-	s->setTooltip("Image size. Must be a multiple of 32. Default is 416x416.");
+	s = new SliderPropertyComponent(v_image_height, "image height", 32.0, 2048.0, 32.0);
+	s->setTooltip("Image height. Must be a multiple of 32. Default is 256.");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_batch_size, "batch size", 1.0, 512.0, 1.0);
@@ -148,6 +140,19 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("configuration", properties);
 	properties.clear();
 
+	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
+	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. WARNING: This should only be enabled if you have a very small number of images, and you are looking to bootstrap your first neural network to help mark up additional images.");
+	properties.add(b);
+	
+	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
+	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
+	percentage_slider = s; // remember this slider, because we need to enable/disable it based on the previous boolean toggle
+	if (v_train_with_all_images.getValue())
+	{
+		s->setEnabled(false);
+	}
+	properties.add(s);
+
 	std::string name;
 	const std::string darknet_weights = cfg().get_str(content.cfg_prefix + "weights");
 	if (darknet_weights.empty() == false)
@@ -159,7 +164,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		}
 	}
 	b = new BooleanPropertyComponent(v_restart_training, "re-use existing weights", (name.empty() ? "weights file not found" : name));
-	b->setTooltip("Restart training using an existing .weights file (normally *_best.weights). This clears the 'images seen' counter in the weights file to restart training at zero. Do not use this if you've added, removed, or re-ordered lines in your .names file since you last trained the network.");
+	b->setTooltip("Restart training using an existing .weights file (normally *_best.weights). This clears the 'images seen' counter in the weights file to restart training at zero. WARNING: Do not use this if you've added, removed, or re-ordered lines in your .names file since you last trained the network.");
 	if (name.empty())
 	{
 		b->setState(false);
@@ -194,7 +199,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_mosaic, "enable mosaic", "mosaic");
-	b->setTooltip("Issue #6105: \"Mosaic degrades accuracy for tiny model.\"");
+	b->setTooltip("WARNING: Issue #6105: \"Mosaic degrades accuracy for tiny model.\"");
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_cutmix, "enable cutmix", "cutmix");
@@ -224,7 +229,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(550, 650);
+	r = r.withSizeKeepingCentre(550, 680);
 	setBounds(r);
 
 	setVisible(true);
@@ -309,7 +314,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 
 	const String darknet_dir	= v_darknet_dir	.getValue();
 	const String cfg_template	= v_cfg_template.getValue();
-	const int image_size		= v_image_size	.getValue();
+	const int image_width		= v_image_width	.getValue();
+	const int image_height		= v_image_height.getValue();
 	const int batch_size		= v_batch_size	.getValue();
 	const int subdivisions		= v_subdivisions.getValue();
 
@@ -325,9 +331,15 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 		return;
 	}
 
-	if (image_size % 32)
+	if (image_width % 32)
 	{
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The image size must be a multiple of 32.");
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The image width must be a multiple of 32.");
+		return;
+	}
+
+	if (image_height % 32)
+	{
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The image height must be a multiple of 32.");
 		return;
 	}
 
@@ -349,7 +361,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_cfg_template"			, v_cfg_template				);
 	cfg().setValue(content.cfg_prefix + "darknet_train_with_all_images"	, v_train_with_all_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_training_percentage"	, v_training_images_percentage	);
-	cfg().setValue(content.cfg_prefix + "darknet_image_size"			, v_image_size					);
+	cfg().setValue(content.cfg_prefix + "darknet_image_width"			, v_image_width					);
+	cfg().setValue(content.cfg_prefix + "darknet_image_height"			, v_image_height				);
 	cfg().setValue(content.cfg_prefix + "darknet_batch_size"			, v_batch_size					);
 	cfg().setValue(content.cfg_prefix + "darknet_subdivisions"			, v_subdivisions				);
 	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
@@ -369,7 +382,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.cfg_template				= v_cfg_template			.toString().toStdString();
 	info.train_with_all_images		= v_train_with_all_images	.getValue();
 	info.training_images_percentage	= static_cast<double>(v_training_images_percentage.getValue()) / 100.0;
-	info.image_size					= v_image_size				.getValue();
+	info.image_width				= v_image_width				.getValue();
+	info.image_height				= v_image_height			.getValue();
 	info.batch_size					= v_batch_size				.getValue();
 	info.subdivisions				= v_subdivisions			.getValue();
 	info.iterations					= v_iterations				.getValue();
@@ -563,8 +577,8 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	const size_t batch					= info.batch_size;
 	const size_t subdivisions			= info.subdivisions;
 	const size_t filters				= (content.names.size() - 1) * 3 + 15;
-	const size_t width					= info.image_size;
-	const size_t height					= width;
+	const size_t width					= info.image_width;
+	const size_t height					= info.image_height;
 
 	const MStr m =
 	{

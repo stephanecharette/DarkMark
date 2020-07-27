@@ -15,7 +15,8 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	cfg_template				= cfg().get_str		(cfg_prefix + "darknet_cfg_template"			, ""	);
 	train_with_all_images		= cfg().get_bool	(cfg_prefix + "darknet_train_with_all_images"	, false	);
 	training_images_percentage	= cfg().get_int		(cfg_prefix + "darknet_training_percentage"		, 80	) / 100.0;
-	image_size					= cfg().get_int		(cfg_prefix + "darknet_image_size"				, 416	);
+	image_width					= cfg().get_int		(cfg_prefix + "darknet_image_width"				, 448	);
+	image_height				= cfg().get_int		(cfg_prefix + "darknet_image_height"			, 256	);
 	batch_size					= cfg().get_int		(cfg_prefix + "darknet_batch_size"				, 64	);
 	subdivisions				= cfg().get_int		(cfg_prefix + "darknet_subdivisions"			, 8		);
 	iterations					= cfg().get_int		(cfg_prefix + "darknet_iterations"				, 4000	);

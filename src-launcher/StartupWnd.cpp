@@ -436,13 +436,13 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				cfg().setValue(prefix + "timestamp"				, static_cast<int>(std::time(nullptr))				);
 
 				// Prior to 2020-05-30, there were many settings in configuration that were "global".  Every time a project
-				// was loaded, the settings were copied over to the global name.  Thi mess is because when it was first
+				// was loaded, the settings were copied over to the global name.  This mess is because when it was first
 				// written, DarkMark didn't manage multiple projects.  It only managed a single project.
 				//
 				// All settings are now per-project.  So if we have one of the original project .cfg files that we can parse
-				// and obtain some of the key values, do this now so the users wont have any problems re-saving the Darknet
-				// project files.
-				if (File(cfg_filename).existsAsFile() and cfg().containsKey(prefix + "darknet_batch_size") == false)
+				// and obtain some of the key values, do this now so the user can re-save the darknet project and yet keep
+				// the settings they previously used with this project.
+				if (File(cfg_filename).existsAsFile())
 				{
 					// regex to find keyword/value pairs such as:   width=416
 					const std::regex rgx("^(\\w+)[ \t]*=[ \t]*([0-9.]+)$");
@@ -463,7 +463,8 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 							if (keyword == "batch"			) cfg().insert_if_not_exist(prefix + "darknet_batch_size"	, value_int);
 							if (keyword == "subdivisions"	) cfg().insert_if_not_exist(prefix + "darknet_subdivisions"	, value_int);
-							if (keyword == "width"			) cfg().insert_if_not_exist(prefix + "darknet_image_size"	, value_int);
+							if (keyword == "width"			) cfg().insert_if_not_exist(prefix + "darknet_image_width"	, value_int);
+							if (keyword == "height"			) cfg().insert_if_not_exist(prefix + "darknet_image_height"	, value_int);
 							if (keyword == "max_batches"	) cfg().insert_if_not_exist(prefix + "darknet_iterations"	, value_int);
 							if (keyword == "saturation"		) cfg().insert_if_not_exist(prefix + "darknet_saturation"	, value_float);
 							if (keyword == "exposure"		) cfg().insert_if_not_exist(prefix + "darknet_exposure"		, value_float);
