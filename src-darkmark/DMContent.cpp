@@ -470,6 +470,12 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 		show_message("re-shuffle random sort");
 		return true;
 	}
+	else if (keychar == 'R')
+	{
+		set_sort_order(ESort::kAlphabetical);
+		show_message("alphabetical sort");
+		return true;
+	}
 	else if (keychar == 'a')
 	{
 		accept_all_marks();

@@ -29,7 +29,8 @@ Key							| Saves Modified Marks First	| Description
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).
 @p p						|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)
-@p r						| yes							| Randomly sort the images and load the first image.
+@p r (lowercase)			| yes							| Randomly shuffle the images and load the first image.
+@p R (uppercase)			| yes							| Sort images alphabetically.
 @p s (lowercase)			|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".  Screenshots must be saved in either @p .jpg or @p .png file format (default is @p PNG).
 @p S (uppercase)			|								| Same as @p 's' (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
 @p y (lowercase)			|								| Copy marks from previous (alphabetical) marked up image.
