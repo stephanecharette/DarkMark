@@ -68,6 +68,17 @@ And yes, marking every instance of an object in some cases does get very repetit
 
 @image html cars_1.png
 
+@section OverlappingMarkup Overlapping Object Markup
+
+Having overlapping objects is perfectly acceptable.  In this example:
+
+@image html paper_on_desk.png
+
+@li The yellow pad overlaps the notebook.
+@li The pencil is completely embedded within the markup for the notebook page.
+@li The pen overlaps both the paper on the left and the notebook page.
+@li The two sheets on the left were marked as a single object because the one in back is barely visible.  But this means we're training the network to recognize example like this of overlapping sheets of paper as a single object.
+
 @section VariationInMarkup Variation
 
 You can never have too many images when training a neural network.  @em But, there is a diminishing rate of return after you reach a certain stage.  If you have thousands of nearly identical images, by the time you mark your 1000th image, the neural network has probably already learned what the class looks like.
