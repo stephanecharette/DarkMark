@@ -14,7 +14,11 @@ namespace dm
 		cv::Mat mat;
 		std::string filename;
 		size_t class_idx;
-		std::string msg;
+		cv::Rect r;
+		double overlap_sum; // the total amount of overlap between this mark and all other marks in this image
+		std::string mime_type;
+		VStr warnings;
+		VStr errors;
 	};
 
 	/** Key is a sequential counter that starts at zero, value is the review info structure.  Was done this way instead of
@@ -28,7 +32,8 @@ namespace dm
 	 */
 	typedef std::map<size_t, MReviewInfo> MMReviewInfo;
 
-	class DMReviewWnd : public DocumentWindow //, TableListBoxModel
+	/// Also see the class @ref DMReviewCanvas which is the content shown in the notebook.
+	class DMReviewWnd : public DocumentWindow
 	{
 		public:
 

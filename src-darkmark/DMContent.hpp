@@ -44,7 +44,7 @@ namespace dm
 	 * @li Important children are @ref DMCanvas (where images are drawn) and @ref ScrollField.
 	 * @li Also see @ref image_filenames and @ref project_info.
 	 */
-	class DMContent final : public Component
+	class DMContent final : public Component, public Timer
 	{
 		public:
 
@@ -57,6 +57,8 @@ namespace dm
 			virtual bool keyPressed(const KeyPress &key) override;
 
 			void start_darknet();
+
+			virtual void paintOverChildren(Graphics & g) override;
 
 			void rebuild_image_and_repaint();
 
@@ -131,6 +133,14 @@ namespace dm
 			 */
 			DMContent & save_screenshot(const bool full_size = true, const std::string & fn = "");
 
+			/** Draw something on the screen to highlight the given image area.  The rectangle given uses the image coordinates,
+			 * not the screen coordinates.  So if the image is zoomed, the this function will figure out how much the rectangle
+			 * also needs to be zoomed.
+			 */
+			DMContent & highlight_rectangle(const cv::Rect & r);
+
+			virtual void timerCallback() override;
+
 			/// The text prefix used to store keys in configuration.  This differs for every project.
 			std::string cfg_prefix;
 
@@ -138,6 +148,11 @@ namespace dm
 
 			ScrollField scrollfield;
 			int scrollfield_width;
+
+			float highlight_x;
+			float highlight_y;
+			float highlight_inside_size;
+			float highlight_outside_size;
 
 			VMarks marks;
 			VStr names;

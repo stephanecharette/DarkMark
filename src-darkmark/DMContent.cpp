@@ -13,6 +13,10 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	canvas(*this),
 	scrollfield(*this),
 	scrollfield_width(cfg().get_int("scrollfield_width")),
+	highlight_x(0.0f),
+	highlight_y(0.0f),
+	highlight_inside_size(-1.0f),
+	highlight_outside_size(-1.0f),
 	empty_image_name_index(0),
 	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
@@ -99,6 +103,8 @@ dm::DMContent::DMContent(const std::string & prefix) :
 
 dm::DMContent::~DMContent(void)
 {
+	stopTimer();
+
 	if (need_to_save)
 	{
 		save_json();
@@ -245,6 +251,26 @@ void dm::DMContent::start_darknet()
 	}
 
 	load_image(0);
+
+	return;
+}
+
+
+void dm::DMContent::paintOverChildren(Graphics & g)
+{
+	if (highlight_inside_size > 0.0f)
+	{
+		// draw black+white circles on top of the image
+
+		g.setOpacity(0.5f);
+		g.setColour(Colours::black);
+		g.drawEllipse(highlight_x - highlight_outside_size/2, highlight_y - highlight_outside_size/2, highlight_outside_size, highlight_outside_size, 5);
+		g.setColour(Colours::white);
+		g.drawEllipse(highlight_x - highlight_inside_size/2, highlight_y - highlight_inside_size/2, highlight_inside_size, highlight_inside_size, 5);
+
+		highlight_outside_size = highlight_inside_size;
+		highlight_inside_size -= 10.0f;
+	}
 
 	return;
 }
@@ -999,6 +1025,8 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 			"Failure occurred while " + task + ". See log file for details.\n"
 			"\n"
 			"The most likely cause of this failure is when Darknet has been recently updated, but the version of DarkHelp installed is for an older version of libdarknet. If this is the case, then rebuilding DarkHelp should fix the issue.\n"
+			"\n"
+			"Another possible cause of this failure is if the image cannot be opened or loaded correctly by OpenCV.\n"
 			"\n"
 			"The exact error message logged is: " + what_msg);
 	}
@@ -1818,4 +1846,32 @@ dm::DMContent & dm::DMContent::save_screenshot(const bool full_size, const std::
 	}
 
 	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::highlight_rectangle(const cv::Rect & r)
+{
+	stopTimer();
+
+	if (r.empty() == false)
+	{
+		// this is used in paintOverChildren() to draw a circle on top of the image
+
+		highlight_x				= scale_factor * (r.x + r.width/2);
+		highlight_y				= scale_factor * (r.y + r.height/2);
+		highlight_inside_size	= 250.0f;
+		highlight_outside_size	= 250.0f;
+
+		startTimer(50); // milliseconds
+	}
+
+	return *this;
+}
+
+
+void dm::DMContent::timerCallback()
+{
+	// used by highlight_rectangle() and paintOverChildren()
+	
+	repaint();
 }
