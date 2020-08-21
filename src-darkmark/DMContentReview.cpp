@@ -223,7 +223,7 @@ void dm::DMContentReview::run()
 				const double intersecting_area = std::max(0, std::min(br2.x, br1.x) - std::max(tl2.x, tl1.x)) * std::max(0, std::min(br2.y, br1.y) - std::max(tl2.y, tl1.y));
 				const double a1 = r1.area();
 				const double a2 = r2.area();
-				const double intersection_over_union = intersecting_area / std::max(1.0, (a1 + a2 - intersecting_area));
+				const double intersection_over_union = intersecting_area / std::max(1.0, (a1 + std::min(a2, intersecting_area) - intersecting_area));
 				review_info.overlap_sum += intersection_over_union;
 //				Log(fn + ": intersection_over_union=" + std::to_string(intersection_over_union));
 			}
