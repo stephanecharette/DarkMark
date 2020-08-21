@@ -1853,7 +1853,7 @@ dm::DMContent & dm::DMContent::highlight_rectangle(const cv::Rect & r)
 {
 	stopTimer();
 
-	if (r.empty() == false)
+	if (r.area() > 0)
 	{
 		// this is used in paintOverChildren() to draw a circle on top of the image
 

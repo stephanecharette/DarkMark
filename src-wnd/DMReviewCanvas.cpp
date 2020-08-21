@@ -189,7 +189,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 
 		if (columnId == 4)
 		{
-			if (review_info.r.empty() == false)
+			if (review_info.r.area() > 0)
 			{
 				str =	std::to_string(review_info.r.tl().x) + ", " +
 						std::to_string(review_info.r.tl().y) + ", " +
