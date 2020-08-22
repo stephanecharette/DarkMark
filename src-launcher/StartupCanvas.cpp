@@ -244,10 +244,14 @@ void dm::StartupCanvas::find_all_darknet_files()
 															"*.name*"	;
 
 		File dir(project_directory.toString());
-		DirectoryIterator iter(dir, false, extension, File::findFiles + File::ignoreHiddenFiles);
-		while (iter.next() && done == false)
+		for (auto dir_entry : RangedDirectoryIterator(dir, false, extension))
 		{
-			File f = iter.getFile();
+			if (done)
+			{
+				break;
+			}
+
+			File f = dir_entry.getFile();
 
 			DarknetFileInfo dfi;
 			dfi.type		= type;
@@ -661,11 +665,14 @@ void dm::StartupCanvas::calculate_size_of_directory()
 {
 	int64_t bytes = 0;
 	File dir(project_directory.toString());
-	DirectoryIterator iter(dir, true, "*", File::findFiles);
-	while (iter.next() && done == false)
+	for (auto dir_entry : RangedDirectoryIterator(dir, true))
 	{
-		File f = iter.getFile();
-		bytes += f.getSize();
+		if (done)
+		{
+			break;
+		}
+
+		bytes += dir_entry.getFileSize();
 	}
 
 	if (not done)

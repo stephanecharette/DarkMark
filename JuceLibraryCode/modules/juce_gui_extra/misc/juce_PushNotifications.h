@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-6-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -276,7 +275,7 @@ public:
         bool localOnly = true;  /**< Optional: whether or not the notification should bridge to other devices.
                                                Available from Android API 20 or above. */
 
-        bool ongoing = false;   /**< Optional: If true, then it cannot be dismissed by the user and it must be dimissed manually.
+        bool ongoing = false;   /**< Optional: If true, then it cannot be dismissed by the user and it must be dismissed manually.
                                      Typically used for ongoing background tasks that the user is actively engaged with. To
                                      dismiss such notification, you need to call removeDeliveredNotification() or
                                      removeAllDeliveredNotifications(). */
@@ -389,7 +388,7 @@ public:
     {
         using Action = Notification::Action;
 
-        /** Describes a category of a notification. Each category has a unique idenfifier
+        /** Describes a category of a notification. Each category has a unique identifier
             and a list of associated actions.
             Note that the OS may allow only a limited number of actions to be presented, so
             always present most important actions first.
@@ -634,7 +633,7 @@ public:
 
             @param isLocalNotification If the notification is local
             @param notification        The notification
-            @param actionIdentifier    A String identifiing the action
+            @param actionIdentifier    A String identifying the action
             @param optionalResponse    Text response a user inputs for notifications with a text input.
                                        Empty for notifications without a text input option.
 

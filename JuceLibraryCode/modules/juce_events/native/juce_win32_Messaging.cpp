@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -51,7 +51,7 @@ public:
 
     ~InternalMessageQueue()
     {
-        juce_messageWindowHandle = 0;
+        juce_messageWindowHandle = nullptr;
         clearSingletonInstance();
     }
 
@@ -69,7 +69,7 @@ public:
         {
             COPYDATASTRUCT data;
             data.dwData = broadcastMessageMagicNumber;
-            data.cbData = (localCopy.length() + 1) * sizeof (CharPointer_UTF32::CharType);
+            data.cbData = ((size_t) localCopy.length() + 1) * sizeof (CharPointer_UTF32::CharType);
             data.lpData = (void*) localCopy.toUTF32().getAddress();
 
             DWORD_PTR result;
@@ -80,38 +80,39 @@ public:
         }
     }
 
-    bool postMessage (MessageManager::MessageBase* message)
+    void postMessage (MessageManager::MessageBase* message)
     {
-        message->incReferenceCount();
+        bool shouldTriggerMessageQueueDispatch = false;
 
-        #if JUCE_MODULE_AVAILABLE_juce_audio_plugin_client && JucePlugin_Build_Unity
-         if (juce_isRunningInUnity())
-             return SendNotifyMessage (juce_messageWindowHandle, customMessageID, 0, (LPARAM) message) != 0;
-        #endif
-
-         if (PostMessage (juce_messageWindowHandle, customMessageID, 0, (LPARAM) message) != 0)
-             return true;
-
-        if (GetLastError() == ERROR_NOT_ENOUGH_QUOTA)
         {
             const ScopedLock sl (lock);
-            overflowQueue.add (message);
-            message->decReferenceCount();
 
-            return true;
+            shouldTriggerMessageQueueDispatch = messageQueue.isEmpty();
+            messageQueue.add (message);
         }
 
-        return false;
+        if (! shouldTriggerMessageQueueDispatch)
+            return;
+
+       #if JUCE_MODULE_AVAILABLE_juce_audio_plugin_client && JucePlugin_Build_Unity
+        if (juce_isRunningInUnity())
+        {
+            SendNotifyMessage (juce_messageWindowHandle, customMessageID, 0, 0);
+            return;
+        }
+        #endif
+
+        PostMessage (juce_messageWindowHandle, customMessageID, 0, 0);
     }
 
     bool dispatchNextMessage (bool returnIfNoPendingMessages)
     {
         MSG m;
 
-        if (returnIfNoPendingMessages && ! PeekMessage (&m, (HWND) 0, 0, 0, PM_NOREMOVE) && overflowQueue.size() == 0)
+        if (returnIfNoPendingMessages && ! PeekMessage (&m, nullptr, 0, 0, PM_NOREMOVE))
             return false;
 
-        if (GetMessage (&m, (HWND) 0, 0, 0) >= 0)
+        if (GetMessage (&m, nullptr, 0, 0) >= 0)
         {
            #if JUCE_MODULE_AVAILABLE_juce_gui_extra
             if (juce_offerEventToActiveXControl (m) != S_FALSE)
@@ -120,7 +121,7 @@ public:
 
             if (m.message == customMessageID && m.hwnd == juce_messageWindowHandle)
             {
-                dispatchMessageFromLParam (m.lParam);
+                dispatchMessages();
             }
             else if (m.message == WM_QUIT)
             {
@@ -136,7 +137,7 @@ public:
                     // currently on a juce window, pass the kb focus over..
                     auto currentFocus = GetFocus();
 
-                    if (currentFocus == 0 || JuceWindowIdentifier::isJUCEWindow (currentFocus))
+                    if (currentFocus == nullptr || JuceWindowIdentifier::isJUCEWindow (currentFocus))
                         SetFocus (m.hwnd);
                 }
 
@@ -144,8 +145,6 @@ public:
                 DispatchMessage (&m);
             }
         }
-
-        dispatchOverflowMessages();
 
         return true;
     }
@@ -158,12 +157,8 @@ private:
         {
             if (message == customMessageID)
             {
-                // (These are trapped early in our dispatch loop, but must also be checked
-                // here in case some 3rd-party code is running the dispatch loop).
-                dispatchMessageFromLParam (lParam);
-
                 if (auto* queue = InternalMessageQueue::getInstanceWithoutCreating())
-                    queue->dispatchOverflowMessages();
+                    queue->dispatchMessages();
 
                 return 0;
             }
@@ -196,18 +191,15 @@ private:
         return TRUE;
     }
 
-    static void dispatchMessageFromLParam (LPARAM lParam)
+    static void dispatchMessage (MessageManager::MessageBase* message)
     {
-        if (auto message = reinterpret_cast<MessageManager::MessageBase*> (lParam))
+        JUCE_TRY
         {
-            JUCE_TRY
-            {
-                message->messageCallback();
-            }
-            JUCE_CATCH_EXCEPTION
-
-            message->decReferenceCount();
+            message->messageCallback();
         }
+        JUCE_CATCH_EXCEPTION
+
+        message->decReferenceCount();
     }
 
     static void handleBroadcastMessage (const COPYDATASTRUCT* data)
@@ -228,24 +220,24 @@ private:
         }
     }
 
-    void dispatchOverflowMessages()
+    void dispatchMessages()
     {
         ReferenceCountedArray<MessageManager::MessageBase> messagesToDispatch;
 
         {
             const ScopedLock sl (lock);
 
-            if (overflowQueue.isEmpty())
+            if (messageQueue.isEmpty())
                 return;
 
-            messagesToDispatch.swapWith (overflowQueue);
+            messagesToDispatch.swapWith (messageQueue);
         }
 
         for (int i = 0; i < messagesToDispatch.size(); ++i)
         {
             auto message = messagesToDispatch.getUnchecked (i);
             message->incReferenceCount();
-            dispatchMessageFromLParam ((LPARAM) message.get());
+            dispatchMessage (message.get());
         }
     }
 
@@ -257,7 +249,7 @@ private:
     std::unique_ptr<HiddenMessageWindow> messageWindow;
 
     CriticalSection lock;
-    ReferenceCountedArray<MessageManager::MessageBase> overflowQueue;
+    ReferenceCountedArray<MessageManager::MessageBase> messageQueue;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InternalMessageQueue)
@@ -296,7 +288,7 @@ void MessageManager::broadcastMessage (const String& value)
 //==============================================================================
 void MessageManager::doPlatformSpecificInitialisation()
 {
-    OleInitialize (0);
+    OleInitialize (nullptr);
     InternalMessageQueue::getInstance();
 }
 

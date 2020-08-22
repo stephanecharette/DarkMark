@@ -14,10 +14,14 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, std
 
 	const std::regex image_filename_regex(cfg().get_str("image_regex"), std::regex::icase | std::regex::nosubs | std::regex::optimize | std::regex::ECMAScript);
 
-	DirectoryIterator iter(dir, true, "*", File::findFiles + File::ignoreHiddenFiles);
-	while (iter.next() && done == false)
+	for (auto dir_entry : RangedDirectoryIterator(dir, true))
 	{
-		File f = iter.getFile();
+		if (done)
+		{
+			break;
+		}
+
+		File f = dir_entry.getFile();
 		const std::string filename = f.getFullPathName().toStdString();
 		if (std::regex_match(filename, image_filename_regex))
 		{

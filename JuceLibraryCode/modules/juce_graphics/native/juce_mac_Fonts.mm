@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-6-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -189,6 +188,7 @@ namespace CoreTextTypeLayout
         {
             case AttributedString::none:        return kCTLineBreakByClipping;
             case AttributedString::byChar:      return kCTLineBreakByCharWrapping;
+            case AttributedString::byWord:
             default:                            return kCTLineBreakByWordWrapping;
         }
     }
@@ -199,6 +199,7 @@ namespace CoreTextTypeLayout
         {
             case AttributedString::rightToLeft:   return kCTWritingDirectionRightToLeft;
             case AttributedString::leftToRight:   return kCTWritingDirectionLeftToRight;
+            case AttributedString::natural:
             default:                              return kCTWritingDirectionNatural;
         }
     }
@@ -207,7 +208,7 @@ namespace CoreTextTypeLayout
     static CFAttributedStringRef createCFAttributedString (const AttributedString& text)
     {
        #if JUCE_IOS
-        auto rgbColourSpace = CGColorSpaceCreateDeviceRGB();
+        auto rgbColourSpace = CGColorSpaceCreateWithName (kCGColorSpaceSRGB);
        #endif
 
         auto attribString = CFAttributedStringCreateMutable (kCFAllocatorDefault, 0);
@@ -232,6 +233,15 @@ namespace CoreTextTypeLayout
             {
                 ctFontRef = getFontWithPointSize (ctFontRef, attr.font.getHeight() * getHeightToPointsFactor (ctFontRef));
                 CFAttributedStringSetAttribute (attribString, range, kCTFontAttributeName, ctFontRef);
+
+                if (attr.font.isUnderlined())
+                {
+                    auto underline = kCTUnderlineStyleSingle;
+
+                    auto numberRef = CFNumberCreate (nullptr, kCFNumberIntType, &underline);
+                    CFAttributedStringSetAttribute (attribString, range, kCTUnderlineStyleAttributeName, numberRef);
+                    CFRelease (numberRef);
+                }
 
                 auto extraKerning = attr.font.getExtraKerningFactor();
 
@@ -276,10 +286,10 @@ namespace CoreTextTypeLayout
 
         CTParagraphStyleSetting settings[] =
         {
-            { kCTParagraphStyleSpecifierAlignment,              sizeof (CTTextAlignment), &ctTextAlignment },
-            { kCTParagraphStyleSpecifierLineBreakMode,          sizeof (CTLineBreakMode), &ctLineBreakMode },
+            { kCTParagraphStyleSpecifierAlignment,              sizeof (CTTextAlignment),    &ctTextAlignment },
+            { kCTParagraphStyleSpecifierLineBreakMode,          sizeof (CTLineBreakMode),    &ctLineBreakMode },
             { kCTParagraphStyleSpecifierBaseWritingDirection,   sizeof (CTWritingDirection), &ctWritingDirection},
-            { kCTParagraphStyleSpecifierLineSpacingAdjustment,  sizeof (CGFloat),         &ctLineSpacing }
+            { kCTParagraphStyleSpecifierLineSpacingAdjustment,  sizeof (CGFloat),            &ctLineSpacing }
         };
 
         auto ctParagraphStyleRef = CTParagraphStyleCreate (settings, (size_t) numElementsInArray (settings));
@@ -292,18 +302,31 @@ namespace CoreTextTypeLayout
         return attribString;
     }
 
-    static CTFrameRef createCTFrame (const AttributedString& text, CGRect bounds)
+    static CTFramesetterRef createCTFramesetter (const AttributedString& text)
     {
         auto attribString = createCFAttributedString (text);
         auto framesetter = CTFramesetterCreateWithAttributedString (attribString);
         CFRelease (attribString);
 
+        return framesetter;
+    }
+
+    static CTFrameRef createCTFrame (CTFramesetterRef framesetter, CGRect bounds)
+    {
         auto path = CGPathCreateMutable();
         CGPathAddRect (path, nullptr, bounds);
 
         auto frame = CTFramesetterCreateFrame (framesetter, CFRangeMake (0, 0), path, nullptr);
-        CFRelease (framesetter);
         CGPathRelease (path);
+
+        return frame;
+    }
+
+    static CTFrameRef createCTFrame (const AttributedString& text, CGRect bounds)
+    {
+        auto framesetter = createCTFramesetter (text);
+        auto frame = createCTFrame (framesetter, bounds);
+        CFRelease (framesetter);
 
         return frame;
     }
@@ -335,38 +358,57 @@ namespace CoreTextTypeLayout
     static void drawToCGContext (const AttributedString& text, const Rectangle<float>& area,
                                  const CGContextRef& context, float flipHeight)
     {
-        Rectangle<float> ctFrameArea;
-        auto verticalJustification = text.getJustification().getOnlyVerticalFlags();
+        auto framesetter = createCTFramesetter (text);
 
         // Ugly hack to fix a bug in OS X Sierra where the CTFrame needs to be slightly
         // larger than the font height - otherwise the CTFrame will be invalid
-        if (verticalJustification == Justification::verticallyCentred)
-            ctFrameArea = area.withSizeKeepingCentre (area.getWidth(), area.getHeight() * 1.1f);
-        else if (verticalJustification == Justification::bottom)
-            ctFrameArea = area.withTop (area.getY() - (area.getHeight() * 0.1f));
-        else
-            ctFrameArea = area.withHeight (area.getHeight() * 1.1f);
 
-        auto frame = createCTFrame (text, CGRectMake ((CGFloat) ctFrameArea.getX(), flipHeight - (CGFloat) ctFrameArea.getBottom(),
-                                                      (CGFloat) ctFrameArea.getWidth(), (CGFloat) ctFrameArea.getHeight()));
+        CFRange fitrange;
+        auto suggestedSingleLineFrameSize =
+            CTFramesetterSuggestFrameSizeWithConstraints (framesetter, CFRangeMake (0, 0), nullptr,
+                                                          CGSizeMake (CGFLOAT_MAX, CGFLOAT_MAX), &fitrange);
+        auto minCTFrameHeight = (float) suggestedSingleLineFrameSize.height;
+
+        auto verticalJustification = text.getJustification().getOnlyVerticalFlags();
+
+        auto ctFrameArea = [area, minCTFrameHeight, verticalJustification]
+        {
+            if (minCTFrameHeight < area.getHeight())
+                return area;
+
+            if (verticalJustification == Justification::verticallyCentred)
+                return area.withSizeKeepingCentre (area.getWidth(), minCTFrameHeight);
+
+            auto frameArea = area.withHeight (minCTFrameHeight);
+
+            if (verticalJustification == Justification::bottom)
+                return frameArea.withBottomY (area.getBottom());
+
+            return frameArea;
+        }();
+
+        auto frame = createCTFrame (framesetter, CGRectMake ((CGFloat) ctFrameArea.getX(), flipHeight - (CGFloat) ctFrameArea.getBottom(),
+                                                             (CGFloat) ctFrameArea.getWidth(), (CGFloat) ctFrameArea.getHeight()));
+        CFRelease (framesetter);
+
+        auto textMatrix = CGContextGetTextMatrix (context);
+        CGContextSaveGState (context);
 
         if (verticalJustification == Justification::verticallyCentred
-             || verticalJustification == Justification::bottom)
+         || verticalJustification == Justification::bottom)
         {
             auto adjust = ctFrameArea.getHeight() - findCTFrameHeight (frame);
 
             if (verticalJustification == Justification::verticallyCentred)
                 adjust *= 0.5f;
 
-            CGContextSaveGState (context);
             CGContextTranslateCTM (context, 0, -adjust);
-            CTFrameDraw (frame, context);
-            CGContextRestoreGState (context);
         }
-        else
-        {
-            CTFrameDraw (frame, context);
-        }
+
+        CTFrameDraw (frame, context);
+
+        CGContextRestoreGState (context);
+        CGContextSetTextMatrix (context, textMatrix);
 
         CFRelease (frame);
     }
@@ -429,6 +471,26 @@ namespace CoreTextTypeLayout
                     glyphRun->font = Font (String::fromCFString (cfsFontFamily),
                                            String::fromCFString (cfsFontStyle),
                                            (float) (CTFontGetSize (ctRunFont) / fontHeightToPointsFactor));
+
+                    auto isUnderlined = [&]
+                    {
+                        CFNumberRef underlineStyle;
+
+                        if (CFDictionaryGetValueIfPresent (runAttributes, kCTUnderlineStyleAttributeName, (const void**) &underlineStyle))
+                        {
+                            if (CFGetTypeID (underlineStyle) == CFNumberGetTypeID())
+                            {
+                                int value = 0;
+                                CFNumberGetValue (underlineStyle, kCFNumberLongType, (void*) &value);
+
+                                return value != 0;
+                            }
+                        }
+
+                        return false;
+                    }();
+
+                    glyphRun->font.setUnderline (isUnderlined);
 
                     CFRelease (cfsFontStyle);
                     CFRelease (cfsFontFamily);
@@ -552,10 +614,24 @@ public:
         CFRelease (numberRef);
     }
 
-    // The implementation of at least one overridden function needs to be outside
-    // of the class definition to avoid spurious warning messages when dynamically
-    // loading libraries at runtime on macOS...
-    ~OSXTypeface() override;
+    ~OSXTypeface() override
+    {
+        if (attributedStringAtts != nullptr)
+            CFRelease (attributedStringAtts);
+
+        if (fontRef != nullptr)
+        {
+           #if JUCE_MAC && defined (MAC_OS_X_VERSION_10_8) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_8
+            if (dataCopy.getSize() != 0)
+                CTFontManagerUnregisterGraphicsFont (fontRef, nullptr);
+           #endif
+
+            CGFontRelease (fontRef);
+        }
+
+        if (ctFontRef != nullptr)
+            CFRelease (ctFontRef);
+    }
 
     float getAscent() const override                 { return ascent; }
     float getDescent() const override                { return 1.0f - ascent; }
@@ -684,25 +760,6 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSXTypeface)
 };
-
-OSXTypeface::~OSXTypeface()
-{
-    if (attributedStringAtts != nullptr)
-        CFRelease (attributedStringAtts);
-
-    if (fontRef != nullptr)
-    {
-       #if JUCE_MAC && defined (MAC_OS_X_VERSION_10_8) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_8
-        if (dataCopy.getSize() != 0)
-            CTFontManagerUnregisterGraphicsFont (fontRef, nullptr);
-       #endif
-
-        CGFontRelease (fontRef);
-    }
-
-    if (ctFontRef != nullptr)
-        CFRelease (ctFontRef);
-}
 
 CTFontRef getCTFontFromTypeface (const Font& f)
 {

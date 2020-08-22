@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -32,6 +32,8 @@ namespace juce
     main() function to parse.
 
     @see ConsoleApplication
+
+    @tags{Core}
 */
 struct ArgumentList
 {
@@ -50,6 +52,8 @@ struct ArgumentList
     //==============================================================================
     /**
         One of the arguments in an ArgumentList.
+
+        @tags{Core}
     */
     struct Argument
     {
@@ -226,13 +230,18 @@ struct ArgumentList
     @endcode
 
     @see ArgumentList
+
+    @tags{Core}
 */
 struct ConsoleApplication
 {
     //==============================================================================
     /**
         Represents a command that can be executed if its command-line arguments are matched.
+
         @see ConsoleApplication::addCommand(), ConsoleApplication::findAndRunCommand()
+
+        @tags{Core}
     */
     struct Command
     {
@@ -255,7 +264,7 @@ struct ConsoleApplication
         String longDescription;
 
         /** The actual command that should be invoked to perform this action. */
-        std::function<void(const ArgumentList&)> command;
+        std::function<void (const ArgumentList&)> command;
     };
 
     //==============================================================================

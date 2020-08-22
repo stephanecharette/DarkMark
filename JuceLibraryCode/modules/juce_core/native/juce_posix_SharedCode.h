@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -39,95 +39,6 @@ CriticalSection::~CriticalSection() noexcept        { pthread_mutex_destroy (&lo
 void CriticalSection::enter() const noexcept        { pthread_mutex_lock (&lock); }
 bool CriticalSection::tryEnter() const noexcept     { return pthread_mutex_trylock (&lock) == 0; }
 void CriticalSection::exit() const noexcept         { pthread_mutex_unlock (&lock); }
-
-//==============================================================================
-WaitableEvent::WaitableEvent (bool useManualReset) noexcept
-    : triggered (false), manualReset (useManualReset)
-{
-    pthread_cond_init (&condition, {});
-
-    pthread_mutexattr_t atts;
-    pthread_mutexattr_init (&atts);
-   #if ! JUCE_ANDROID
-    pthread_mutexattr_setprotocol (&atts, PTHREAD_PRIO_INHERIT);
-   #endif
-    pthread_mutex_init (&mutex, &atts);
-    pthread_mutexattr_destroy (&atts);
-}
-
-WaitableEvent::~WaitableEvent() noexcept
-{
-    pthread_cond_destroy (&condition);
-    pthread_mutex_destroy (&mutex);
-}
-
-bool WaitableEvent::wait (int timeOutMillisecs) const noexcept
-{
-    pthread_mutex_lock (&mutex);
-
-    if (! triggered)
-    {
-        if (timeOutMillisecs < 0)
-        {
-            do
-            {
-                pthread_cond_wait (&condition, &mutex);
-            }
-            while (! triggered);
-        }
-        else
-        {
-            struct timeval now;
-            gettimeofday (&now, nullptr);
-
-            struct timespec time;
-            time.tv_sec  = now.tv_sec  + (timeOutMillisecs / 1000);
-            time.tv_nsec = (now.tv_usec + ((timeOutMillisecs % 1000) * 1000)) * 1000;
-
-            if (time.tv_nsec >= 1000000000)
-            {
-                time.tv_nsec -= 1000000000;
-                time.tv_sec++;
-            }
-
-            do
-            {
-                if (pthread_cond_timedwait (&condition, &mutex, &time) == ETIMEDOUT)
-                {
-                    pthread_mutex_unlock (&mutex);
-                    return false;
-                }
-            }
-            while (! triggered);
-        }
-    }
-
-    if (! manualReset)
-        triggered = false;
-
-    pthread_mutex_unlock (&mutex);
-    return true;
-}
-
-void WaitableEvent::signal() const noexcept
-{
-    pthread_mutex_lock (&mutex);
-
-    if (! triggered)
-    {
-        triggered = true;
-        pthread_cond_broadcast (&condition);
-    }
-
-    pthread_mutex_unlock (&mutex);
-}
-
-void WaitableEvent::reset() const noexcept
-{
-    pthread_mutex_lock (&mutex);
-    triggered = false;
-    pthread_mutex_unlock (&mutex);
-}
 
 //==============================================================================
 void JUCE_CALLTYPE Thread::sleep (int millisecs)
@@ -504,7 +415,7 @@ int64 juce_fileSetPosition (void* handle, int64 pos)
 
 void FileInputStream::openHandle()
 {
-    auto f = open (file.getFullPathName().toUTF8(), O_RDONLY, 00644);
+    auto f = open (file.getFullPathName().toUTF8(), O_RDONLY);
 
     if (f != -1)
         fileHandle = fdToVoidPointer (f);
@@ -541,7 +452,7 @@ void FileOutputStream::openHandle()
 {
     if (file.exists())
     {
-        auto f = open (file.getFullPathName().toUTF8(), O_RDWR, 00644);
+        auto f = open (file.getFullPathName().toUTF8(), O_RDWR);
 
         if (f != -1)
         {
@@ -564,7 +475,7 @@ void FileOutputStream::openHandle()
     }
     else
     {
-        auto f = open (file.getFullPathName().toUTF8(), O_RDWR + O_CREAT, 00644);
+        auto f = open (file.getFullPathName().toUTF8(), O_RDWR | O_CREAT, 00644);
 
         if (f != -1)
             fileHandle = fdToVoidPointer (f);
@@ -632,8 +543,12 @@ void MemoryMappedFile::openInternal (const File& file, AccessMode mode, bool exc
         range.setStart (range.getStart() - (range.getStart() % pageSize));
     }
 
-    fileHandle = open (file.getFullPathName().toUTF8(),
-                       mode == readWrite ? (O_CREAT + O_RDWR) : O_RDONLY, 00644);
+    auto filename = file.getFullPathName().toUTF8();
+
+    if (mode == readWrite)
+        fileHandle = open (filename, O_CREAT | O_RDWR, 00644);
+    else
+        fileHandle = open (filename, O_RDONLY);
 
     if (fileHandle != -1)
     {
@@ -1118,7 +1033,8 @@ void* DynamicLibrary::getFunction (const String& functionName) noexcept
 
 
 //==============================================================================
-static inline String readPosixConfigFileValue (const char* file, const char* key)
+#if JUCE_LINUX || JUCE_ANDROID
+static String readPosixConfigFileValue (const char* file, const char* key)
 {
     StringArray lines;
     File (file).readLines (lines);
@@ -1129,6 +1045,7 @@ static inline String readPosixConfigFileValue (const char* file, const char* key
 
     return {};
 }
+#endif
 
 
 //==============================================================================
@@ -1242,7 +1159,7 @@ public:
                 if (numBytesRead > 0 || feof (readHandle))
                     return numBytesRead;
 
-                // signal occured during fread() so try again
+                // signal occurred during fread() so try again
                 if (ferror (readHandle) && errno == EINTR)
                     continue;
 

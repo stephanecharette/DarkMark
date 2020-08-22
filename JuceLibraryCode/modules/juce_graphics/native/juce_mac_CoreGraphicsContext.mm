@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-6-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -28,10 +27,13 @@ namespace juce
 {
 
 //==============================================================================
-class CoreGraphicsImage   : public ImagePixelData
+// This class has been renamed from CoreGraphicsImage to avoid a symbol
+// collision in Pro Tools 2019.12 and possibly 2020 depending on the Pro Tools
+// release schedule.
+class CoreGraphicsPixelData   : public ImagePixelData
 {
 public:
-    CoreGraphicsImage (const Image::PixelFormat format, int w, int h, bool clearImage)
+    CoreGraphicsPixelData (const Image::PixelFormat format, int w, int h, bool clearImage)
         : ImagePixelData (format, w, h)
     {
         pixelStride = format == Image::RGB ? 3 : ((format == Image::ARGB) ? 4 : 1);
@@ -48,26 +50,23 @@ public:
 
         imageDataHolder->data.allocate (numComponents, clearImage);
 
-        CGColorSpaceRef colourSpace = (format == Image::SingleChannel) ? CGColorSpaceCreateDeviceGray()
-                                                                       : CGColorSpaceCreateDeviceRGB();
+        auto colourSpace = detail::ColorSpacePtr { CGColorSpaceCreateWithName ((format == Image::SingleChannel) ? kCGColorSpaceGenericGrayGamma2_2
+                                                                                                                : kCGColorSpaceSRGB) };
 
-        context = CGBitmapContextCreate (imageDataHolder->data, (size_t) width, (size_t) height, 8, (size_t) lineStride,
-                                         colourSpace, getCGImageFlags (format));
-
-        CGColorSpaceRelease (colourSpace);
+        context = detail::ContextPtr { CGBitmapContextCreate (imageDataHolder->data, (size_t) width, (size_t) height, 8, (size_t) lineStride,
+                                                              colourSpace.get(), getCGImageFlags (format)) };
     }
 
-    ~CoreGraphicsImage() override
+    ~CoreGraphicsPixelData() override
     {
         freeCachedImageRef();
-        CGContextRelease (context);
     }
 
     std::unique_ptr<LowLevelGraphicsContext> createLowLevelContext() override
     {
         freeCachedImageRef();
         sendDataChangeMessage();
-        return std::make_unique<CoreGraphicsContext> (context, height, 1.0f);
+        return std::make_unique<CoreGraphicsContext> (context.get(), height);
     }
 
     void initialiseBitmapData (Image::BitmapData& bitmap, int x, int y, Image::BitmapData::ReadWriteMode mode) override
@@ -86,7 +85,7 @@ public:
 
     ImagePixelData::Ptr clone() override
     {
-        auto im = new CoreGraphicsImage (pixelFormat, width, height, false);
+        auto im = new CoreGraphicsPixelData (pixelFormat, width, height, false);
         memcpy (im->imageDataHolder->data, imageDataHolder->data, (size_t) (lineStride * height));
         return *im;
     }
@@ -96,18 +95,18 @@ public:
     //==============================================================================
     static CGImageRef getCachedImageRef (const Image& juceImage, CGColorSpaceRef colourSpace)
     {
-        auto cgim = dynamic_cast<CoreGraphicsImage*> (juceImage.getPixelData());
+        auto cgim = dynamic_cast<CoreGraphicsPixelData*> (juceImage.getPixelData());
 
         if (cgim != nullptr && cgim->cachedImageRef != nullptr)
         {
-            CGImageRetain (cgim->cachedImageRef);
-            return cgim->cachedImageRef;
+            CGImageRetain (cgim->cachedImageRef.get());
+            return cgim->cachedImageRef.get();
         }
 
         CGImageRef ref = createImage (juceImage, colourSpace, false);
 
         if (cgim != nullptr)
-            cgim->cachedImageRef = CGImageRetain (ref);
+            cgim->cachedImageRef.reset (CGImageRetain (ref));
 
         return ref;
     }
@@ -115,28 +114,28 @@ public:
     static CGImageRef createImage (const Image& juceImage, CGColorSpaceRef colourSpace, bool mustOutliveSource)
     {
         const Image::BitmapData srcData (juceImage, Image::BitmapData::readOnly);
-        CGDataProviderRef provider;
+        detail::DataProviderPtr provider;
 
         if (mustOutliveSource)
         {
             CFDataRef data = CFDataCreate (nullptr, (const UInt8*) srcData.data, (CFIndex) ((size_t) srcData.lineStride * (size_t) srcData.height));
-            provider = CGDataProviderCreateWithCFData (data);
+            provider = detail::DataProviderPtr { CGDataProviderCreateWithCFData (data) };
             CFRelease (data);
         }
         else
         {
-            auto* imageDataContainer = [](const Image& img) -> HeapBlockContainer::Ptr*
+            auto* imageDataContainer = [] (const Image& img) -> HeapBlockContainer::Ptr*
             {
-                if (auto* cgim = dynamic_cast<CoreGraphicsImage*> (img.getPixelData()))
+                if (auto* cgim = dynamic_cast<CoreGraphicsPixelData*> (img.getPixelData()))
                     return new HeapBlockContainer::Ptr (cgim->imageDataHolder);
 
                 return nullptr;
             } (juceImage);
 
-            provider = CGDataProviderCreateWithData (imageDataContainer,
-                                                     srcData.data,
-                                                     (size_t) srcData.lineStride * (size_t) srcData.height,
-                                                     [] (void * __nullable info, const void*, size_t) { delete (HeapBlockContainer::Ptr*) info; });
+            provider = detail::DataProviderPtr { CGDataProviderCreateWithData (imageDataContainer,
+                                                                               srcData.data,
+                                                                               (size_t) srcData.lineStride * (size_t) srcData.height,
+                                                                               [] (void * __nullable info, const void*, size_t) { delete (HeapBlockContainer::Ptr*) info; }) };
         }
 
         CGImageRef imageRef = CGImageCreate ((size_t) srcData.width,
@@ -144,16 +143,15 @@ public:
                                              8,
                                              (size_t) srcData.pixelStride * 8,
                                              (size_t) srcData.lineStride,
-                                             colourSpace, getCGImageFlags (juceImage.getFormat()), provider,
+                                             colourSpace, getCGImageFlags (juceImage.getFormat()), provider.get(),
                                              nullptr, true, kCGRenderingIntentDefault);
 
-        CGDataProviderRelease (provider);
         return imageRef;
     }
 
     //==============================================================================
-    CGContextRef context;
-    CGImageRef cachedImageRef = {};
+    detail::ContextPtr context;
+    detail::ImagePtr cachedImageRef;
 
     struct HeapBlockContainer   : public ReferenceCountedObject
     {
@@ -167,11 +165,7 @@ public:
 private:
     void freeCachedImageRef()
     {
-        if (cachedImageRef != CGImageRef())
-        {
-            CGImageRelease (cachedImageRef);
-            cachedImageRef = {};
-        }
+        cachedImageRef.reset();
     }
 
     static CGBitmapInfo getCGImageFlags (const Image::PixelFormat& format)
@@ -183,52 +177,60 @@ private:
        #endif
     }
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CoreGraphicsImage)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CoreGraphicsPixelData)
 };
 
 ImagePixelData::Ptr NativeImageType::create (Image::PixelFormat format, int width, int height, bool clearImage) const
 {
-    return *new CoreGraphicsImage (format == Image::RGB ? Image::ARGB : format, width, height, clearImage);
+    return *new CoreGraphicsPixelData (format == Image::RGB ? Image::ARGB : format, width, height, clearImage);
 }
 
 //==============================================================================
-CoreGraphicsContext::CoreGraphicsContext (CGContextRef c, float h, float scale)
+struct ScopedCGContextState
+{
+    explicit ScopedCGContextState (CGContextRef c)  : context (c)  { CGContextSaveGState (context); }
+    ~ScopedCGContextState()                                        { CGContextRestoreGState (context); }
+
+    CGContextRef context;
+};
+
+//==============================================================================
+CoreGraphicsContext::CoreGraphicsContext (CGContextRef c, float h)
     : context (c),
       flipHeight (h),
-      targetScale (scale),
       state (new SavedState())
 {
-    CGContextRetain (context);
-    CGContextSaveGState (context);
+    CGContextRetain (context.get());
+    CGContextSaveGState (context.get());
 
+   #if JUCE_MAC
     bool enableFontSmoothing
-            #if JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING
-             = false;
-            #else
-             = true;
-            #endif
+                 #if JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING
+                  = false;
+                 #else
+                  = true;
+                 #endif
 
-    CGContextSetShouldSmoothFonts (context, enableFontSmoothing);
-    CGContextSetAllowsFontSmoothing (context, enableFontSmoothing);
-    CGContextSetShouldAntialias (context, true);
-    CGContextSetBlendMode (context, kCGBlendModeNormal);
-    rgbColourSpace = CGColorSpaceCreateDeviceRGB();
-    greyColourSpace = CGColorSpaceCreateDeviceGray();
+    CGContextSetShouldSmoothFonts (context.get(), enableFontSmoothing);
+    CGContextSetAllowsFontSmoothing (context.get(), enableFontSmoothing);
+   #endif
+
+    CGContextSetShouldAntialias (context.get(), true);
+    CGContextSetBlendMode (context.get(), kCGBlendModeNormal);
+    rgbColourSpace.reset (CGColorSpaceCreateWithName (kCGColorSpaceSRGB));
+    greyColourSpace.reset (CGColorSpaceCreateWithName (kCGColorSpaceGenericGrayGamma2_2));
     setFont (Font());
 }
 
 CoreGraphicsContext::~CoreGraphicsContext()
 {
-    CGContextRestoreGState (context);
-    CGContextRelease (context);
-    CGColorSpaceRelease (rgbColourSpace);
-    CGColorSpaceRelease (greyColourSpace);
+    CGContextRestoreGState (context.get());
 }
 
 //==============================================================================
 void CoreGraphicsContext::setOrigin (Point<int> o)
 {
-    CGContextTranslateCTM (context, o.x, -o.y);
+    CGContextTranslateCTM (context.get(), o.x, -o.y);
 
     if (lastClipRectIsValid)
         lastClipRect.translate (-o.x, -o.y);
@@ -243,20 +245,20 @@ void CoreGraphicsContext::addTransform (const AffineTransform& transform)
     lastClipRectIsValid = false;
 
     jassert (getPhysicalPixelScaleFactor() > 0.0f);
-    jassert (getPhysicalPixelScaleFactor() > 0.0f);
 }
 
 float CoreGraphicsContext::getPhysicalPixelScaleFactor()
 {
-    auto t = CGContextGetCTM (context);
+    auto t = CGContextGetUserSpaceToDeviceSpaceTransform (context.get());
+    auto determinant = (t.a * t.d) - (t.c * t.b);
 
-    return targetScale * (float) (juce_hypot (t.a, t.c) + juce_hypot (t.b, t.d)) / 2.0f;
+    return (float) std::sqrt (std::abs (determinant));
 }
 
 bool CoreGraphicsContext::clipToRectangle (const Rectangle<int>& r)
 {
-    CGContextClipToRect (context, CGRectMake (r.getX(), flipHeight - r.getBottom(),
-                                              r.getWidth(), r.getHeight()));
+    CGContextClipToRect (context.get(), CGRectMake (r.getX(), flipHeight - r.getBottom(),
+                                                    r.getWidth(), r.getHeight()));
 
     if (lastClipRectIsValid)
     {
@@ -275,7 +277,7 @@ bool CoreGraphicsContext::clipToRectangleListWithoutTest (const RectangleList<in
 {
     if (clipRegion.isEmpty())
     {
-        CGContextClipToRect (context, CGRectZero);
+        CGContextClipToRect (context.get(), CGRectZero);
         lastClipRectIsValid = true;
         lastClipRect = Rectangle<int>();
         return false;
@@ -288,7 +290,7 @@ bool CoreGraphicsContext::clipToRectangleListWithoutTest (const RectangleList<in
     for (auto& r : clipRegion)
         rects[i++] = CGRectMake (r.getX(), flipHeight - r.getBottom(), r.getWidth(), r.getHeight());
 
-    CGContextClipToRects (context, rects, numRects);
+    CGContextClipToRects (context.get(), rects, numRects);
     lastClipRectIsValid = false;
     return true;
 }
@@ -310,9 +312,9 @@ void CoreGraphicsContext::clipToPath (const Path& path, const AffineTransform& t
     createPath (path, transform);
 
     if (path.isUsingNonZeroWinding())
-        CGContextClip (context);
+        CGContextClip (context.get());
     else
-        CGContextEOClip (context);
+        CGContextEOClip (context.get());
 
     lastClipRectIsValid = false;
 }
@@ -326,19 +328,18 @@ void CoreGraphicsContext::clipToImageAlpha (const Image& sourceImage, const Affi
         if (sourceImage.getFormat() != Image::SingleChannel)
             singleChannelImage = sourceImage.convertedToFormat (Image::SingleChannel);
 
-        CGImageRef image = CoreGraphicsImage::createImage (singleChannelImage, greyColourSpace, true);
+        auto image = detail::ImagePtr { CoreGraphicsPixelData::createImage (singleChannelImage, greyColourSpace.get(), true) };
 
         flip();
         auto t = AffineTransform::verticalFlip (sourceImage.getHeight()).followedBy (transform);
         applyTransform (t);
 
         auto r = convertToCGRect (sourceImage.getBounds());
-        CGContextClipToMask (context, r, image);
+        CGContextClipToMask (context.get(), r, image.get());
 
         applyTransform (t.inverted());
         flip();
 
-        CGImageRelease (image);
         lastClipRectIsValid = false;
     }
 }
@@ -352,7 +353,7 @@ Rectangle<int> CoreGraphicsContext::getClipBounds() const
 {
     if (! lastClipRectIsValid)
     {
-        auto bounds = CGRectIntegral (CGContextGetClipBoundingBox (context));
+        auto bounds = CGRectIntegral (CGContextGetClipBoundingBox (context.get()));
 
         lastClipRectIsValid = true;
         lastClipRect.setBounds (roundToInt (bounds.origin.x),
@@ -372,17 +373,19 @@ bool CoreGraphicsContext::isClipEmpty() const
 //==============================================================================
 void CoreGraphicsContext::saveState()
 {
-    CGContextSaveGState (context);
+    CGContextSaveGState (context.get());
     stateStack.add (new SavedState (*state));
 }
 
 void CoreGraphicsContext::restoreState()
 {
-    CGContextRestoreGState (context);
+    CGContextRestoreGState (context.get());
 
     if (auto* top = stateStack.getLast())
     {
         state.reset (top);
+        CGContextSetTextMatrix (context.get(), state->textMatrix);
+
         stateStack.removeLast (1, false);
         lastClipRectIsValid = false;
     }
@@ -395,13 +398,13 @@ void CoreGraphicsContext::restoreState()
 void CoreGraphicsContext::beginTransparencyLayer (float opacity)
 {
     saveState();
-    CGContextSetAlpha (context, opacity);
-    CGContextBeginTransparencyLayer (context, nullptr);
+    CGContextSetAlpha (context.get(), opacity);
+    CGContextBeginTransparencyLayer (context.get(), nullptr);
 }
 
 void CoreGraphicsContext::endTransparencyLayer()
 {
-    CGContextEndTransparencyLayer (context);
+    CGContextEndTransparencyLayer (context.get());
     restoreState();
 }
 
@@ -412,9 +415,9 @@ void CoreGraphicsContext::setFill (const FillType& fillType)
 
     if (fillType.isColour())
     {
-        CGContextSetRGBFillColor (context, fillType.colour.getFloatRed(), fillType.colour.getFloatGreen(),
+        CGContextSetRGBFillColor (context.get(), fillType.colour.getFloatRed(), fillType.colour.getFloatGreen(),
                                   fillType.colour.getFloatBlue(), fillType.colour.getFloatAlpha());
-        CGContextSetAlpha (context, 1.0f);
+        CGContextSetAlpha (context.get(), 1.0f);
     }
 }
 
@@ -428,9 +431,9 @@ void CoreGraphicsContext::setInterpolationQuality (Graphics::ResamplingQuality q
 {
     switch (quality)
     {
-        case Graphics::lowResamplingQuality:    CGContextSetInterpolationQuality (context, kCGInterpolationNone);   return;
-        case Graphics::mediumResamplingQuality: CGContextSetInterpolationQuality (context, kCGInterpolationMedium); return;
-        case Graphics::highResamplingQuality:   CGContextSetInterpolationQuality (context, kCGInterpolationHigh);   return;
+        case Graphics::lowResamplingQuality:    CGContextSetInterpolationQuality (context.get(), kCGInterpolationNone);   return;
+        case Graphics::mediumResamplingQuality: CGContextSetInterpolationQuality (context.get(), kCGInterpolationMedium); return;
+        case Graphics::highResamplingQuality:   CGContextSetInterpolationQuality (context.get(), kCGInterpolationHigh);   return;
         default: return;
     }
 }
@@ -450,36 +453,33 @@ void CoreGraphicsContext::fillCGRect (const CGRect& cgRect, bool replaceExisting
 {
     if (replaceExistingContents)
     {
-        CGContextSetBlendMode (context, kCGBlendModeCopy);
+        CGContextSetBlendMode (context.get(), kCGBlendModeCopy);
         fillCGRect (cgRect, false);
-        CGContextSetBlendMode (context, kCGBlendModeNormal);
+        CGContextSetBlendMode (context.get(), kCGBlendModeNormal);
     }
     else
     {
         if (state->fillType.isColour())
         {
-            CGContextFillRect (context, cgRect);
-        }
-        else if (state->fillType.isGradient())
-        {
-            CGContextSaveGState (context);
-            CGContextClipToRect (context, cgRect);
-            drawGradient();
-            CGContextRestoreGState (context);
+            CGContextFillRect (context.get(), cgRect);
         }
         else
         {
-            CGContextSaveGState (context);
-            CGContextClipToRect (context, cgRect);
-            drawImage (state->fillType.image, state->fillType.transform, true);
-            CGContextRestoreGState (context);
+            ScopedCGContextState scopedState (context.get());
+
+            CGContextClipToRect (context.get(), cgRect);
+
+            if (state->fillType.isGradient())
+                drawGradient();
+            else
+                drawImage (state->fillType.image, state->fillType.transform, true);
         }
     }
 }
 
 void CoreGraphicsContext::fillPath (const Path& path, const AffineTransform& transform)
 {
-    CGContextSaveGState (context);
+    ScopedCGContextState scopedState (context.get());
 
     if (state->fillType.isColour())
     {
@@ -488,26 +488,24 @@ void CoreGraphicsContext::fillPath (const Path& path, const AffineTransform& tra
         createPath (path);
 
         if (path.isUsingNonZeroWinding())
-            CGContextFillPath (context);
+            CGContextFillPath (context.get());
         else
-            CGContextEOFillPath (context);
+            CGContextEOFillPath (context.get());
     }
     else
     {
         createPath (path, transform);
 
         if (path.isUsingNonZeroWinding())
-            CGContextClip (context);
+            CGContextClip (context.get());
         else
-            CGContextEOClip (context);
+            CGContextEOClip (context.get());
 
         if (state->fillType.isGradient())
             drawGradient();
         else
             drawImage (state->fillType.image, state->fillType.transform, true);
     }
-
-    CGContextRestoreGState (context);
 }
 
 void CoreGraphicsContext::drawImage (const Image& sourceImage, const AffineTransform& transform)
@@ -520,12 +518,12 @@ void CoreGraphicsContext::drawImage (const Image& sourceImage, const AffineTrans
     auto iw = sourceImage.getWidth();
     auto ih = sourceImage.getHeight();
 
-    auto colourSpace = sourceImage.getFormat() == Image::PixelFormat::SingleChannel ? greyColourSpace
-                                                                                    : rgbColourSpace;
-    CGImageRef image = CoreGraphicsImage::getCachedImageRef (sourceImage, colourSpace);
+    auto colourSpace = sourceImage.getFormat() == Image::PixelFormat::SingleChannel ? greyColourSpace.get()
+                                                                                    : rgbColourSpace.get();
+    auto image = detail::ImagePtr { CoreGraphicsPixelData::getCachedImageRef (sourceImage, colourSpace) };
 
-    CGContextSaveGState (context);
-    CGContextSetAlpha (context, state->fillType.getOpacity());
+    ScopedCGContextState scopedState (context.get());
+    CGContextSetAlpha (context.get(), state->fillType.getOpacity());
 
     flip();
     applyTransform (AffineTransform::verticalFlip (ih).followedBy (transform));
@@ -534,18 +532,18 @@ void CoreGraphicsContext::drawImage (const Image& sourceImage, const AffineTrans
     if (fillEntireClipAsTiles)
     {
       #if JUCE_IOS
-        CGContextDrawTiledImage (context, imageRect, image);
+        CGContextDrawTiledImage (context.get(), imageRect, image.get());
       #else
         // There's a bug in CGContextDrawTiledImage that makes it incredibly slow
         // if it's doing a transformation - it's quicker to just draw lots of images manually
         if (&CGContextDrawTiledImage != nullptr && transform.isOnlyTranslation())
         {
-            CGContextDrawTiledImage (context, imageRect, image);
+            CGContextDrawTiledImage (context.get(), imageRect, image.get());
         }
         else
         {
             // Fallback to manually doing a tiled fill
-            auto clip = CGRectIntegral (CGContextGetClipBoundingBox (context));
+            auto clip = CGRectIntegral (CGContextGetClipBoundingBox (context.get()));
 
             int x = 0, y = 0;
             while (x > clip.origin.x)   x -= iw;
@@ -557,7 +555,7 @@ void CoreGraphicsContext::drawImage (const Image& sourceImage, const AffineTrans
             while (y < bottom)
             {
                 for (int x2 = x; x2 < right; x2 += iw)
-                    CGContextDrawImage (context, CGRectMake (x2, y, iw, ih), image);
+                    CGContextDrawImage (context.get(), CGRectMake (x2, y, iw, ih), image.get());
 
                 y += ih;
             }
@@ -566,11 +564,8 @@ void CoreGraphicsContext::drawImage (const Image& sourceImage, const AffineTrans
     }
     else
     {
-        CGContextDrawImage (context, imageRect, image);
+        CGContextDrawImage (context.get(), imageRect, image.get());
     }
-
-    CGImageRelease (image); // (This causes a memory bug in iOS sim 3.0 - try upgrading to a later version if you hit this)
-    CGContextRestoreGState (context);
 }
 
 //==============================================================================
@@ -592,21 +587,18 @@ void CoreGraphicsContext::fillRectList (const RectangleList<float>& list)
 
     if (state->fillType.isColour())
     {
-        CGContextFillRects (context, rects, num);
-    }
-    else if (state->fillType.isGradient())
-    {
-        CGContextSaveGState (context);
-        CGContextClipToRects (context, rects, num);
-        drawGradient();
-        CGContextRestoreGState (context);
+        CGContextFillRects (context.get(), rects, num);
     }
     else
     {
-        CGContextSaveGState (context);
-        CGContextClipToRects (context, rects, num);
-        drawImage (state->fillType.image, state->fillType.transform, true);
-        CGContextRestoreGState (context);
+        ScopedCGContextState scopedState (context.get());
+
+        CGContextClipToRects (context.get(), rects, num);
+
+        if (state->fillType.isGradient())
+            drawGradient();
+        else
+            drawImage (state->fillType.image, state->fillType.transform, true);
     }
 }
 
@@ -620,23 +612,14 @@ void CoreGraphicsContext::setFont (const Font& newFont)
         if (auto osxTypeface = dynamic_cast<OSXTypeface*> (state->font.getTypeface()))
         {
             state->fontRef = osxTypeface->fontRef;
-            CGContextSetFont (context, state->fontRef);
-            CGContextSetFontSize (context, state->font.getHeight() * osxTypeface->fontHeightToPointsFactor);
+            CGContextSetFont (context.get(), state->fontRef);
+            CGContextSetFontSize (context.get(), state->font.getHeight() * osxTypeface->fontHeightToPointsFactor);
 
-            auto fontTransform = osxTypeface->renderingTransform;
-            fontTransform.a *= state->font.getHorizontalScale();
-            CGContextSetTextMatrix (context, fontTransform);
-
-            auto cgTransformToJuceTransform = [](CGAffineTransform& t) -> AffineTransform
-            {
-                return { (float) t.a, (float) t.c, (float) t.tx,
-                         (float) t.b, (float) t.d, (float) t.ty };
-            };
-
-            state->fontTransform = cgTransformToJuceTransform (fontTransform);
-            auto inverseFontTransform = CGAffineTransformInvert (fontTransform);
-            state->inverseFontTransform = cgTransformToJuceTransform (inverseFontTransform);
-        }
+            state->textMatrix = osxTypeface->renderingTransform;
+            state->textMatrix.a *= state->font.getHorizontalScale();
+            CGContextSetTextMatrix (context.get(), state->textMatrix);
+            state->inverseTextMatrix = CGAffineTransformInvert (state->textMatrix);
+         }
     }
 }
 
@@ -649,28 +632,34 @@ void CoreGraphicsContext::drawGlyph (int glyphNumber, const AffineTransform& tra
 {
     if (state->fontRef != nullptr && state->fillType.isColour())
     {
-        if (transform.isOnlyTranslation() && state->fontTransform.isOnlyTranslation())
+        auto cgTransformIsOnlyTranslation = [] (CGAffineTransform t)
         {
-            auto t = transform.followedBy (state->inverseFontTransform);
+            return t.a == 1.0f && t.d == 1.0f && t.b == 0.0f && t.c == 0.0f;
+        };
+
+        if (transform.isOnlyTranslation() && cgTransformIsOnlyTranslation (state->inverseTextMatrix))
+        {
+            auto x = transform.mat02 + state->inverseTextMatrix.tx;
+            auto y = transform.mat12 + state->inverseTextMatrix.ty;
 
             CGGlyph glyphs[1] = { (CGGlyph) glyphNumber };
-            CGPoint positions[1] = { { t.getTranslationX(), flipHeight - roundToInt (t.getTranslationY()) } };
-            CGContextShowGlyphsAtPositions (context, glyphs, positions, 1);
+            CGPoint positions[1] = { { x, flipHeight - roundToInt (y) } };
+            CGContextShowGlyphsAtPositions (context.get(), glyphs, positions, 1);
         }
         else
         {
-            CGContextSaveGState (context);
+            ScopedCGContextState scopedState (context.get());
 
             flip();
-            auto fontTransform = state->fontTransform;
-            fontTransform.mat11 = -fontTransform.mat11;
-            applyTransform (fontTransform.followedBy (state->inverseFontTransform).followedBy (transform));
+            applyTransform (transform);
+            CGContextConcatCTM (context.get(), state->inverseTextMatrix);
+            auto cgTransform = state->textMatrix;
+            cgTransform.d = -cgTransform.d;
+            CGContextConcatCTM (context.get(), cgTransform);
 
             CGGlyph glyphs[1] = { (CGGlyph) glyphNumber };
             CGPoint positions[1] = { { 0.0f, 0.0f } };
-            CGContextShowGlyphsAtPositions (context, glyphs, positions, 1);
-
-            CGContextRestoreGState (context);
+            CGContextShowGlyphsAtPositions (context.get(), glyphs, positions, 1);
         }
     }
     else
@@ -686,7 +675,7 @@ void CoreGraphicsContext::drawGlyph (int glyphNumber, const AffineTransform& tra
 
 bool CoreGraphicsContext::drawTextLayout (const AttributedString& text, const Rectangle<float>& area)
 {
-    CoreTextTypeLayout::drawToCGContext (text, area, context, (float) flipHeight);
+    CoreTextTypeLayout::drawToCGContext (text, area, context.get(), (float) flipHeight);
     return true;
 }
 
@@ -697,29 +686,19 @@ CoreGraphicsContext::SavedState::SavedState()
 
 CoreGraphicsContext::SavedState::SavedState (const SavedState& other)
     : fillType (other.fillType), font (other.font), fontRef (other.fontRef),
-      fontTransform (other.fontTransform),
-      inverseFontTransform (other.inverseFontTransform),
-      gradient (other.gradient)
+      textMatrix (other.textMatrix), inverseTextMatrix (other.inverseTextMatrix),
+      gradient (other.gradient.get())
 {
     if (gradient != nullptr)
-        CGGradientRetain (gradient);
+        CGGradientRetain (gradient.get());
 }
 
-CoreGraphicsContext::SavedState::~SavedState()
-{
-    if (gradient != nullptr)
-        CGGradientRelease (gradient);
-}
+CoreGraphicsContext::SavedState::~SavedState() = default;
 
 void CoreGraphicsContext::SavedState::setFill (const FillType& newFill)
 {
     fillType = newFill;
-
-    if (gradient != nullptr)
-    {
-        CGGradientRelease (gradient);
-        gradient = nullptr;
-    }
+    gradient = nullptr;
 }
 
 static CGGradientRef createGradient (const ColourGradient& g, CGColorSpaceRef colourSpace)
@@ -751,37 +730,37 @@ void CoreGraphicsContext::drawGradient()
 {
     flip();
     applyTransform (state->fillType.transform);
-    CGContextSetAlpha (context, state->fillType.getOpacity());
+    CGContextSetAlpha (context.get(), state->fillType.getOpacity());
 
     auto& g = *state->fillType.gradient;
 
     if (state->gradient == nullptr)
-        state->gradient = createGradient (g, rgbColourSpace);
+        state->gradient.reset (createGradient (g, rgbColourSpace.get()));
 
     auto p1 = convertToCGPoint (g.point1);
     auto p2 = convertToCGPoint (g.point2);
 
     if (g.isRadial)
-        CGContextDrawRadialGradient (context, state->gradient, p1, 0, p1, g.point1.getDistanceFrom (g.point2),
+        CGContextDrawRadialGradient (context.get(), state->gradient.get(), p1, 0, p1, g.point1.getDistanceFrom (g.point2),
                                      kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
     else
-        CGContextDrawLinearGradient (context, state->gradient, p1, p2,
+        CGContextDrawLinearGradient (context.get(), state->gradient.get(), p1, p2,
                                      kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
 }
 
 void CoreGraphicsContext::createPath (const Path& path) const
 {
-    CGContextBeginPath (context);
+    CGContextBeginPath (context.get());
 
     for (Path::Iterator i (path); i.next();)
     {
         switch (i.elementType)
         {
-            case Path::Iterator::startNewSubPath:  CGContextMoveToPoint (context, i.x1, i.y1); break;
-            case Path::Iterator::lineTo:           CGContextAddLineToPoint (context, i.x1, i.y1); break;
-            case Path::Iterator::quadraticTo:      CGContextAddQuadCurveToPoint (context, i.x1, i.y1, i.x2, i.y2); break;
-            case Path::Iterator::cubicTo:          CGContextAddCurveToPoint (context, i.x1, i.y1, i.x2, i.y2, i.x3, i.y3); break;
-            case Path::Iterator::closePath:        CGContextClosePath (context); break;
+            case Path::Iterator::startNewSubPath:  CGContextMoveToPoint (context.get(), i.x1, i.y1); break;
+            case Path::Iterator::lineTo:           CGContextAddLineToPoint (context.get(), i.x1, i.y1); break;
+            case Path::Iterator::quadraticTo:      CGContextAddQuadCurveToPoint (context.get(), i.x1, i.y1, i.x2, i.y2); break;
+            case Path::Iterator::cubicTo:          CGContextAddCurveToPoint (context.get(), i.x1, i.y1, i.x2, i.y2, i.x3, i.y3); break;
+            case Path::Iterator::closePath:        CGContextClosePath (context.get()); break;
             default:                               jassertfalse; break;
         }
     }
@@ -789,7 +768,7 @@ void CoreGraphicsContext::createPath (const Path& path) const
 
 void CoreGraphicsContext::createPath (const Path& path, const AffineTransform& transform) const
 {
-    CGContextBeginPath (context);
+    CGContextBeginPath (context.get());
 
     for (Path::Iterator i (path); i.next();)
     {
@@ -797,22 +776,22 @@ void CoreGraphicsContext::createPath (const Path& path, const AffineTransform& t
         {
         case Path::Iterator::startNewSubPath:
             transform.transformPoint (i.x1, i.y1);
-            CGContextMoveToPoint (context, i.x1, flipHeight - i.y1);
+            CGContextMoveToPoint (context.get(), i.x1, flipHeight - i.y1);
             break;
         case Path::Iterator::lineTo:
             transform.transformPoint (i.x1, i.y1);
-            CGContextAddLineToPoint (context, i.x1, flipHeight - i.y1);
+            CGContextAddLineToPoint (context.get(), i.x1, flipHeight - i.y1);
             break;
         case Path::Iterator::quadraticTo:
             transform.transformPoints (i.x1, i.y1, i.x2, i.y2);
-            CGContextAddQuadCurveToPoint (context, i.x1, flipHeight - i.y1, i.x2, flipHeight - i.y2);
+            CGContextAddQuadCurveToPoint (context.get(), i.x1, flipHeight - i.y1, i.x2, flipHeight - i.y2);
             break;
         case Path::Iterator::cubicTo:
             transform.transformPoints (i.x1, i.y1, i.x2, i.y2, i.x3, i.y3);
-            CGContextAddCurveToPoint (context, i.x1, flipHeight - i.y1, i.x2, flipHeight - i.y2, i.x3, flipHeight - i.y3);
+            CGContextAddCurveToPoint (context.get(), i.x1, flipHeight - i.y1, i.x2, flipHeight - i.y2, i.x3, flipHeight - i.y3);
             break;
         case Path::Iterator::closePath:
-            CGContextClosePath (context); break;
+            CGContextClosePath (context.get()); break;
         default:
             jassertfalse;
             break;
@@ -822,7 +801,7 @@ void CoreGraphicsContext::createPath (const Path& path, const AffineTransform& t
 
 void CoreGraphicsContext::flip() const
 {
-    CGContextConcatCTM (context, CGAffineTransformMake (1, 0, 0, -1, 0, flipHeight));
+    CGContextConcatCTM (context.get(), CGAffineTransformMake (1, 0, 0, -1, 0, flipHeight));
 }
 
 void CoreGraphicsContext::applyTransform (const AffineTransform& transform) const
@@ -834,7 +813,7 @@ void CoreGraphicsContext::applyTransform (const AffineTransform& transform) cons
     t.d  = transform.mat11;
     t.tx = transform.mat02;
     t.ty = transform.mat12;
-    CGContextConcatCTM (context, t);
+    CGContextConcatCTM (context.get(), t);
 }
 
 //==============================================================================
@@ -862,12 +841,11 @@ Image juce_loadWithCoreImage (InputStream& input)
             CGImageRef loadedImage = uiImage.CGImage;
 
       #else
-        auto provider = CGDataProviderCreateWithData (new MemoryBlockHolder::Ptr (memBlockHolder),
-                                                      memBlockHolder->block.getData(),
-                                                      memBlockHolder->block.getSize(),
-                                                      [] (void * __nullable info, const void*, size_t) { delete (MemoryBlockHolder::Ptr*) info; });
-        auto imageSource = CGImageSourceCreateWithDataProvider (provider, nullptr);
-        CGDataProviderRelease (provider);
+        auto provider = detail::DataProviderPtr { CGDataProviderCreateWithData (new MemoryBlockHolder::Ptr (memBlockHolder),
+                                                                                memBlockHolder->block.getData(),
+                                                                                memBlockHolder->block.getSize(),
+                                                                                [] (void * __nullable info, const void*, size_t) { delete (MemoryBlockHolder::Ptr*) info; }) };
+        auto imageSource = CGImageSourceCreateWithDataProvider (provider.get(), nullptr);
 
         if (imageSource != nullptr)
         {
@@ -887,11 +865,11 @@ Image juce_loadWithCoreImage (InputStream& input)
                                                        (int) CGImageGetHeight (loadedImage),
                                                        hasAlphaChan));
 
-                auto cgImage = dynamic_cast<CoreGraphicsImage*> (image.getPixelData());
-                jassert (cgImage != nullptr); // if USE_COREGRAPHICS_RENDERING is set, the CoreGraphicsImage class should have been used.
+                auto cgImage = dynamic_cast<CoreGraphicsPixelData*> (image.getPixelData());
+                jassert (cgImage != nullptr); // if USE_COREGRAPHICS_RENDERING is set, the CoreGraphicsPixelData class should have been used.
 
-                CGContextDrawImage (cgImage->context, convertToCGRect (image.getBounds()), loadedImage);
-                CGContextFlush (cgImage->context);
+                CGContextDrawImage (cgImage->context.get(), convertToCGRect (image.getBounds()), loadedImage);
+                CGContextFlush (cgImage->context.get());
 
                #if ! JUCE_IOS
                 CFRelease (loadedImage);
@@ -912,11 +890,11 @@ Image juce_loadWithCoreImage (InputStream& input)
 Image juce_createImageFromCIImage (CIImage*, int, int);
 Image juce_createImageFromCIImage (CIImage* im, int w, int h)
 {
-    auto cgImage = new CoreGraphicsImage (Image::ARGB, w, h, false);
+    auto cgImage = new CoreGraphicsPixelData (Image::ARGB, w, h, false);
 
-    CIContext* cic = [CIContext contextWithCGContext: cgImage->context options: nil];
+    CIContext* cic = [CIContext contextWithCGContext: cgImage->context.get() options: nil];
     [cic drawImage: im inRect: CGRectMake (0, 0, w, h) fromRect: CGRectMake (0, 0, w, h)];
-    CGContextFlush (cgImage->context);
+    CGContextFlush (cgImage->context.get());
 
     return Image (*cgImage);
 }
@@ -924,13 +902,13 @@ Image juce_createImageFromCIImage (CIImage* im, int w, int h)
 CGImageRef juce_createCoreGraphicsImage (const Image& juceImage, CGColorSpaceRef colourSpace,
                                          const bool mustOutliveSource)
 {
-    return CoreGraphicsImage::createImage (juceImage, colourSpace, mustOutliveSource);
+    return CoreGraphicsPixelData::createImage (juceImage, colourSpace, mustOutliveSource);
 }
 
 CGContextRef juce_getImageContext (const Image& image)
 {
-    if (auto cgi = dynamic_cast<CoreGraphicsImage*> (image.getPixelData()))
-        return cgi->context;
+    if (auto cgi = dynamic_cast<CoreGraphicsPixelData*> (image.getPixelData()))
+        return cgi->context.get();
 
     jassertfalse;
     return {};
@@ -959,15 +937,13 @@ CGContextRef juce_getImageContext (const Image& image)
          auto requiredSize = NSMakeSize (image.getWidth() / scaleFactor, image.getHeight() / scaleFactor);
 
          [im setSize: requiredSize];
-         auto colourSpace = CGColorSpaceCreateDeviceRGB();
-         auto imageRef = juce_createCoreGraphicsImage (image, colourSpace, true);
-         CGColorSpaceRelease (colourSpace);
+         auto colourSpace = detail::ColorSpacePtr { CGColorSpaceCreateWithName (kCGColorSpaceSRGB) };
+         auto imageRef = detail::ImagePtr { juce_createCoreGraphicsImage (image, colourSpace.get(), true) };
 
-         NSBitmapImageRep* imageRep = [[NSBitmapImageRep alloc] initWithCGImage: imageRef];
+         NSBitmapImageRep* imageRep = [[NSBitmapImageRep alloc] initWithCGImage: imageRef.get()];
          [imageRep setSize: requiredSize];
          [im addRepresentation: imageRep];
          [imageRep release];
-         CGImageRelease (imageRef);
          return im;
      }
  }

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -81,9 +81,13 @@ void CPUInformation::initialise() noexcept
     has3DNow = (b & (1u << 31)) != 0;
     hasSSE3  = (c & (1u <<  0)) != 0;
     hasSSSE3 = (c & (1u <<  9)) != 0;
+    hasFMA3  = (c & (1u << 12)) != 0;
     hasSSE41 = (c & (1u << 19)) != 0;
     hasSSE42 = (c & (1u << 20)) != 0;
     hasAVX   = (c & (1u << 28)) != 0;
+
+    SystemStatsHelpers::doCPUID (a, b, c, d, 0x80000001);
+    hasFMA4  = (c & (1u << 16)) != 0;
 
     SystemStatsHelpers::doCPUID (a, b, c, d, 7);
     hasAVX2            = (b & (1u <<  5)) != 0;
@@ -133,9 +137,8 @@ SystemStats::OperatingSystemType SystemStats::getOperatingSystemType()
     StringArray parts;
     parts.addTokens (getOSXVersion(), ".", StringRef());
 
-    jassert (parts[0].getIntValue() == 10);
     const int major = parts[1].getIntValue();
-    jassert (major > 2);
+    jassert ((parts[0].getIntValue() == 10 && major > 2) || parts[0].getIntValue() == 11);
 
     return (OperatingSystemType) (major + MacOSX_10_4 - 4);
    #endif
