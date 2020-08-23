@@ -594,8 +594,8 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 		{"steps"			, std::to_string(step1) + "," + std::to_string(step2)},
 		{"batch"			, std::to_string(batch)			},
 		{"subdivisions"		, std::to_string(subdivisions)	},
-		{"height"			, std::to_string(width)			},
-		{"width"			, std::to_string(height)		},
+		{"height"			, std::to_string(height)		},
+		{"width"			, std::to_string(width)			},
 		{"angle"			, std::to_string(angle)			}
 	};
 
