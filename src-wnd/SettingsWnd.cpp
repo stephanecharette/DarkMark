@@ -76,18 +76,20 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp->non_maximal_suppression_threshold);
 	}
 
-	v_scrollfield_width = content.scrollfield_width;
-	v_scrollfield_marker_size = content.scrollfield.triangle_size;
+	v_scrollfield_width			= content.scrollfield_width;
+	v_scrollfield_marker_size	= content.scrollfield.triangle_size;
+	v_show_mouse_pointer		= content.show_mouse_pointer;
 
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
 	v_darkhelp_non_maximal_suppression_threshold.addListener(this);
 	v_scrollfield_width							.addListener(this);
 	v_scrollfield_marker_size					.addListener(this);
+	v_show_mouse_pointer						.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
-//	BooleanPropertyComponent	* b = nullptr;
+	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
 //	ButtonPropertyComponent		* b = nullptr;
 
@@ -114,7 +116,12 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_scrollfield_marker_size, "scrollfield marker size", 0.0, 9.0, 1.0);
+	s->setTooltip("Markers will only be shown when the image sort order is set to 'alphabetical'.");
 	properties.add(s);
+
+	b = new BooleanPropertyComponent(v_show_mouse_pointer, "show mouse pointer", "show mouse pointer");
+	b->setTooltip("Determines if the mouse pointer is shown in addition to the crosshairs.");
+	properties.add(b);
 
 	pp.addSection("drawing", properties);
 	properties.clear();
@@ -145,6 +152,7 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("darknet_nms_threshold"		, v_darkhelp_non_maximal_suppression_threshold	.getValue());
 	cfg().setValue("scrollfield_width"			, v_scrollfield_width							.getValue());
 	cfg().setValue("scrollfield_marker_size"	, v_scrollfield_marker_size						.getValue());
+	cfg().setValue("show_mouse_pointer"			, v_show_mouse_pointer							.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -203,8 +211,9 @@ void dm::SettingsWnd::valueChanged(Value & value)
 		dmapp().darkhelp->non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
 		dmapp().darkhelp->threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
 	}
-	content.scrollfield_width = v_scrollfield_width.getValue();
-	content.scrollfield.triangle_size = v_scrollfield_marker_size.getValue();
+	content.scrollfield_width			= v_scrollfield_width		.getValue();
+	content.scrollfield.triangle_size	= v_scrollfield_marker_size	.getValue();
+	content.show_mouse_pointer			= v_show_mouse_pointer		.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 

@@ -32,6 +32,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	all_marks_are_bold(cfg().get_bool("all_marks_are_bold")),
 	show_processing_time(cfg().get_bool("show_processing_time")),
 	need_to_save(false),
+	show_mouse_pointer(cfg().get_bool("show_mouse_pointer")),
 	selected_mark(-1),
 	scale_factor(1.0),
 	most_recent_class_idx(0),

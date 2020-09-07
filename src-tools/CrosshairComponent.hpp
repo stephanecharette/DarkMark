@@ -23,6 +23,8 @@ namespace dm
 			/// Destructor.
 			virtual ~CrosshairComponent();
 
+			virtual MouseCursor getMouseCursor() override;
+
 			/// Sets the @ref need_to_rebuild_cache_image flag, which eventually results in a call to @ref rebuild_cache_image().
 			virtual void resized() override;
 
