@@ -10,7 +10,7 @@
 namespace dm
 {
 	/// Main DarkMark window.  Users can then mark up images and access several secondary windows.
-	class DMWnd : public DocumentWindow
+	class DMWnd : public DocumentWindow, public Timer
 	{
 		public:
 
@@ -18,7 +18,9 @@ namespace dm
 
 			virtual ~DMWnd(void);
 
-			virtual void closeButtonPressed();
+			virtual void closeButtonPressed() override;
+
+			virtual void timerCallback() override;
 
 			DMContent content;
 	};

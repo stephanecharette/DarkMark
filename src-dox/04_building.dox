@@ -1,16 +1,18 @@
 /** @page Building Building %DarkMark
 
+@note Several binary packages for %DarkMark are typically released along with the source.  If you don't want to build it yourself, see if a binary package is available for your operating system:  https://www.ccoderun.ca/download/?C=M;O=D
+
 %DarkMark has several dependencies which must be installed:
 
-@li JUCE is a C++ framework.  It has several required development libraries.  See the JUCE discussion forums for details, or below for an example.
-@li libmagic.so  Recognize the type of data in a file using "magic" numbers.
+@li JUCE is a C++ framework.  It has several required development libraries.
+@li Magic
 @li OpenCV
-@li libdarknet.so
-@li libdarkhelp.so
+@li Darknet
+@li DarkHelp
 
 The recommended way to install the dependencies is using vcpkg.  See the instruction for building DarkHelp:  https://www.ccoderun.ca/DarkHelp/api/Building.html.
 
-After you've finished building and installing DarkHelp, %DarkMark is built in a similar manner, passing the vcpkg's toolchain into cmake:
+After you've successfully built and installed DarkHelp, %DarkMark is built in a similar manner, passing the vcpkg's toolchain into cmake:
 
 ~~~~{.sh}
 sudo apt-get install build-essential cmake libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev

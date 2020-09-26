@@ -40,6 +40,7 @@ namespace dm
 			Value v_iterations;
 			Value v_learning_rate;
 			Value v_max_chart_loss;
+			Value v_resize_images;
 			Value v_restart_training;
 			Value v_delete_temp_weights;
 			Value v_saturation;

@@ -82,6 +82,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_iterations					= info.iterations;
 	v_learning_rate					= info.learning_rate;
 	v_max_chart_loss				= info.max_chart_loss;
+	v_resize_images					= info.resize_images;
 	v_restart_training				= info.restart_training;
 	v_delete_temp_weights			= info.delete_temp_weights;
 	v_saturation					= info.saturation;
@@ -96,6 +97,9 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	// when this value is toggled, we need to enable/disable the image percentage slider
 	v_train_with_all_images.addListener(this);
+
+	// when this value is toggled we need to show a warning to the user
+	v_resize_images.addListener(this);
 
 	Array<PropertyComponent *> properties;
 	TextPropertyComponent		* t = nullptr;
@@ -114,12 +118,12 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("darknet", properties);
 	properties.clear();
 
-	s = new SliderPropertyComponent(v_image_width, "image width", 32.0, 2048.0, 32.0, 0.5, false);
-	s->setTooltip("Image width. Must be a multiple of 32. Default is 448.");
+	s = new SliderPropertyComponent(v_image_width, "network width", 32.0, 2048.0, 32.0, 0.5, false);
+	s->setTooltip("Network width. Must be a multiple of 32. Default is 448.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_image_height, "image height", 32.0, 2048.0, 32.0, 0.5, false);
-	s->setTooltip("Image height. Must be a multiple of 32. Default is 256.");
+	s = new SliderPropertyComponent(v_image_height, "network height", 32.0, 2048.0, 32.0, 0.5, false);
+	s->setTooltip("Network height. Must be a multiple of 32. Default is 256.");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_batch_size, "batch size", 1.0, 512.0, 1.0, 0.5, false);
@@ -141,6 +145,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s = new SliderPropertyComponent(v_max_chart_loss, "max loss for chart.png", 1.0, 20.0, 0.1);
 	s->setTooltip("The maximum amount of loss to display on the output image \"chart.png\". This sets the maximum value to use for the Y-axis, and is for display purposes only; it has zero impact on how the neural network is trained.");
 	properties.add(s);
+
+	b = new BooleanPropertyComponent(v_resize_images, "resize images", "resize images to match network");
+	b->setTooltip("Prior to training, use 'mogrify' from ImageMagick to resize the images to match the dimensions of the network. This speeds up training since Darknet doesn't have to dynamically resize the images while training.");
+	properties.add(b);
 
 	pp.addSection("configuration", properties);
 	properties.clear();
@@ -234,7 +242,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(550, 680);
+	r = r.withSizeKeepingCentre(550, 720);
 	setBounds(r);
 
 	setVisible(true);
@@ -373,6 +381,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
 	cfg().setValue(content.cfg_prefix + "darknet_learning_rate"			, v_learning_rate				);
 	cfg().setValue(content.cfg_prefix + "darknet_max_chart_loss"		, v_max_chart_loss				);
+	cfg().setValue(content.cfg_prefix + "darknet_resize_images"			, v_resize_images				);
 	cfg().setValue(content.cfg_prefix + "darknet_restart_training"		, v_restart_training			);
 	cfg().setValue(content.cfg_prefix + "darknet_delete_temp_weights"	, v_delete_temp_weights			);
 	cfg().setValue(content.cfg_prefix + "darknet_saturation"			, v_saturation					);
@@ -395,6 +404,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.iterations					= v_iterations				.getValue();
 	info.learning_rate				= v_learning_rate			.getValue();
 	info.max_chart_loss				= v_max_chart_loss			.getValue();
+	info.resize_images				= v_resize_images			.getValue();
 	info.restart_training			= v_restart_training		.getValue();
 	info.delete_temp_weights		= v_delete_temp_weights		.getValue();
 	info.saturation					= v_saturation				.getValue();
@@ -429,6 +439,25 @@ void dm::DarknetWnd::valueChanged(Value & value)
 	if (percentage_slider)
 	{
 		percentage_slider->setEnabled(not v_train_with_all_images.getValue());
+	}
+
+	if (value.refersToSameSourceAs(v_resize_images))
+	{
+		if (v_resize_images.getValue())
+		{
+			const int w = v_image_width.getValue();
+			const int h = v_image_height.getValue();
+
+			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark",
+				"WARNING!"
+				"\n\n"
+				"This option enables the use of 'mogrify' from ImageMagick to resize all of your images. "
+				"Every image in both the training set and validation set will be overwritten once you run the training script."
+				"\n\n"
+				"Images will be resized to " + std::to_string(w) + "x" + std::to_string(h) + " to match the dimensions of the neural network."
+				"\n\n"
+				"Please verify that you have a backup of your images prior to enabling this option.");
+		}
 	}
 
 	return;
@@ -761,8 +790,26 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "#rm -f " << info.project_name << "*.weights"	<< std::endl
 			<< "rm -f output.log"								<< std::endl
 			<< "rm -f chart.png"								<< std::endl
-			<< ""												<< std::endl
-			<< "ts1=$(date)"									<< std::endl
+			<< ""												<< std::endl;
+
+		if (info.resize_images)
+		{
+			ss	<< "if [ -x $(command --search mogrify) ]; then"							<< std::endl
+				<< "	IMG_SIZE=" << info.image_width << "x" << info.image_height			<< std::endl
+				<< "	echo \"Resizing images to ${IMG_SIZE}...\""							<< std::endl
+				<< "	for txt in " << info.project_name << "_{train,valid}.txt; do"		<< std::endl
+				<< "		while read -r filename; do"										<< std::endl
+				<< "			SIZE=$(identify -format \"%wx%h\" ${filename})"				<< std::endl
+				<< "			if [ ${SIZE} != ${IMG_SIZE} ]; then"						<< std::endl
+				<< "				mogrify -verbose -resize ${IMG_SIZE}! \"${filename}\""	<< std::endl
+				<< "			fi"															<< std::endl
+				<< "		done < \"${txt}\""												<< std::endl
+				<< "	done"																<< std::endl
+				<< "fi"																		<< std::endl
+				<< ""																		<< std::endl;
+		}
+
+		ss	<< "ts1=$(date)"									<< std::endl
 			<< "ts2=$(date +%s)"								<< std::endl
 			<< "echo \"initial ts1: ${ts1}\" > output.log"		<< std::endl
 			<< "echo \"initial ts2: ${ts2}\" >> output.log"		<< std::endl

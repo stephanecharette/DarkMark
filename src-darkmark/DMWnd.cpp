@@ -35,7 +35,12 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 	// May want to investigate putting this on a thread.
 	content.start_darknet();
 
+	content.load_image(0, false);
+
 	setVisible(true);
+
+	// give the window some time to draw itself, and then we'll reload the first image including passing it through darkhelp
+	startTimer(50); // milliseconds
 
 	return;
 }
@@ -43,6 +48,8 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 
 dm::DMWnd::~DMWnd(void)
 {
+	stopTimer();
+
 	cfg().setValue("DMWnd", getWindowStateAsString());
 
 	dmapp().jump_wnd	.reset(nullptr);
@@ -61,6 +68,16 @@ void dm::DMWnd::closeButtonPressed(void)
 	setVisible(false);
 	dmapp().startup_wnd.reset(new StartupWnd);
 	dmapp().wnd.reset(nullptr);
+
+	return;
+}
+
+
+void dm::DMWnd::timerCallback()
+{
+	stopTimer();
+
+	content.load_image(0);
 
 	return;
 }

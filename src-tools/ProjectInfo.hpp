@@ -35,6 +35,7 @@ namespace dm
 			int			iterations;					///< number of iterations; e.g., @p 20,000
 			float		learning_rate;				///< learning rate
 			float		max_chart_loss;				///< maximum loss (Y-axis) to use when drawing chart.png
+			bool		resize_images;				///< whether images will be resized to match the network dimensions
 			bool		restart_training;			///< whether training should use the previous *_best.weights file or start new
 			bool		delete_temp_weights;		///< whether the temporary .weights files should be deleted once training has finished
 			float		saturation;

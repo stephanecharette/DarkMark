@@ -22,6 +22,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	iterations					= cfg().get_int		(cfg_prefix + "darknet_iterations"				, 4000	);
 	learning_rate				= cfg().get_double	(cfg_prefix + "darknet_learning_rate"			, 0.00261);
 	max_chart_loss				= cfg().get_double	(cfg_prefix + "darknet_max_chart_loss"			, 4.0	);
+	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, false	);
 	restart_training			= cfg().get_bool	(cfg_prefix + "darknet_restart_training"		, false	);
 	delete_temp_weights			= cfg().get_bool	(cfg_prefix + "darknet_delete_temp_weights"		, true	);
 	saturation					= cfg().get_double	(cfg_prefix + "darknet_saturation"				, 1.50	);

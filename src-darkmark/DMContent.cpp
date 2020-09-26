@@ -189,6 +189,7 @@ void dm::DMContent::start_darknet()
 	{
 		try
 		{
+			Log("attempting to load neural network " + darknet_cfg + " / " + darknet_weights + " / " + darknet_names);
 			dmapp().darkhelp.reset(new DarkHelp(darknet_cfg, darknet_weights, darknet_names));
 			Log("neural network loaded in " + darkhelp().duration_string());
 
@@ -250,8 +251,6 @@ void dm::DMContent::start_darknet()
 		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
 		crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 	}
-
-	load_image(0);
 
 	return;
 }
@@ -841,7 +840,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	try
 	{
 		task = "loading image file " + long_filename;
-		Log("loading image " + long_filename);
+//		Log("loading image " + long_filename);
 		original_image = cv::imread(image_filenames.at(image_filename_index));
 
 		if (full_load)
