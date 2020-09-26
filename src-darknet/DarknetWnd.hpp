@@ -38,6 +38,7 @@ namespace dm
 			Value v_batch_size;
 			Value v_subdivisions;
 			Value v_iterations;
+			Value v_learning_rate;
 			Value v_max_chart_loss;
 			Value v_restart_training;
 			Value v_delete_temp_weights;

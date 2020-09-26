@@ -4,72 +4,24 @@
 
 @li JUCE is a C++ framework.  It has several required development libraries.  See the JUCE discussion forums for details, or below for an example.
 @li libmagic.so  Recognize the type of data in a file using "magic" numbers.
-@li libdarknet.so  https://www.ccoderun.ca/programming/2019-08-18_Installing_and_building_Darknet/
-@li libdarkhelp.so  https://www.ccoderun.ca/DarkHelp/api/
+@li OpenCV
+@li libdarknet.so
+@li libdarkhelp.so
 
-Both @p libdarknet.so and @p libdarkhelp.so are explained on the DarkHelp page:  https://www.ccoderun.ca/DarkHelp/api/Building.html.
+The recommended way to install the dependencies is using vcpkg.  See the instruction for building DarkHelp:  https://www.ccoderun.ca/DarkHelp/api/Building.html.
 
-Once you have both @p libdarknet.so and @p libdarkhelp.so built and installed, then %DarkMark may be built like this:
+After you've finished building and installing DarkHelp, %DarkMark is built in a similar manner, passing the vcpkg's toolchain into cmake:
 
 ~~~~{.sh}
+sudo apt-get install build-essential cmake libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev
 cd src/DarkMark/
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=~/src/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=~/src/vcpkg/installed/x64-linux -DVCPKG_TARGET_TRIPLET=x64-linux ..
 make
 make package
 ~~~~
 
 Once the @p .deb package has been created, install it with @p "sudo dpkg -i darkmark*.deb".
-
-@section BuildDetails Build Details
-
-These are the steps required to install/build Darknet, DarkHelp, and DarkMark in a Ubuntu 19.10 VM.  The software required for other versions of Ubuntu -- or even other distributions of Linux -- should be similar if not identical.
-
-@note The order in which you build and install these packages is important, since DarkHelp depends on @p libdarknet.so, and DarkMark depends on @p libdarkhelp.so.
-
-@subsection BuildingDarknet Darknet
-Do this first:
-@code{.sh}
-cd ~
-sudo apt-get install build-essential git libopencv-dev
-git clone https://github.com/AlexeyAB/darknet.git
-cd darknet
-# edit Makefile and at a minimum set OPENCV=1, OPENMP=1, and LIBSO=1
-make
-sudo cp libdarknet.so /usr/local/lib/
-sudo cp include/darknet.h /usr/local/include/
-sudo ldconfig
-@endcode
-
-@subsection BuildingDarkHelp DarkHelp
-Do this second.  <a target="_blank" href="https://www.ccoderun.ca/download/">Download</a> and install the pre-built package of DarkHelp, or build it from source:
-@code{.sh}
-sudo apt-get install cmake libtclap-dev libmagic-dev libopencv-dev
-# download the DarkHelp source code from https://www.ccoderun.ca/download/
-cd ~/src/DarkHelp
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
-make package
-sudo dpkg -i darkhelp-*-Linux.deb
-@endcode
-
-@note Additional information for building DarkHelp <a target="_blank" href="https://www.ccoderun.ca/DarkHelp/api/Building.html">is available</a>.
-
-@subsection BuildingDarkMark DarkMark
-Do this third.  <a target="_blank" href="https://www.ccoderun.ca/download/">Download</a> and install the pre-built package of DarkMark, or build it from source:
-@code{.sh}
-sudo apt-get install libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev
-# download the DarkMark source code from https://www.ccoderun.ca/download/
-cd ~/src/DarkMark
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
-make package
-sudo dpkg -i darkmark-*-Linux.deb
-@endcode
 
 */

@@ -466,6 +466,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 							if (keyword == "width"			) cfg().insert_if_not_exist(prefix + "darknet_image_width"	, value_int);
 							if (keyword == "height"			) cfg().insert_if_not_exist(prefix + "darknet_image_height"	, value_int);
 							if (keyword == "max_batches"	) cfg().insert_if_not_exist(prefix + "darknet_iterations"	, value_int);
+							if (keyword == "learning_rate"	) cfg().insert_if_not_exist(prefix + "darknet_learning_rate", value_float);
 							if (keyword == "saturation"		) cfg().insert_if_not_exist(prefix + "darknet_saturation"	, value_float);
 							if (keyword == "exposure"		) cfg().insert_if_not_exist(prefix + "darknet_exposure"		, value_float);
 							if (keyword == "hue"			) cfg().insert_if_not_exist(prefix + "darknet_hue"			, value_float);

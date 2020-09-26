@@ -80,6 +80,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_batch_size					= info.batch_size;
 	v_subdivisions					= info.subdivisions;
 	v_iterations					= info.iterations;
+	v_learning_rate					= info.learning_rate;
 	v_max_chart_loss				= info.max_chart_loss;
 	v_restart_training				= info.restart_training;
 	v_delete_temp_weights			= info.delete_temp_weights;
@@ -113,24 +114,28 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("darknet", properties);
 	properties.clear();
 
-	s = new SliderPropertyComponent(v_image_width, "image width", 32.0, 2048.0, 32.0);
+	s = new SliderPropertyComponent(v_image_width, "image width", 32.0, 2048.0, 32.0, 0.5, false);
 	s->setTooltip("Image width. Must be a multiple of 32. Default is 448.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_image_height, "image height", 32.0, 2048.0, 32.0);
+	s = new SliderPropertyComponent(v_image_height, "image height", 32.0, 2048.0, 32.0, 0.5, false);
 	s->setTooltip("Image height. Must be a multiple of 32. Default is 256.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_batch_size, "batch size", 1.0, 512.0, 1.0);
+	s = new SliderPropertyComponent(v_batch_size, "batch size", 1.0, 512.0, 1.0, 0.5, false);
 	s->setTooltip("Batch size determines the number of images processed per iteration. Default is 64 images per iteration.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_subdivisions, "subdivisions", 1.0, 512.0, 1.0);
+	s = new SliderPropertyComponent(v_subdivisions, "subdivisions", 1.0, 512.0, 1.0, 0.5, false);
 	s->setTooltip("The number of images processed in parallel by the GPU is the batch size divided by subdivisions. Default is 8.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_iterations, "max_batches", 1000.0, 100000.0, 1.0);
+	s = new SliderPropertyComponent(v_iterations, "max_batches", 1000.0, 100000.0, 1.0, 0.5, false);
 	s->setTooltip("The total number of iterations to run. As a general rule of thumb, at the very least this should be 2000x more than the number of classes defined.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_learning_rate, "learning_rate", 0.000001, 0.999999, 0.000001, 0.25, false);
+	s->setTooltip("The learning rate determines the step size at each iteration while moving toward a minimum of a loss function. Since it influences to what extent newly acquired information overrides old information, it metaphorically represents the speed at which a machine learning model \"learns\".");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_max_chart_loss, "max loss for chart.png", 1.0, 20.0, 0.1);
@@ -141,7 +146,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
-	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. WARNING: This should only be enabled if you have a very small number of images, and you are looking to bootstrap your first neural network to help mark up additional images.");
+	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. If you are training your own custom network then you probably want to enable this.");
 	properties.add(b);
 	
 	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
@@ -366,6 +371,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_batch_size"			, v_batch_size					);
 	cfg().setValue(content.cfg_prefix + "darknet_subdivisions"			, v_subdivisions				);
 	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
+	cfg().setValue(content.cfg_prefix + "darknet_learning_rate"			, v_learning_rate				);
 	cfg().setValue(content.cfg_prefix + "darknet_max_chart_loss"		, v_max_chart_loss				);
 	cfg().setValue(content.cfg_prefix + "darknet_restart_training"		, v_restart_training			);
 	cfg().setValue(content.cfg_prefix + "darknet_delete_temp_weights"	, v_delete_temp_weights			);
@@ -387,6 +393,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.batch_size					= v_batch_size				.getValue();
 	info.subdivisions				= v_subdivisions			.getValue();
 	info.iterations					= v_iterations				.getValue();
+	info.learning_rate				= v_learning_rate			.getValue();
 	info.max_chart_loss				= v_max_chart_loss			.getValue();
 	info.restart_training			= v_restart_training		.getValue();
 	info.delete_temp_weights		= v_delete_temp_weights		.getValue();
@@ -566,6 +573,7 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	const bool enable_cutmix			= info.enable_cutmix;
 	const bool enable_mixup				= info.enable_mixup;
 	const bool enable_flip				= info.enable_flip;
+	const float learning_rate			= info.learning_rate;
 	const float max_chart_loss			= info.max_chart_loss;
 	const float saturation				= info.saturation;
 	const float exposure				= info.exposure;
@@ -586,6 +594,7 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 		{"mosaic"			, enable_mosaic	? "1" : "0"		},
 		{"cutmix"			, enable_cutmix	? "1" : "0"		},
 		{"mixup"			, enable_mixup	? "1" : "0"		},
+		{"learning_rate"	, std::to_string(learning_rate)	},
 		{"max_chart_loss"	, std::to_string(max_chart_loss)},
 		{"hue"				, std::to_string(hue)			},
 		{"saturation"		, std::to_string(saturation)	},
