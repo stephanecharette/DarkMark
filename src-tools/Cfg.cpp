@@ -91,6 +91,18 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	removeValue("darknet_cutmix"				);
 	removeValue("darknet_mixup"					);
 
+	// Bug fixed in v1.1.0-3055 where these settings would get saved as zero if a neural network wasn't loaded.
+	// This would cause serious problems next time DarkMark was loaded with a neural network.
+	// If we see configurations out there set this way then fix it before the user notices.
+	if (get_int("darknet_threshold"				) == 0 and
+		get_int("darknet_hierarchy_threshold"	) == 0 and
+		get_int("darknet_nms_threshold"			) == 0)
+	{
+		setValue("darknet_threshold"			, "50");
+		setValue("darknet_hierarchy_threshold"	, "50");
+		setValue("darknet_nms_threshold"		, "45");
+	}
+
 	saveIfNeeded();
 
 	return *this;

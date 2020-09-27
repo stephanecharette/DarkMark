@@ -787,31 +787,34 @@ void dm::DarknetWnd::create_Darknet_files()
 		std::stringstream ss;
 		ss	<< header
 			<< ""												<< std::endl
-			<< "#rm -f " << info.project_name << "*.weights"	<< std::endl
 			<< "rm -f output.log"								<< std::endl
 			<< "rm -f chart.png"								<< std::endl
+			<< ""												<< std::endl
+			<< "echo \"creating new log file\" > output.log"	<< std::endl
+			<< "date >> output.log"								<< std::endl
 			<< ""												<< std::endl;
-
+			
 		if (info.resize_images)
 		{
-			ss	<< "if [ -x $(command --search mogrify) ]; then"							<< std::endl
-				<< "	IMG_SIZE=" << info.image_width << "x" << info.image_height			<< std::endl
-				<< "	echo \"Resizing images to ${IMG_SIZE}...\""							<< std::endl
-				<< "	for txt in " << info.project_name << "_{train,valid}.txt; do"		<< std::endl
-				<< "		while read -r filename; do"										<< std::endl
-				<< "			SIZE=$(identify -format \"%wx%h\" ${filename})"				<< std::endl
-				<< "			if [ ${SIZE} != ${IMG_SIZE} ]; then"						<< std::endl
-				<< "				mogrify -verbose -resize ${IMG_SIZE}! \"${filename}\""	<< std::endl
-				<< "			fi"															<< std::endl
-				<< "		done < \"${txt}\""												<< std::endl
-				<< "	done"																<< std::endl
-				<< "fi"																		<< std::endl
-				<< ""																		<< std::endl;
+			ss	<< "if [ -x $(command --search mogrify) ]; then"															<< std::endl
+				<< "	IMG_SIZE=" << info.image_width << "x" << info.image_height											<< std::endl
+				<< "	echo \"Resizing images to ${IMG_SIZE}...\" >> output.log"											<< std::endl
+				<< "	for txt in " << info.project_name << "_{train,valid}.txt; do"										<< std::endl
+				<< "		while read -r filename; do"																		<< std::endl
+				<< "			SIZE=$(identify -ping -format \"%wx%h\" ${filename})"										<< std::endl
+				<< "			if [ ${SIZE} != ${IMG_SIZE} ]; then"														<< std::endl
+				<< "				mogrify -verbose -resize ${IMG_SIZE}! \"${filename}\" 2>&1 | tee --append output.log"	<< std::endl
+				<< "			fi"																							<< std::endl
+				<< "		done < \"${txt}\""																				<< std::endl
+				<< "	done"																								<< std::endl
+				<< "	date >> output.log"																					<< std::endl
+				<< "fi"																										<< std::endl
+				<< ""																										<< std::endl;
 		}
 
 		ss	<< "ts1=$(date)"									<< std::endl
 			<< "ts2=$(date +%s)"								<< std::endl
-			<< "echo \"initial ts1: ${ts1}\" > output.log"		<< std::endl
+			<< "echo \"initial ts1: ${ts1}\" >> output.log"		<< std::endl
 			<< "echo \"initial ts2: ${ts2}\" >> output.log"		<< std::endl
 			<< "echo \"cmd: " << cmd << "\" >> output.log"		<< std::endl
 			<< ""												<< std::endl

@@ -75,6 +75,13 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp->hierarchy_threshold);
 		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp->non_maximal_suppression_threshold);
 	}
+	else
+	{
+		// DarkHelp didn't load (no neural network?) so use whatever is in configuration instead
+		v_darkhelp_threshold							= cfg().get_int("darknet_threshold");
+		v_darkhelp_hierchy_threshold					= cfg().get_int("darknet_hierarchy_threshold");
+		v_darkhelp_non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold");
+	}
 
 	v_scrollfield_width			= content.scrollfield_width;
 	v_scrollfield_marker_size	= content.scrollfield.triangle_size;
