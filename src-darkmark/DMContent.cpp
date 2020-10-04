@@ -1667,12 +1667,19 @@ PopupMenu dm::DMContent::create_popup_menu()
 	image.addItem("rotate images..."																							, std::function<void()>( [&]{ rotate_every_image();			} ));
 	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
 
+	PopupMenu help;
+	help.addItem("about..."				, std::function<void()>( [&]{ dmapp().about_wnd.reset(new AboutWnd); } ));
+	help.addItem("keyboard shortcuts...", std::function<void()>( [&]{ juce::URL("https://www.ccoderun.ca/darkmark/Keyboard.html"				).launchInDefaultBrowser(); } ));
+	help.addItem("darknet faq..."		, std::function<void()>( [&]{ juce::URL("https://www.ccoderun.ca/programming/2020-09-25_Darknet_FAQ/"	).launchInDefaultBrowser(); } ));
+	help.addItem("discord..."			, std::function<void()>( [&]{ juce::URL("https://discord.gg/zSq8rtW"									).launchInDefaultBrowser(); } ));
+
 	PopupMenu m;
 	m.addSubMenu("class", classMenu, classMenu.containsAnyActiveItems());
 	m.addSubMenu("labels", labels);
 	m.addSubMenu("sort", sort);
 	m.addSubMenu("view", view);
 	m.addSubMenu("image", image);
+	m.addSubMenu("help", help);
 	m.addSeparator();
 	m.addItem("review marks..."			, std::function<void()>( [&]{ review_marks();			} ));
 	m.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();		} ));

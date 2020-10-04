@@ -1,8 +1,8 @@
 /** @page Building Building %DarkMark
 
-@note Several binary packages for %DarkMark are typically released along with the source.  If you don't want to build it yourself, see if a binary package is available for your operating system:  https://www.ccoderun.ca/download/?C=M;O=D
+@note Several binary packages for %DarkMark are typically released along with the source.  If you don't want to build it yourself, <a target="_blank" href="https://www.ccoderun.ca/download/?C=M;O=D">see if a binary package is available</a> for your operating system.
 
-%DarkMark has several dependencies which must be installed:
+%DarkMark has several dependencies which must be built and/or installed first:
 
 @li JUCE is a C++ framework.  It has several required development libraries.
 @li Magic
@@ -10,20 +10,20 @@
 @li Darknet
 @li DarkHelp
 
-The recommended way to install the dependencies is using vcpkg.  See the instruction for building DarkHelp:  https://www.ccoderun.ca/DarkHelp/api/Building.html.
+Before attempting to build %DarkMark, please see the instructions for building DarkHelp:  https://www.ccoderun.ca/DarkHelp/api/Building.html.
 
-After you've successfully built and installed DarkHelp, %DarkMark is built in a similar manner, passing the vcpkg's toolchain into cmake:
+The order in which you build and install the packages is important, since DarkHelp depends on @p libdarknet.so, and DarkMark depends on @p libdarkhelp.so.  After you've successfully built and installed DarkHelp, %DarkMark is built in a similar manner:
 
 ~~~~{.sh}
-sudo apt-get install build-essential cmake libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev
-cd src/DarkMark/
+sudo apt-get install build-essential cmake libopencv-dev libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev
+cd ~/src/DarkMark/
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=~/src/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=~/src/vcpkg/installed/x64-linux -DVCPKG_TARGET_TRIPLET=x64-linux ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 make package
 ~~~~
 
-Once the @p .deb package has been created, install it with @p "sudo dpkg -i darkmark*.deb".
+Once the @p .deb package has been created, install it with @p "sudo dpkg -i darkmark*.deb".  Then run the command @p DarkMark.
 
 */

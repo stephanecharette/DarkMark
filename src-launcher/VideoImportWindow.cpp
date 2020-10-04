@@ -130,7 +130,12 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 		const std::string shortname = File(filename).getFileName().toStdString();
 
 		cv::VideoCapture cap;
-		cap.open(filename);
+		const bool success = cap.open(filename);
+		if (not success)
+		{
+			throw std::runtime_error("failed to open video file " + filename);
+		}
+
 		const auto number_of_frames	= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_COUNT	);
 		const auto fps				= cap.get(cv::VideoCaptureProperties::CAP_PROP_FPS			);
 		const auto frame_width		= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH	);
@@ -402,7 +407,12 @@ void dm::VideoImportWindow::run()
 			File dir(base_directory);
 			File child = dir.getChildFile(Time::getCurrentTime().formatted("video_import_%Y-%m-%d_%H-%M-%S"));
 			child.createDirectory();
-			const std::string partial_output_filename = child.getChildFile(shortname).getFullPathName().toStdString();
+			std::string partial_output_filename = child.getChildFile(shortname).getFullPathName().toStdString();
+			size_t pos = partial_output_filename.rfind("."); // erase the extension if we find one
+			if (pos != std::string::npos)
+			{
+				partial_output_filename.erase(pos);
+			}
 
 			setStatusMessage("Processing video file " + shortname + "...");
 

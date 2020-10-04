@@ -42,7 +42,7 @@ SET ( CPACK_PACKAGE_DESCRIPTION			"darkmark"		)
 
 INCLUDE ( CM_package_ubuntu.cmake )
 
-SET ( CPACK_SOURCE_IGNORE_FILES	".svn" ".kdev4" "build" )
+SET ( CPACK_SOURCE_IGNORE_FILES	".svn" ".kdev4" "build/" "build_and_upload" )
 SET ( CPACK_SOURCE_GENERATOR	"TGZ;ZIP" )
 
 INCLUDE( CPack )

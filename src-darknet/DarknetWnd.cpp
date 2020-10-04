@@ -793,7 +793,7 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "echo \"creating new log file\" > output.log"	<< std::endl
 			<< "date >> output.log"								<< std::endl
 			<< ""												<< std::endl;
-			
+
 		if (info.resize_images)
 		{
 			ss	<< "if [ -x $(command --search mogrify) ]; then"															<< std::endl
