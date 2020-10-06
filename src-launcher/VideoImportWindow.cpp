@@ -12,7 +12,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	base_directory			(dir											),
 	filenames				(v												),
 	tb_extract_all			("extract all frames"							),
-	tb_extract_sequences	("extract sequences of sequential frames"		),
+	tb_extract_sequences	("extract sequences of consecutive frames"		),
 	sl_sequences			(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
 	txt_sequences			("", "sequences"								),
 	sl_consecutive_frames	(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
