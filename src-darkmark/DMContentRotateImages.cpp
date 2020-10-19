@@ -44,6 +44,8 @@ void dm::DMContentRotateImages::run()
 	const auto previous_predictions = content.show_predictions;
 	content.show_predictions = EToggle::kOff;
 
+//	std::time_t timestamp_of_last_scrollfield_rebuild = std::time(nullptr);
+
 	const double max_work = content.image_filenames.size();
 	double work_completed = 0.0;
 
@@ -161,6 +163,16 @@ void dm::DMContentRotateImages::run()
 
 				// load the new images to force DarkMark to create the .json file from the .txt file
 				content.load_image(content.image_filenames.size() - 1);
+
+#if 0
+				// every few seconds, get the scrollfield to rebuild itself
+				const auto now = std::time(nullptr);
+				if (now > timestamp_of_last_scrollfield_rebuild + 10)
+				{
+					content.scrollfield.rebuild_entire_field_on_thread();
+					timestamp_of_last_scrollfield_rebuild = now;
+				}
+#endif
 			}
 		}
 	}
@@ -170,6 +182,7 @@ void dm::DMContentRotateImages::run()
 	if (threadShouldExit() == false)
 	{
 		content.load_image(0);
+		content.scrollfield.rebuild_entire_field_on_thread();
 
 		std::stringstream ss;
 		ss << "Rotation tool ";

@@ -26,8 +26,16 @@ namespace dm
 
 			virtual void valueChanged(Value & value);
 
-			void create_YOLO_configuration_files();
-			void create_Darknet_files();
+			void create_Darknet_training_and_validation_files(
+					ThreadWithProgressWindow & progress_window,
+					size_t & number_of_files_train	,
+					size_t & number_of_files_valid	,
+					size_t & number_of_skipped_files,
+					size_t & number_of_marks		);
+			void create_Darknet_configuration_file();
+			void create_Darknet_shell_scripts();
+
+			CfgHandler cfg_handler;
 
 			Value v_darknet_dir;
 			Value v_cfg_template;
@@ -41,6 +49,9 @@ namespace dm
 			Value v_learning_rate;
 			Value v_max_chart_loss;
 			Value v_resize_images;
+			Value v_recalculate_anchors;
+			Value v_anchor_clusters;
+			Value v_class_imbalance;
 			Value v_restart_training;
 			Value v_delete_temp_weights;
 			Value v_saturation;
@@ -52,6 +63,7 @@ namespace dm
 			Value v_cutmix;
 			Value v_mixup;
 			Value v_keep_augmented_images;
+			Value v_show_receptive_field;
 
 			DMContent & content;
 			ProjectInfo & info;
@@ -62,5 +74,7 @@ namespace dm
 			TextButton cancel_button;
 
 			SliderPropertyComponent * percentage_slider;
+			BooleanPropertyComponent * recalculate_anchors_toggle;
+			BooleanPropertyComponent * class_imbalance_toggle;
 	};
 }

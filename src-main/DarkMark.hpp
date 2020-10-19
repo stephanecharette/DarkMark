@@ -59,6 +59,7 @@ namespace dm
 	class DMJumpWnd;
 	class DMStatsWnd;
 	class AboutWnd;
+	class CfgHandler;
 	class DarknetWnd;
 	class WndCfgTemplates;
 	class StartupWnd;
@@ -73,7 +74,6 @@ namespace dm
 	class ScrollField;
 	class CrosshairComponent;
 	class DarkMarkApplication;
-
 	struct ReviewInfo;
 
 	typedef std::vector<std::string> VStr;
@@ -82,6 +82,7 @@ namespace dm
 	typedef std::map<std::string, std::string> MStr;
 	typedef std::vector<cv::Point> Contour;
 	typedef std::vector<Contour> VContours;
+	typedef std::vector<size_t> VSizet;
 }
 
 #include "Log.hpp"
@@ -100,6 +101,7 @@ namespace dm
 #include "AboutWnd.hpp"
 #include "DMReviewWnd.hpp"
 #include "DMReviewCanvas.hpp"
+#include "CfgHandler.hpp"
 #include "DarknetWnd.hpp"
 #include "WndCfgTemplates.hpp"
 #include "VideoImportWindow.hpp"

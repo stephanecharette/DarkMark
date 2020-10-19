@@ -23,6 +23,9 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	learning_rate				= cfg().get_double	(cfg_prefix + "darknet_learning_rate"			, 0.00261);
 	max_chart_loss				= cfg().get_double	(cfg_prefix + "darknet_max_chart_loss"			, 4.0	);
 	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, false	);
+	recalculate_anchors			= cfg().get_bool	(cfg_prefix + "darknet_recalculate_anchors"		, true	);
+	anchor_clusters				= cfg().get_int		(cfg_prefix + "darknet_anchor_clusters"			, 9		);
+	class_imbalance				= cfg().get_bool	(cfg_prefix + "darknet_class_imbalance"			, true	);
 	restart_training			= cfg().get_bool	(cfg_prefix + "darknet_restart_training"		, false	);
 	delete_temp_weights			= cfg().get_bool	(cfg_prefix + "darknet_delete_temp_weights"		, true	);
 	saturation					= cfg().get_double	(cfg_prefix + "darknet_saturation"				, 1.50	);

@@ -36,6 +36,9 @@ namespace dm
 			float		learning_rate;				///< learning rate
 			float		max_chart_loss;				///< maximum loss (Y-axis) to use when drawing chart.png
 			bool		resize_images;				///< whether images will be resized to match the network dimensions
+			bool		recalculate_anchors;		///< whether darknet will be called to recalculate anchors
+			int			anchor_clusters;			///< number of anchor clusters to use (default is 9)
+			bool		class_imbalance;			///< whether counters_per_class will be added to each yolo section
 			bool		restart_training;			///< whether training should use the previous *_best.weights file or start new
 			bool		delete_temp_weights;		///< whether the temporary .weights files should be deleted once training has finished
 			float		saturation;

@@ -3,6 +3,77 @@
  */
 
 #include "DarkMark.hpp"
+#include "yolo_anchors.hpp"
+
+
+class SaveTask : public ThreadWithProgressWindow
+{
+	public:
+
+		SaveTask(dm::DarknetWnd & w) :
+			ThreadWithProgressWindow("Saving Darknet Files...", true, false),
+			wnd(w)
+		{
+			return;
+		}
+
+		void run()
+		{
+			try
+			{
+				wnd.info.rebuild();
+
+				size_t number_of_files_train	= 0;
+				size_t number_of_files_valid	= 0;
+				size_t number_of_skipped_files	= 0;
+				size_t number_of_marks			= 0;
+
+				setStatusMessage("Creating training and validation files...");
+				wnd.create_Darknet_training_and_validation_files(
+					*this,
+					number_of_files_train,
+					number_of_files_valid,
+					number_of_skipped_files,
+					number_of_marks);
+				setStatusMessage("Creating configuration files and shell scripts...");
+				setProgress(0.333);
+				wnd.create_Darknet_configuration_file();
+				setProgress(0.667);
+				wnd.create_Darknet_shell_scripts();
+
+				setStatusMessage("Done!");
+				setProgress(1.0);
+
+				const bool singular = (wnd.content.names.size() == 2); // two because the "empty" class is appended to the names, but it does not get output
+
+				std::stringstream ss;
+				ss	<< "The necessary files to run darknet have been saved to " << wnd.info.project_dir << "." << std::endl
+					<< std::endl
+					<< "There " << (singular ? "is " : "are ") << (wnd.content.names.size() - 1) << " class" << (singular ? "" : "es") << " with a total of "
+					<< number_of_files_train << " training files and "
+					<< number_of_files_valid << " validation files. The average is "
+					<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
+					<< " marks per image." << std::endl
+					<< std::endl;
+
+				if (number_of_skipped_files)
+				{
+					ss	<< "IMPORTANT: " << number_of_skipped_files << " images were skipped because they have not yet been marked." << std::endl
+					<< std::endl;
+				}
+
+				ss << "Run " << wnd.info.command_filename << " to start the training.";
+
+				AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
+			}
+			catch (const std::exception & e)
+			{
+				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Exception caught while creating the darknet/YOLO files:\n\n" + std::string(e.what()));
+			}
+		}
+
+		dm::DarknetWnd & wnd;
+};
 
 
 class CfgTemplateButton : public ButtonPropertyComponent
@@ -48,7 +119,9 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	ok_button("OK"),
 	cancel_button("Cancel")
 {
-	percentage_slider = nullptr;
+	percentage_slider			= nullptr;
+	recalculate_anchors_toggle	= nullptr;
+	class_imbalance_toggle		= nullptr;
 
 	setContentNonOwned		(&canvas, true	);
 	setUsingNativeTitleBar	(true			);
@@ -83,6 +156,9 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_learning_rate					= info.learning_rate;
 	v_max_chart_loss				= info.max_chart_loss;
 	v_resize_images					= info.resize_images;
+	v_recalculate_anchors			= info.recalculate_anchors;
+	v_anchor_clusters				= info.anchor_clusters;
+	v_class_imbalance				= info.class_imbalance;
 	v_restart_training				= info.restart_training;
 	v_delete_temp_weights			= info.delete_temp_weights;
 	v_saturation					= info.saturation;
@@ -94,9 +170,16 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_cutmix						= info.enable_cutmix;
 	v_mixup							= info.enable_mixup;
 	v_keep_augmented_images			= false;
+	v_show_receptive_field			= false;
+
+	// when the template changes, then we need to determine if the YOLO and anchors controls need to be modified
+	v_cfg_template.addListener(this);
 
 	// when this value is toggled, we need to enable/disable the image percentage slider
 	v_train_with_all_images.addListener(this);
+
+	// counters_per_class depends on this being enabled
+	v_recalculate_anchors.addListener(this);
 
 	// when this value is toggled we need to show a warning to the user
 	v_resize_images.addListener(this);
@@ -108,14 +191,14 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	ButtonPropertyComponent		* u = nullptr;
 
 	t = new TextPropertyComponent(v_darknet_dir, "darknet directory", 1000, false, true);
-	t->setTooltip("The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example YOLO .cfg files.");
+	t->setTooltip("The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example .cfg files to use as templates.");
 	properties.add(t);
 
 	u = new CfgTemplateButton(v_cfg_template);
 	u->setTooltip("The darknet configuration file to use as a template for this project.");
 	properties.add(u);
 
-	pp.addSection("darknet", properties);
+	pp.addSection("darknet", properties, true);
 	properties.clear();
 
 	s = new SliderPropertyComponent(v_image_width, "network width", 32.0, 2048.0, 32.0, 0.5, false);
@@ -150,7 +233,31 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b->setTooltip("Prior to training, use 'mogrify' from ImageMagick to resize the images to match the dimensions of the network. This speeds up training since Darknet doesn't have to dynamically resize the images while training.");
 	properties.add(b);
 
-	pp.addSection("configuration", properties);
+	pp.addSection("configuration", properties,true);
+	properties.clear();
+
+	b = new BooleanPropertyComponent(v_recalculate_anchors, "recalculate yolo anchors", "recalculate yolo anchors");
+	b->setTooltip("Recalculate the best anchors to use given the images, bounding boxes, and network dimensions.");
+	recalculate_anchors_toggle = b;
+	properties.add(b);
+
+	s = new SliderPropertyComponent(v_anchor_clusters, "number of anchor clusters", 0.0, 20.0, 1.0);
+	s->setTooltip("Number of anchor clusters.  If you want to increase or decrease the number of clusters, then you'll need to manually edit the configuration file.");
+	s->setValue(9);
+	s->setEnabled(false);
+	properties.add(s);
+
+	b = new BooleanPropertyComponent(v_class_imbalance, "handle class imbalance", "compensate for class imbalance");
+	b->setTooltip("Sets counters_per_class in YOLO sections to balance out the network.");
+	class_imbalance_toggle = b;
+	if (v_recalculate_anchors.getValue().operator bool() == false)
+	{
+		v_class_imbalance = false;
+		b->setEnabled(false);
+	}
+	properties.add(b);
+
+	pp.addSection("yolo", properties, true);
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
@@ -189,7 +296,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b->setTooltip("Delete the temporary weights (1000, 2000, 3000, etc) and keep only the best and final weights.");
 	properties.add(b);
 
-	pp.addSection("weights", properties);
+	pp.addSection("weights", properties, false);
 	properties.clear();
 
 	s = new SliderPropertyComponent(v_saturation, "saturation", 0.0, 10.0, 0.001);
@@ -204,7 +311,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s->setTooltip("If the network you are training contains classes based on colour, then you'll want to disable this or use a very low value to prevent darknet from altering the hue during data augmentation. Set to 0.5 or higher if the colour does not matter. Default value is 0.1.");
 	properties.add(s);
 
-	pp.addSection("data augmentation [colour]", properties);
+	pp.addSection("data augmentation [colour]", properties, false);
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_enable_flip, "enable flip", "flip (left-right)");
@@ -231,19 +338,26 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.add(s);
 #endif
 
-	pp.addSection("data augmentation [misc]", properties);
+	pp.addSection("data augmentation [misc]", properties, false);
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_keep_augmented_images, "keep images", "keep images");
 	b->setTooltip("Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
 	properties.add(b);
 
-	pp.addSection("data augmentation [debug]", properties, false);
+	b = new BooleanPropertyComponent(v_show_receptive_field, "show receptive field", "show receptive field");
+	b->setTooltip("Display receptive field debug information on the console when using \"darknet detector test ...\"");
+	properties.add(b);
+
+	pp.addSection("darknet debug", properties, false);
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(550, 720);
+	r = r.withSizeKeepingCentre(550, 550);
 	setBounds(r);
+
+	// force some of the handlers to run on the initial config
+	valueChanged(v_cfg_template);
 
 	setVisible(true);
 
@@ -382,6 +496,9 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_learning_rate"			, v_learning_rate				);
 	cfg().setValue(content.cfg_prefix + "darknet_max_chart_loss"		, v_max_chart_loss				);
 	cfg().setValue(content.cfg_prefix + "darknet_resize_images"			, v_resize_images				);
+	cfg().setValue(content.cfg_prefix + "darknet_recalculate_anchors"	, v_recalculate_anchors			);
+	cfg().setValue(content.cfg_prefix + "darknet_anchor_clusters"		, v_anchor_clusters				);
+	cfg().setValue(content.cfg_prefix + "darknet_class_imbalance"		, v_class_imbalance				);
 	cfg().setValue(content.cfg_prefix + "darknet_restart_training"		, v_restart_training			);
 	cfg().setValue(content.cfg_prefix + "darknet_delete_temp_weights"	, v_delete_temp_weights			);
 	cfg().setValue(content.cfg_prefix + "darknet_saturation"			, v_saturation					);
@@ -405,6 +522,9 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.learning_rate				= v_learning_rate			.getValue();
 	info.max_chart_loss				= v_max_chart_loss			.getValue();
 	info.resize_images				= v_resize_images			.getValue();
+	info.recalculate_anchors		= v_recalculate_anchors		.getValue();
+	info.anchor_clusters			= v_anchor_clusters			.getValue();
+	info.class_imbalance			= v_class_imbalance			.getValue();
 	info.restart_training			= v_restart_training		.getValue();
 	info.delete_temp_weights		= v_delete_temp_weights		.getValue();
 	info.saturation					= v_saturation				.getValue();
@@ -416,17 +536,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.enable_flip				= v_enable_flip				.getValue();
 	info.angle						= v_angle					.getValue();
 
-	try
-	{
-		info.rebuild();
-
-		create_YOLO_configuration_files();
-		create_Darknet_files();
-	}
-	catch (const std::exception & e)
-	{
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Exception caught while creating the darknet/YOLO files:\n\n" + std::string(e.what()));
-	}
+	SaveTask save_task(*this);
+	save_task.runThread();
 
 	closeButtonPressed();
 
@@ -460,135 +571,34 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		}
 	}
 
-	return;
-}
-
-
-void updateNetSection(dm::VStr & v, dm::MStr m)
-{
-	// regex to help us find all the key in the [net] section
-	const std::regex key_value_regex("^[ \t]*([^ \t=]+)[ \t]*=[ \t]*(.*)$");
-
-	bool found_net = false;
-	size_t non_blank_line = 0;
-
-	for (size_t line_number = 0; line_number < v.size(); line_number ++)
+	if (value.refersToSameSourceAs(v_recalculate_anchors))
 	{
-		std::string & line = v.at(line_number);
-
-		if (line.empty())
+		const bool should_be_enabled = v_recalculate_anchors.getValue();
+		if (class_imbalance_toggle)
 		{
-			continue;
+			class_imbalance_toggle->setEnabled(should_be_enabled);
 		}
-
-		if (line == "[net]")
+		if (should_be_enabled == false)
 		{
-			found_net = true;
-		}
-		else if (found_net and line.find("[") == 0)
-		{
-			// we found the start of the next section
-			break;
-		}
-
-		if (found_net)
-		{
-			non_blank_line = line_number;
-
-			std::smatch what;
-			const bool valid = std::regex_match(line, what, key_value_regex);
-			if (valid)
-			{
-				const std::string key = what.str(1);
-
-				if (m.count(key) == 1)
-				{
-					line = key + "=" + m[key];
-					m.erase(key);
-				}
-			}
+			v_class_imbalance = false;
 		}
 	}
 
-	// whatever is left in the map at this point are new key-value pairs that we need to insert into the vector
-	dm::VStr new_items;
-	for (auto iter : m)
+	if (value.refersToSameSourceAs(v_cfg_template))
 	{
-		const auto & key = iter.first;
-		const auto & val = iter.second;
-		new_items.push_back(key + "=" + val);
-	}
-	auto iter = v.begin() + non_blank_line + 1;
-	v.insert(iter, new_items.begin(), new_items.end());
-
-	return;
-}
-
-
-void fixYoloSections(dm::VStr & v, const size_t & number_of_classes, const size_t & number_of_filters)
-{
-	for (size_t line_number = 0; line_number < v.size(); line_number ++)
-	{
-		if (v.at(line_number) == "[yolo]")
+		const std::string filename = v_cfg_template.toString().toStdString();
+		cfg_handler.parse(filename);
+		const int number_of_clusters = cfg_handler.number_of_anchors_in_yolo();
+		if (number_of_clusters <= 1)
 		{
-			/* Example of a YOLO section:
-			 * 
-			 *		[yolo]
-			 *		mask = 6,7,8
-			 *		anchors = 12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401
-			 *		classes=1
-			 *		num=9
-			 *
-			 * The line we want to find and change is "classes=..." after [yolo].
-			 */
-			for (size_t new_line_number = line_number + 1; new_line_number < v.size(); new_line_number ++)
-			{
-				std::string & line = v.at(new_line_number);
-				if (line.find("classes=") == 0)
-				{
-					// this is the line we need to fix
-					line = "classes=" + std::to_string(number_of_classes);
-					break;
-				}
-				if (line.find("[") == 0)
-				{
-					// found a new section so stop searching
-					break;
-				}
-			}
-
-			/* Several lines prior to [yolo] is a "filters=..." line that we need to fix.  It normally looks like this:
-			 *
-			 *		[convolutional]
-			 *		size=1
-			 *		stride=1
-			 *		pad=1
-			 *		filters=18
-			 *		activation=linear
-			 *		
-			 *		[yolo]
-			 *		mask = 6,7,8
-			 *		anchors = 12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401
-			 *		classes=1
-			 *		num=9
-			 *
-			 * Note the "filters=18" about 3 lines prior to "[yolo]".  That is the line we need to find.
-			 */
-			for (size_t new_line_number = line_number - 1; new_line_number > 0 and line_number - new_line_number < 10; new_line_number --)
-			{
-				std::string & line = v.at(new_line_number);
-				if (line.find("filters=") == 0)
-				{
-					// this is the line we need to fix
-					line = "filters=" + std::to_string(number_of_filters);
-					break;
-				}
-				if (line.find("[") == 0)
-				{
-					// found a new section so stop searching
-					break;
-				}
-			}
+			v_recalculate_anchors = false;
+			v_anchor_clusters = 0;
+			recalculate_anchors_toggle->setEnabled(false);
+		}
+		else
+		{
+			v_anchor_clusters = number_of_clusters;
+			recalculate_anchors_toggle->setEnabled(true);
 		}
 	}
 
@@ -596,8 +606,9 @@ void fixYoloSections(dm::VStr & v, const size_t & number_of_classes, const size_
 }
 
 
-void dm::DarknetWnd::create_YOLO_configuration_files()
+void dm::DarknetWnd::create_Darknet_configuration_file()
 {
+	const size_t number_of_classes		= content.names.size() - 1;
 	const bool enable_mosaic			= info.enable_mosaic;
 	const bool enable_cutmix			= info.enable_cutmix;
 	const bool enable_mixup				= info.enable_mixup;
@@ -613,80 +624,80 @@ void dm::DarknetWnd::create_YOLO_configuration_files()
 	const size_t step2					= std::round(0.9 * number_of_iterations);
 	const size_t batch					= info.batch_size;
 	const size_t subdivisions			= info.subdivisions;
-	const size_t filters				= (content.names.size() - 1) * 3 + 15;
+	const size_t filters				= number_of_classes * 3 + 15;
 	const size_t width					= info.image_width;
 	const size_t height					= info.image_height;
-
-	const MStr m =
+	const bool recalculate_anchors		= info.recalculate_anchors;
+	const size_t anchor_clusters		= info.anchor_clusters;
+	const bool class_imbalance			= info.class_imbalance;
+	
+	MStr m =
 	{
-		{"flip"				, enable_flip	? "1" : "0"		},
-		{"mosaic"			, enable_mosaic	? "1" : "0"		},
-		{"cutmix"			, enable_cutmix	? "1" : "0"		},
-		{"mixup"			, enable_mixup	? "1" : "0"		},
-		{"learning_rate"	, std::to_string(learning_rate)	},
-		{"max_chart_loss"	, std::to_string(max_chart_loss)},
-		{"hue"				, std::to_string(hue)			},
-		{"saturation"		, std::to_string(saturation)	},
-		{"exposure"			, std::to_string(exposure)		},
-		{"max_batches"		, std::to_string(number_of_iterations)},
-		{"steps"			, std::to_string(step1) + "," + std::to_string(step2)},
-		{"batch"			, std::to_string(batch)			},
-		{"subdivisions"		, std::to_string(subdivisions)	},
-		{"height"			, std::to_string(height)		},
-		{"width"			, std::to_string(width)			},
-		{"angle"			, std::to_string(angle)			}
+		{"flip"				, enable_flip	? "1" : "0"								},
+		{"mosaic"			, enable_mosaic	? "1" : "0"								},
+		{"cutmix"			, enable_cutmix	? "1" : "0"								},
+		{"mixup"			, enable_mixup	? "1" : "0"								},
+		{"learning_rate"	, std::to_string(learning_rate)							},
+		{"max_chart_loss"	, std::to_string(max_chart_loss)						},
+		{"hue"				, std::to_string(hue)									},
+		{"saturation"		, std::to_string(saturation)							},
+		{"exposure"			, std::to_string(exposure)								},
+		{"max_batches"		, std::to_string(number_of_iterations)					},
+		{"steps"			, std::to_string(step1) + "," + std::to_string(step2)	},
+		{"batch"			, std::to_string(batch)									},
+		{"subdivisions"		, std::to_string(subdivisions)							},
+		{"height"			, std::to_string(height)								},
+		{"width"			, std::to_string(width)									},
+		{"angle"			, std::to_string(angle)									}
 	};
 
-	VStr v;
-	std::ifstream ifs(info.cfg_template);
-	if (ifs.good())
+	if (v_show_receptive_field.getValue().operator bool())
 	{
-		std::string line;
-		while (std::getline(ifs, line))
-		{
-			v.push_back(line);
-		}
-
-		if (v.empty() == false)
-		{
-			updateNetSection(v, m);
-			fixYoloSections(v, content.names.size() - 1, filters);
-		}
+		m["show_receptive_field"] = "1";
 	}
 
-	// write the configuration file at the new location
-	std::ofstream ofs(info.cfg_filename);
-	if (ofs.good() and v.size() > m.size())
-	{
-		ofs	<< "# DarkMark v" << DARKMARK_VERSION << " output for Darknet"																<< std::endl
-			<< "# Project .... " << info.project_dir																					<< std::endl
-			<< "# Config ..... " << info.cfg_filename																					<< std::endl
-			<< "# Template ... " << info.cfg_template																					<< std::endl
-			<< "# Username ... " << SystemStats::getLogonName().toStdString() << "@" << SystemStats::getComputerName().toStdString()	<< std::endl
-			<< "# Timestamp .. " << Time::getCurrentTime().formatted("%a %Y-%m-%d %H:%M:%S %Z").toStdString()							<< std::endl
-			<< "#"																														<< std::endl
-			<< "# WARNING:  If you re-generate the darknet files for this project you'll"												<< std::endl
-			<< "#           lose any customizations you are about to make in this file!"												<< std::endl
-			<< "#"																														<< std::endl
-			<< ""																														<< std::endl;
+	cfg_handler.modify_all_sections("[net]", m);
 
-		for (const auto & line : v)
+	m.clear();
+	if (recalculate_anchors)
+	{
+		std::string new_anchors;
+		std::string counters_per_class;
+		float avg_iou = 0.0f;
+
+		calc_anchors(info.train_filename, anchor_clusters, info.image_width, info.image_height, number_of_classes, new_anchors, counters_per_class, avg_iou);
+		if (avg_iou > 0.0f)
 		{
-			ofs << line << std::endl;
+			dm::Log("avg IoU: " + std::to_string(avg_iou));
+			dm::Log("new anchors: " + new_anchors);
+			dm::Log("new counters: " + counters_per_class);
+
+			m["anchors"] = new_anchors;
+
+			if (class_imbalance)
+			{
+				m["counters_per_class"] = counters_per_class;
+			}
+
 		}
 	}
-	else
-	{
-		// something is very wrong if we get here
-		Log("cannot save configuration file " + info.cfg_filename + " (v=" + std::to_string(v.size()) + ", template=" + info.cfg_template + ")");
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Failed to create a new configuration file " + info.cfg_filename + " from the template file " + info.cfg_template + ".");
-	}
+
+	m["classes"] = std::to_string(number_of_classes);
+
+	cfg_handler.modify_all_sections("[yolo]", m);
+	cfg_handler.fix_filters_before_yolo(filters);
+	cfg_handler.output(info);
 
 	return;
 }
 
 
-void dm::DarknetWnd::create_Darknet_files()
+void dm::DarknetWnd::create_Darknet_training_and_validation_files(
+		ThreadWithProgressWindow & progress_window,
+		size_t & number_of_files_train	,
+		size_t & number_of_files_valid	,
+		size_t & number_of_skipped_files,
+		size_t & number_of_marks		)
 {
 	if (true)
 	{
@@ -698,17 +709,25 @@ void dm::DarknetWnd::create_Darknet_files()
 			<< "backup = "	<< info.project_dir								<< std::endl;
 	}
 
-	size_t number_of_files_train = 0;
-	size_t number_of_files_valid = 0;
-	size_t number_of_skipped_files = 0;
-	size_t number_of_marks = 0;
+	number_of_files_train	= 0;
+	number_of_files_valid	= 0;
+	number_of_skipped_files	= 0;
+	number_of_marks			= 0;
+
 	if (true)
 	{
+		double work_done = 0.0;
+		double work_to_do = content.image_filenames.size() + 1.0;
+		progress_window.setStatusMessage("Finding all images and annotations...");
+
 		// only include the images for which we have at least 1 mark (or have been explicitly marked as empty)
 		VStr v;
 		VStr skipped;
 		for (const auto & filename : content.image_filenames)
 		{
+			work_done ++;
+			progress_window.setProgress(work_done / work_to_do);
+
 			File f = File(filename).withFileExtension(".json");
 			const size_t count = content.count_marks_in_json(f);
 			if (count == 0)
@@ -722,6 +741,10 @@ void dm::DarknetWnd::create_Darknet_files()
 				v.push_back(filename);
 			}
 		}
+
+		work_done = 0.0;
+		work_to_do = v.size() + skipped.size() + 1.0 ;
+		progress_window.setStatusMessage("Writing training and validation files...");
 
 		std::random_shuffle(v.begin(), v.end());
 		const bool use_all_images = info.train_with_all_images;
@@ -739,6 +762,9 @@ void dm::DarknetWnd::create_Darknet_files()
 
 		for (size_t idx = 0; idx < v.size(); idx ++)
 		{
+			work_done ++;
+			progress_window.setProgress(work_done / work_to_do);
+
 			if (use_all_images or idx < number_of_files_train)
 			{
 				fs_train << v[idx] << std::endl;
@@ -755,10 +781,19 @@ void dm::DarknetWnd::create_Darknet_files()
 		std::ofstream fs_skipped(fn);
 		for (const auto & image_filename : skipped)
 		{
+			work_done ++;
+			progress_window.setProgress(work_done / work_to_do);
+
 			fs_skipped << image_filename << std::endl;
 		}
 	}
 
+	return;
+}
+
+
+void dm::DarknetWnd::create_Darknet_shell_scripts()
+{
 	std::string header;
 
 	if (true)
@@ -918,31 +953,6 @@ void dm::DarknetWnd::create_Darknet_files()
 		File f = File(info.project_dir).getChildFile("send_files_to_gpu_rig.sh");
 		f.replaceWithData(data.c_str(), data.size());
 		f.setExecutePermission(true);
-	}
-
-	if (true)
-	{
-		const bool singular = (content.names.size() == 2); // two because the "empty" class is appended to the names, but it does not get output
-
-		std::stringstream ss;
-		ss	<< "The necessary files to run darknet have been saved to " << info.project_dir << "." << std::endl
-			<< std::endl
-			<< "There " << (singular ? "is " : "are ") << (content.names.size() - 1) << " class" << (singular ? "" : "es") << " with a total of "
-			<< number_of_files_train << " training files and "
-			<< number_of_files_valid << " validation files. The average is "
-			<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
-			<< " marks per image." << std::endl
-			<< std::endl;
-
-		if (number_of_skipped_files)
-		{
-			ss	<< "IMPORTANT: " << number_of_skipped_files << " images were skipped because they have not yet been marked." << std::endl
-				<< std::endl;
-		}
-
-		ss << "Run " << info.command_filename << " to start the training.";
-
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
 	}
 
 	return;
