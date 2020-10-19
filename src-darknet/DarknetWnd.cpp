@@ -257,7 +257,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	}
 	properties.add(b);
 
-	pp.addSection("yolo", properties, true);
+	pp.addSection("yolo", properties, false);
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
