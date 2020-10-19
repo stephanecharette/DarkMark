@@ -320,6 +320,8 @@ void calc_anchors(const std::string & train_images_filename, const size_t number
 	}
 	for (auto [key, val] : mm)
 	{
+		(void)key; // silence "unused variable" warning on older compilers (Ubuntu 18.04 and g++ 7.5.0)
+
 		if (not new_anchors.empty())
 		{
 			new_anchors += ", ";
