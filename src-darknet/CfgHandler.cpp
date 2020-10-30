@@ -288,7 +288,42 @@ dm::CfgHandler & dm::CfgHandler::output(const dm::ProjectInfo & info)
 }
 
 
-dm::CfgHandler & dm::CfgHandler::fix_filters_before_yolo(const size_t filters)
+float dm::CfgHandler::get_value(const size_t start_of_section, const std::string & key)
+{
+	float val = 0.0f;
+
+	const size_t idx = find_key_in_section(start_of_section, key);
+
+	if (idx != std::string::npos)
+	{
+		val = get_value(idx);
+	}
+
+	return val;
+}
+
+
+float dm::CfgHandler::get_value(const size_t idx)
+{
+	if (idx >= cfg.size())
+	{
+		throw std::invalid_argument("cannot get the key-value pair at index #" + std::to_string(idx) + " when the configuration file has only " + std::to_string(cfg.size() + 1) + " lines");
+	}
+
+	float val = 0.0f;
+
+	std::smatch what;
+	const bool valid = std::regex_match(cfg.at(idx), what, key_value_rx);
+	if (valid)
+	{
+		val = std::stof(what.str(2));
+	}
+
+	return val;
+}
+
+
+dm::CfgHandler & dm::CfgHandler::fix_filters_before_yolo()
 {
 	/* Several lines prior to [yolo] is a "filters=..." line that we need to fix.  It normally looks like this:
 	 *
@@ -307,11 +342,42 @@ dm::CfgHandler & dm::CfgHandler::fix_filters_before_yolo(const size_t filters)
 	 *		num=9
 	 *		...
 	 *
-	 * Note the "filters=18" about 3 lines prior to "[yolo]".  That is the line we need to find.
+	 * Note the "filters=18" about 3 lines prior to "[yolo]".  That is the line we need to find and fix.
+	 * The value needs to be:
+	 *
+	 *		(number_of_classes + 5) * number_of_masks
+	 *
+	 * For most configurations (YOLOv4, YOLOv4-tiny, ...) the number_of_masks is typically 3.  But it can be different.
+	 * The yolov4-tiny-contrastive.cfg file for example looks like this:
+	 *
+	 *		...
+	 *		[convolutional]
+	 *		size=1
+	 *		stride=1
+	 *		pad=1
+	 *		filters=765
+	 *		activation=linear
+	 *		
+	 *		[yolo]
+	 *		mask = 0,1,2,3,4,5,6,7,8
+	 *		anchors = 10,13,  16,30,  33,23,  30,61,  62,45,  59,119,  116,90,  156,198,  373,326
+	 *		classes=80
+	 *		num=9
+	 *		jitter=.3
+	 *
+	 * (classes[80] + 5) * number_of_masks[9] = 85 * 9 = 765.
 	 */
 
 	for (const auto yolo_idx : find_section("[yolo]"))
 	{
+		// we need the number of classes and the number of masks to calculate the filters
+		const size_t idx_masks			= find_key_in_section(yolo_idx, "mask");
+		const std::string & masks		= cfg.at(idx_masks);
+		const size_t number_of_masks	= 1 + std::count(masks.begin(), masks.end(), ',');
+		const size_t number_of_classes	= static_cast<size_t>(get_value(yolo_idx, "classes"	));
+		const size_t filters			= (number_of_classes + 5) * number_of_masks;
+
+		// we're going to go backwards from "[yolo]" to find the filters=... line, so first thing to do is locate the upper bound
 		size_t end_idx = 0;
 		if (yolo_idx > 20)
 		{

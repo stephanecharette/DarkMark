@@ -39,7 +39,13 @@ namespace dm
 			/// Count the number of anchors in the first [yolo] section.
 			size_t number_of_anchors_in_yolo();
 
-			CfgHandler & fix_filters_before_yolo(const size_t filters);
+			/// Find the key in the given section, and return the value for that key.
+			float get_value(const size_t start_of_section, const std::string & key);
+
+			/// Return the value in the key-value pair at the given index.
+			float get_value(const size_t idx);
+
+			CfgHandler & fix_filters_before_yolo();
 			
 			/// Save the configuration to the given name.
 			CfgHandler & output(const ProjectInfo & info);

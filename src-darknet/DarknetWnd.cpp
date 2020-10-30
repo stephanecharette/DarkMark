@@ -624,7 +624,7 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 	const size_t step2					= std::round(0.9 * number_of_iterations);
 	const size_t batch					= info.batch_size;
 	const size_t subdivisions			= info.subdivisions;
-	const size_t filters				= number_of_classes * 3 + 15;
+//	const size_t filters				= number_of_classes * 3 + 15;
 	const size_t width					= info.image_width;
 	const size_t height					= info.image_height;
 	const bool recalculate_anchors		= info.recalculate_anchors;
@@ -685,7 +685,7 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 	m["classes"] = std::to_string(number_of_classes);
 
 	cfg_handler.modify_all_sections("[yolo]", m);
-	cfg_handler.fix_filters_before_yolo(filters);
+	cfg_handler.fix_filters_before_yolo();
 	cfg_handler.output(info);
 
 	return;
@@ -831,7 +831,7 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 
 		if (info.resize_images)
 		{
-			ss	<< "if [ -x $(command --search mogrify) ]; then"															<< std::endl
+			ss	<< "if [ -x $(command -v mogrify) ]; then"																	<< std::endl
 				<< "	IMG_SIZE=" << info.image_width << "x" << info.image_height											<< std::endl
 				<< "	echo \"Resizing images to ${IMG_SIZE}...\" >> output.log"											<< std::endl
 				<< "	for txt in " << info.project_name << "_{train,valid}.txt; do"										<< std::endl

@@ -489,6 +489,22 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kLink1		] = "5346";
 			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/5346#issuecomment-649566598";
 		}
+		else if (short_name == "yolov4-tiny-custom.cfg")
+		{
+			row.field[Fields::kNotes		] = "similar to yolov4-tiny.cfg, but contains 1 minor change to the first YOLO layer";
+			row.field[Fields::kRelated		] = "yolov4-tiny.cfg";
+			row.field[Fields::kWeightsSize	] = "23.1 MiB";
+			row.field[Fields::kLink1		] = "5346";
+			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/5346#issuecomment-649566598";
+		}
+		else if (short_name == "yolov4-tiny_contrastive.cfg")
+		{
+			row.field[Fields::kNotes		] = "";
+			row.field[Fields::kRelated		] = "yolov4-tiny.cfg";
+			row.field[Fields::kWeightsSize	] = "27.5 MiB";
+			row.field[Fields::kLink1		] = "";
+			row.field[Fields::kUrl1			] = "";
+		}
 		else if (
 			short_name == "cifar.cfg"				or
 			short_name == "darknet53.cfg"			or

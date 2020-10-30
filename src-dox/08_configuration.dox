@@ -61,6 +61,8 @@ Filename										| Lines	| Layers	| Size Of Weights	| Related To					| Updated	
 @p yolov4.cfg									|  1156	| 162		| 245.7 MiB			|								| 2020		| contains 3 YOLO layers													| <a target="_blank" href="https://arxiv.org/pdf/2004.10934.pdf">YOLOv4 whitepaper</a>
 @p yolov4-tiny-3l.cfg							|   333	| 45		| 23.3 MiB			| @p yolov4-tiny.cfg			| 2020		| small objects; @p "3l" refers to 3 YOLO layers vs the usual 2 in "tiny"	| &nbsp;
 @p yolov4-tiny.cfg								|   282	| 38		| 23.1 MiB			|								| 2020		| contains 2 YOLO layers													| <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5346#issuecomment-649566598">5346</a>
+@p yolov4-tiny-custom.cfg						|   282 | 38		| 23.1 MiB			| @p yolov4-tiny.cfg			| 2020		| nearly identical to @p yolov4-tiny.cfg									| &nbsp;
+@p yolov4-tiny_contrastive.cfg					|   453	| 55		| 27.5 MiB			| @p yolov4-tiny.cfg			| 2020		| contains 1 YOLO layer														| &nbsp;
 
 @section ConfigOld Old Configuration
 
