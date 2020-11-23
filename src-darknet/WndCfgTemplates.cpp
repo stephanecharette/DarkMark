@@ -499,11 +499,11 @@ void dm::WndCfgTemplates::run()
 		}
 		else if (short_name == "yolov4-tiny_contrastive.cfg")
 		{
-			row.field[Fields::kNotes		] = "";
+			row.field[Fields::kNotes		] = "\"experimental\"; \"suitable for un-supervised learning and for multi-camera object tracking\"";
 			row.field[Fields::kRelated		] = "yolov4-tiny.cfg";
 			row.field[Fields::kWeightsSize	] = "27.5 MiB";
-			row.field[Fields::kLink1		] = "";
-			row.field[Fields::kUrl1			] = "";
+			row.field[Fields::kLink1		] = "6892";
+			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/6892";
 		}
 		else if (
 			short_name == "cifar.cfg"				or

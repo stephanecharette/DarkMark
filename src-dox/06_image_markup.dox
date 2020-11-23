@@ -1,5 +1,7 @@
 /** @page ImageMarkup Image Markup
 
+@see https://www.ccoderun.ca/programming/darknet_faq/#image_markup
+
 @section NormalImageMarkup Normal Image Markup
 
 Being consistent is very important when marking up images.  When possible, you'll want to make certain that all instances of a particular class are all marked the same way.

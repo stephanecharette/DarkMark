@@ -1,5 +1,7 @@
 /** @page DataAugmentation Data Augmentation
 
+@see https://www.ccoderun.ca/programming/darknet_faq/#turn_off_data_augmentation
+
 %DarkMark allows several significant darknet data augmentation parameters to be changed.
 
 @image html darknet_data_augmentation.png

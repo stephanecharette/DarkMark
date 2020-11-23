@@ -816,7 +816,7 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 		if (info.restart_training)
 		{
 			cmd += " " + cfg().get_str(content.cfg_prefix + "weights");
-			cmd += " -clear 1";
+			cmd += " -clear";
 		}
 
 		std::stringstream ss;
