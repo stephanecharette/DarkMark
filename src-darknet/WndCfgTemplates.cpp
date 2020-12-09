@@ -16,8 +16,8 @@
  * rebuild .dox file used on the web site.  This has no impact or purpose
  * normal users of DarkMark, and should be left undefined.
  */
-#if 1
-#define OUTPUT_DOX_TABLE
+#if 0
+#define OUTPUT_DOX_TABLES
 #endif
 
 
@@ -592,7 +592,7 @@ void dm::WndCfgTemplates::run()
 		}
 	}
 
-	#ifdef OUTPUT_DOX_TABLE
+	#ifdef OUTPUT_DOX_TABLES
 	std::ofstream ofs_new("new_cfg_table.txt");
 	std::ofstream ofs_old("old_cfg_table.txt");
 	size_t field_number = kName;
