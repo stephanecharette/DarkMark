@@ -22,6 +22,7 @@ namespace dm
 				kLines			,
 				kLayers			,
 				kYoloLayers		,
+				kNetworkSize	,
 				kWeightsSize	,
 				kRelated		,
 				kLastModified	,

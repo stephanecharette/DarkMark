@@ -6,9 +6,22 @@
 
 
 /** Any timestamp prior to this will be considered "old"
- * (yolov2 is 2018-03, yolov3 is 2018-05)
+ * - yolov2 is 2018-03
+ * - yolov3 is 2018-05
+ * - yolov4 is 2020-05
  */
-#define OLD_CFG_TIMESTAMP "2018-04-00"
+#define OLD_CFG_TIMESTAMP "2020-01-00"
+
+/** Only define this if you need to re-create the doxygen table.  It will
+ * rebuild .dox file used on the web site.  This has no impact or purpose
+ * normal users of DarkMark, and should be left undefined.
+ */
+#if 1
+#define OUTPUT_DOX_TABLE
+#endif
+
+
+const auto table_header_names = {"name", "full path and name", "lines", "layers", "yolo layers", "network size", "weights size", "related", "last commit", "commit name", "notes", "links"};
 
 
 dm::WndCfgTemplates::WndCfgTemplates(Value & v) :
@@ -59,7 +72,7 @@ dm::WndCfgTemplates::WndCfgTemplates(Value & v) :
 	table_content_visible.push_back(row);
 
 	int idx = 0;
-	for (const auto & field : {"name", "full path and name", "lines", "layers", "yolo layers", "weights size", "related", "last commit", "commit name", "notes", "links"})
+	for (const auto & field : table_header_names)
 	{
 		idx ++;
 		table.getHeader().addColumn(field, idx, 100, 30, -1, TableHeaderComponent::notSortable);
@@ -241,6 +254,9 @@ void dm::WndCfgTemplates::run()
 		size_t number_of_lines			= 0;
 		size_t number_of_layers			= 0;
 		size_t number_of_yolo_layers	= 0;
+		size_t network_width			= 0;
+		size_t network_height			= 0;
+		bool look_for_width_and_height	= true;
 		for (const auto line : lines)
 		{
 			if (threadShouldExit())
@@ -258,6 +274,22 @@ void dm::WndCfgTemplates::run()
 					number_of_yolo_layers ++;
 				}
 			}
+			else if (look_for_width_and_height)
+			{
+				if (line.startsWith("width="))
+				{
+					network_width = std::atoi(line.substring(6).toStdString().c_str());
+				}
+				else if (line.startsWith("height="))
+				{
+					network_height = std::atoi(line.substring(7).toStdString().c_str());
+				}
+
+				if (network_width > 0 and network_height > 0)
+				{
+					look_for_width_and_height = false;
+				}
+			}
 		}
 		row.field[Fields::kLines	] = std::to_string(number_of_lines);
 		row.field[Fields::kLayers	] = std::to_string(number_of_layers - 1);
@@ -267,11 +299,15 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kYoloLayers] = std::to_string(number_of_yolo_layers);
 		}
 
+		if (network_width > 0 and network_height > 0)
+		{
+			row.field[Fields::kNetworkSize] = std::to_string(network_width) + "x" + std::to_string(network_height);
+		}
+
 		table_content_all.push_back(row);
 	}
 
 	// get more details on each row in the table
-	int row_index = 0;
 	for (auto & row : table_content_all)
 	{
 		if (threadShouldExit())
@@ -475,6 +511,7 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kWeightsSize	] = "245.7 MiB";
 			row.field[Fields::kLink1		] = "YOLOv4 whitepaper";
 			row.field[Fields::kUrl1			] = "https://arxiv.org/pdf/2004.10934.pdf";
+			row.field[Fields::kNotes		] = "nearly identical; lower learning rate; one additional change to a convolutional layer";
 		}
 		else if (short_name == "yolov4-tiny-3l.cfg")
 		{
@@ -505,6 +542,22 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kLink1		] = "6892";
 			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/6892";
 		}
+		else if (short_name == "yolov4-csp.cfg")
+		{
+			row.field[Fields::kNotes		] = "cross-stage-partial; more accurate and faster than YOLOv4";
+			row.field[Fields::kRelated		] = "yolov4.cfg";
+			row.field[Fields::kWeightsSize	] = "202.1 MiB";
+			row.field[Fields::kLink1		] = "Scaled YOLO v4";
+			row.field[Fields::kUrl1			] = "https://alexeyab84.medium.com/scaled-yolo-v4-is-the-best-neural-network-for-object-detection-on-ms-coco-dataset-39dfa22fa982";
+			row.field[Fields::kLink2		] = "YOLOv4-CSP whitepaper";
+			row.field[Fields::kUrl2			] = "https://arxiv.org/pdf/2011.08036.pdf";
+		}
+		else if (short_name == "yolov4x-mish.cfg")
+		{
+//			row.field[Fields::kNotes		] = "";
+//			row.field[Fields::kRelated		] = "yolov4.cfg";
+			row.field[Fields::kWeightsSize	] = "380.9 MiB";
+		}
 		else if (
 			short_name == "cifar.cfg"				or
 			short_name == "darknet53.cfg"			or
@@ -519,18 +572,15 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kLink1		] = "5092";
 			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795";
 		}
-
-		row_index ++;
 	}
 
-	row_index = 0;
 	for (auto & row : table_content_all)
 	{
 		if (threadShouldExit())
 		{
 			break;
 		}
-
+		
 		const auto & timestamp = row.field[Fields::kLastModified];
 		if (timestamp.empty() == false and timestamp < OLD_CFG_TIMESTAMP)
 		{
@@ -540,8 +590,101 @@ void dm::WndCfgTemplates::run()
 				row.field[Fields::kNotes] = "old cfg";
 			}
 		}
-		row_index ++;
 	}
+
+	#ifdef OUTPUT_DOX_TABLE
+	std::ofstream ofs_new("new_cfg_table.txt");
+	std::ofstream ofs_old("old_cfg_table.txt");
+	size_t field_number = kName;
+	for (const auto & field : table_header_names)
+	{
+		if (field_number != kFullPath)
+		{
+			if (field_number > kName)
+			{
+				ofs_new << " | ";
+				ofs_old << " | ";
+			}
+			ofs_new << field;
+			ofs_old << field;
+		}
+		field_number ++;
+	}
+	ofs_new << std::endl;
+	ofs_old << std::endl;
+
+	for (field_number = 0; field_number < table_header_names.size() - 1; field_number ++)
+	{
+		if (field_number > 0)
+		{
+			ofs_new << "|";
+			ofs_old << "|";
+		}
+		ofs_new << "---";
+		ofs_old << "---";
+	}
+	ofs_new << std::endl;
+	ofs_old << std::endl;
+
+	for (const auto & row : table_content_all)
+	{
+		const auto & timestamp = row.field[Fields::kLastModified];
+		auto & ofs = (timestamp < OLD_CFG_TIMESTAMP ? ofs_old : ofs_new);
+
+		for (field_number = kName; field_number < kNumberOfCols; field_number ++)
+		{
+			if (field_number == kFullPath)
+			{
+				continue;
+			}
+
+			if (field_number > kName)
+			{
+				ofs << " | ";
+			}
+
+			if (field_number < kLink1)
+			{
+				if (field_number == kName or
+					(field_number == kRelated and row.field[field_number].empty() == false))
+				{
+					ofs << "@p ";
+				}
+
+				ofs << row.field[field_number];
+			}
+			else
+			{
+				// combine the link1, url1, link2, url2 fields into a single field
+				field_number += 3;
+				bool need_comma = false;
+
+				if (row.field[kUrl1].empty() == false and row.field[kLink1].empty() == false)
+				{
+					ofs << "<a target=\"_blank\" href=\"" << row.field[kUrl1] << "\">" << row.field[kLink1] << "</a>";
+					need_comma = true;
+				}
+
+				if (row.field[kUrl2].empty() == false and row.field[kLink2].empty() == false)
+				{
+					if (need_comma)
+					{
+						ofs << ", ";
+					}
+					ofs << "<a target=\"_blank\" href=\"" << row.field[kUrl2] << "\">" << row.field[kLink2] << "</a>";
+					need_comma = true;
+				}
+
+				if (need_comma == false)
+				{
+					// doxygen doesn't behave well when the last field in a table is empty
+					ofs << "&nbsp;";
+				}
+			}
+		}
+		ofs << std::endl;
+	}
+	#endif
 
 	include_new_button	.setEnabled(true);
 	include_yolo_button	.setEnabled(true);
