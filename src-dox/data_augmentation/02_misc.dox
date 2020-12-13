@@ -1,12 +1,38 @@
 /** @page DataAugmentationMisc Data Augmentation - Misc
 
+Data augmentation requires that darknet be built with support for OpenCV.
+
 @image html darknet_output_misc.png
+
+Some notes from AlexeyAB:
+
+@li @ref Mosaic is usually better than @ref Cutmix or @ref Mixup
+@li Classifier supports all of them.
+@li Detector supports only @ref Mosaic.
+
+From page 6 of <a target="_blank" href="https://arxiv.org/pdf/2004.10934.pdf">the YOLOv4 paper</a>:
+
+> Mosaic represents a new data augmentation method that mixes 4 training images.  Thus 4 different contexts are mixed, while CutMix mixes only 2 input images.
+> This allows detection of objects outside their normal context.  In addition, batch normalization calculates activation statistics from 4 different images on
+> each layer.  This significantly reduces the need for a large mini-batch size.
 
 @section Flip Flip
 
 Images are randomly flipped left-right.  Turn this off if you are training classes that depend on left-hand and right-hand distinctions.
 
 For example, training to recognize the letters @p "b" and @p "d", or @p "left hand" and @p "right hand" would be problematic if flip is enabled.
+
+To enable, add this line to the `[net]` section of your .cfg file:
+
+~~~~{.txt}
+flip=1
+~~~~
+
+To disable, add this line to the `[net]` section of your .cfg file:
+
+~~~~{.txt}
+flip=0
+~~~~
 
 @section Mosaic Mosaic
 
@@ -29,13 +55,37 @@ Data augmentation may combine multiple images into a single image ("mosaic").
 		<td> @image html mosaic_10.jpg </td>
 </table>
 
-As of early January 2020, this is not yet an official option in darknet, and not much documentation is available.
+To enable, add this line to the `[net]` section of your .cfg file:
+
+~~~~{.txt}
+mosaic=1
+~~~~
+
+To disable, add this line to the `[net]` section of your .cfg file:
+
+~~~~{.txt}
+mosaic=0
+~~~~
+
 @see https://github.com/AlexeyAB/darknet/issues/4638
+@see https://github.com/AlexeyAB/darknet/issues/7114
 
 @section Cutmix Cutmix
 
-As of early January 2020, this is not yet an official option in darknet, and not much documentation is available.
+To enable, add this line to the `[net]` section of your .cfg file:
+
+~~~~{.txt}
+cutmix=1
+~~~~
+
+To disable, add this line to the `[net]` section of your .cfg file:
+
+~~~~{.txt}
+cutmix=0
+~~~~
+
 @see https://github.com/AlexeyAB/darknet/issues/4638
+@see https://github.com/AlexeyAB/darknet/issues/7114
 
 @section Mixup Mixup
 
@@ -58,8 +108,19 @@ Data augmentation may blend multiple images together to create a new image.
 		<td> @image html mixup_10.jpg </td>
 </table>
 
+To enable, add this line to the `[net]` section of your .cfg file:
 
-As of early January 2020, this is not yet an official option in darknet, and not much documentation is available.
+~~~~{.txt}
+mixup=1
+~~~~
+
+To disable, add this line to the `[net]` section of your .cfg file:
+
+~~~~{.txt}
+mixup=0
+~~~~
+
 @see https://github.com/AlexeyAB/darknet/issues/4638
+@see https://github.com/AlexeyAB/darknet/issues/7114
 
 */

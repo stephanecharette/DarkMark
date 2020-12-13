@@ -328,11 +328,34 @@ void dm::WndCfgTemplates::run()
 		}
 
 		const std::string & short_name = row.field[Fields::kName];
-		if (short_name == "crnn.train.cfg")
+		if (short_name == "cd53paspp-gamma.cfg")
+		{
+			row.field[Fields::kRelated		] = "yolov4.cfg";
+			row.field[Fields::kNotes		] = "detector, the same as yolov4.cfg, but with leaky instead of mish";
+		}
+		else if (short_name == "csdarknet53-omega.cfg")
+		{
+			row.field[Fields::kRelated		] = "yolov4.cfg";
+			row.field[Fields::kNotes		] = "classifier, backbone for yolov4.cfg";
+		}
+		else if (short_name == "crnn.train.cfg")
 		{
 			row.field[Fields::kRelated		] = "rnn.train.cfg";
 			row.field[Fields::kLink1		] = "1624";
 			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/1624";
+		}
+		else if (short_name == "cspx-p7-mish-omega.cfg")
+		{
+			row.field[Fields::kRelated		] = "cspx-p7-mish.cfg";
+			row.field[Fields::kNotes		] = "classifier, backbone for cspx-p7-mish.cfg";
+		}
+		else if (short_name == "cspx-p7-mish.cfg")
+		{
+			row.field[Fields::kNotes		] = "detector, yolov4-p7-large";
+		}
+		else if (short_name == "cspx-p7-mish_hp.cfg")
+		{
+			row.field[Fields::kNotes		] = "detector, experimental cfg file";
 		}
 		else if (short_name == "csresnext50-panet-spp.cfg")
 		{
@@ -365,6 +388,7 @@ void dm::WndCfgTemplates::run()
 		}
 		else if (short_name == "efficientnet-lite3.cfg")
 		{
+			row.field[Fields::kNotes		] = "classifier, EfficientNet-lite3";
 			row.field[Fields::kLink1		] = "3380";
 			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/3380";
 		}
@@ -554,8 +578,8 @@ void dm::WndCfgTemplates::run()
 		}
 		else if (short_name == "yolov4x-mish.cfg")
 		{
-//			row.field[Fields::kNotes		] = "";
-//			row.field[Fields::kRelated		] = "yolov4.cfg";
+			row.field[Fields::kNotes		] = "detector, something between yolov4-csp and yolov4-p5";
+			row.field[Fields::kRelated		] = "yolov4-csp.cfg";
 			row.field[Fields::kWeightsSize	] = "380.9 MiB";
 		}
 		else if (
