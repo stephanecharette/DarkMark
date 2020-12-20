@@ -578,9 +578,11 @@ void dm::WndCfgTemplates::run()
 		}
 		else if (short_name == "yolov4x-mish.cfg")
 		{
-			row.field[Fields::kNotes		] = "detector, something between yolov4-csp and yolov4-p5";
+			row.field[Fields::kNotes		] = "detector; something between yolov4-csp and yolov4-p5; more suitable for high resolutions 640x640 - 832x832 than yolov4.cfg; should be trained longer";
 			row.field[Fields::kRelated		] = "yolov4-csp.cfg";
 			row.field[Fields::kWeightsSize	] = "380.9 MiB";
+			row.field[Fields::kLink1		] = "7131";
+			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/7131";
 		}
 		else if (
 			short_name == "cifar.cfg"				or

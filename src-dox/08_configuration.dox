@@ -47,7 +47,7 @@ name | lines | layers | yolo layers | network size | weights size | related | la
 @p yolov4-tiny.cfg | 282 | 38 | 2 | 416x416 | 23.1 MiB |  | 2020-06-25 | AlexeyAB | contains 2 YOLO layers | <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5346#issuecomment-649566598">5346</a>
 @p yolov4-tiny_contrastive.cfg | 453 | 55 | 1 | 416x416 | 27.5 MiB | @p yolov4-tiny.cfg | 2020-10-20 | AlexeyAB | "experimental"; "suitable for un-supervised learning and for multi-camera object tracking" | <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/6892">6892</a>
 @p yolov4.cfg | 1159 | 162 | 3 | 608x608 | 245.7 MiB |  | 2020-05-23 | AlexeyAB | contains 3 YOLO layers | <a target="_blank" href="https://arxiv.org/pdf/2004.10934.pdf">YOLOv4 whitepaper</a>
-@p yolov4x-mish.cfg | 1437 | 203 | 3 | 640x640 | 380.9 MiB | @p yolov4-csp.cfg | 2020-12-07 | AlexeyAB | detector, something between yolov4-csp and yolov4-p5 | &nbsp;
+@p yolov4x-mish.cfg | 1437 | 203 | 3 | 640x640 | 380.9 MiB | @p yolov4-csp.cfg | 2020-12-07 | AlexeyAB | detector; something between yolov4-csp and yolov4-p5; more suitable for high resolutions 640x640 - 832x832 than yolov4.cfg; should be trained longer | <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/7131">7131</a>
 
 @section ConfigOld Old Configuration
 
