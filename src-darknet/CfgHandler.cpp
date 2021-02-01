@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 
@@ -334,7 +332,7 @@ dm::CfgHandler & dm::CfgHandler::fix_filters_before_yolo()
 	 *		pad=1
 	 *		filters=18
 	 *		activation=linear
-	 *		
+	 *
 	 *		[yolo]
 	 *		mask = 6,7,8
 	 *		anchors = 12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401
@@ -357,7 +355,7 @@ dm::CfgHandler & dm::CfgHandler::fix_filters_before_yolo()
 	 *		pad=1
 	 *		filters=765
 	 *		activation=linear
-	 *		
+	 *
 	 *		[yolo]
 	 *		mask = 0,1,2,3,4,5,6,7,8
 	 *		anchors = 10,13,  16,30,  33,23,  30,61,  62,45,  59,119,  116,90,  156,198,  373,326

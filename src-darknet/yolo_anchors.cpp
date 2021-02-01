@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include <algorithm>
 #include <fstream>
@@ -189,7 +187,7 @@ void kmeans_maximization(matrix & data, VInt & assignments, matrix & centers)
 			}
 		}
 	}
-	
+
 	for (size_t i = 0; i < centers.rows; ++i)
 	{
 		for (size_t j = 0; j < centers.cols; ++j)
@@ -388,7 +386,7 @@ int main(int argc, char * argv[])
 	std::cout	<< "counters_per_class=" << counters_per_class << std::endl
 				<< "anchors=" << new_anchors << std::endl
 				<< "avg_iou=" << avg_iou << std::endl;
-	
+
 	return 0;
 }
 #endif

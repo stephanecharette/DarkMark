@@ -2,7 +2,8 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
-1.2.2-3099	| 2020-12-09	| Mostly doxygen (documentation) updates.
+1.2.3-1		| 2021-01-02	| Converted from private SNV to Github repo (https://github.com/stephanecharette/DarkMark/).
 1.2.2-3102	| 2020-12-13	| No changes. Rebuilt to match most recent version of DarkHelp.
+1.2.2-3099	| 2020-12-09	| Mostly doxygen (documentation) updates.
 
 */

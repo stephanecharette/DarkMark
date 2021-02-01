@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 
@@ -139,7 +137,7 @@ void dm::DMContentReview::run()
 			{
 				break;
 			}
-			
+
 			const int x = std::round(mat.cols * mark["rect"]["x"].get<double>());
 			const int y = std::round(mat.rows * mark["rect"]["y"].get<double>());
 			const int w = std::round(mat.cols * mark["rect"]["w"].get<double>());
@@ -195,7 +193,7 @@ void dm::DMContentReview::run()
 					review_info.warnings.push_back("unusual image type");
 				}
 			}
-			
+
 			try
 			{
 				review_info.mat = mat(r1).clone();

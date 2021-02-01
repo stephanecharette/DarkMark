@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id: StartupWnd.cpp 2989 2020-06-13 02:10:17Z stephane $
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 #include <random>
@@ -281,7 +279,7 @@ void dm::VideoImportWindow::resized()
 
 	fb_rows.items.add(FlexItem().withFlex(1.0));
 	fb_rows.items.add(FlexItem(button_row).withHeight(30.0));
-	
+
 	auto r = getLocalBounds();
 	r.reduce(margin_size, margin_size);
 	fb_rows.performLayout(r);

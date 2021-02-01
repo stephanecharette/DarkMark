@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 #include "json.hpp"
@@ -87,7 +85,7 @@ void dm::ScrollField::run()
 		File previous_parent;
 
 		const std::string parent = content.project_info.project_dir;
-		
+
 		// find all of the different image sets so we can display the white "arrow"
 		for (size_t idx = 0; idx < number_of_images; idx ++)
 		{

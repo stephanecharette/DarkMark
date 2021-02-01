@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id: StartupWnd.hpp 2976 2020-05-25 05:56:55Z stephane $
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #pragma once
 
@@ -14,7 +12,7 @@ namespace dm
 		public:
 
 			VideoImportWindow(const std::string & dir, const VStr & v);
-		
+
 			virtual ~VideoImportWindow();
 
 			virtual void resized() override;

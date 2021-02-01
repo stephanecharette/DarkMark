@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 
@@ -606,7 +604,7 @@ void dm::WndCfgTemplates::run()
 		{
 			break;
 		}
-		
+
 		const auto & timestamp = row.field[Fields::kLastModified];
 		if (timestamp.empty() == false and timestamp < OLD_CFG_TIMESTAMP)
 		{

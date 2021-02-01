@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #pragma once
 
@@ -30,7 +28,7 @@ namespace dm
 
 			/// Find the specified key, or return @p std::string::npos if not found.
 			size_t find_key_in_section(const size_t start_of_section, const std::string & key);
-			
+
 			size_t set_or_add_line_in_section(const size_t start_of_section, const std::string & key, const std::string & val);
 
 			/// Modify all instances of the named section so they contain the given key value pairs in @p m.
@@ -46,7 +44,7 @@ namespace dm
 			float get_value(const size_t idx);
 
 			CfgHandler & fix_filters_before_yolo();
-			
+
 			/// Save the configuration to the given name.
 			CfgHandler & output(const ProjectInfo & info);
 

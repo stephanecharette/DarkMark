@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 #include "yolo_anchors.hpp"
@@ -263,7 +261,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
 	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. If you are training your own custom network then you probably want to enable this.");
 	properties.add(b);
-	
+
 	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
 	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
 	percentage_slider = s; // remember this slider, because we need to enable/disable it based on the previous boolean toggle
@@ -630,7 +628,7 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 	const bool recalculate_anchors		= info.recalculate_anchors;
 	const size_t anchor_clusters		= info.anchor_clusters;
 	const bool class_imbalance			= info.class_imbalance;
-	
+
 	MStr m =
 	{
 		{"flip"				, enable_flip	? "1" : "0"								},

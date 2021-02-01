@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 
@@ -958,7 +956,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 								", w=" + std::to_string(w) +
 								", h=" + std::to_string(h) +
 								")");
-								
+
 							const cv::Point2d normalized_point(x, y);
 							const cv::Size2d normalized_size(w, h);
 
@@ -1376,7 +1374,7 @@ bool dm::DMContent::copy_marks_from_given_image(const std::string & fn)
 		{
 			ss << " and ";
 		}
-		
+
 		ss << "skipped " << count_skipped << " identical mark" << (count_skipped == 1 ? "" : "s");
 	}
 	ss << " from " << File(fn).getFileName().toStdString();
@@ -1879,6 +1877,6 @@ dm::DMContent & dm::DMContent::highlight_rectangle(const cv::Rect & r)
 void dm::DMContent::timerCallback()
 {
 	// used by highlight_rectangle() and paintOverChildren()
-	
+
 	repaint();
 }

@@ -1,5 +1,4 @@
-# DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
-# $Id$
+# DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 
 FILE ( READ version.txt VERSION_TXT )

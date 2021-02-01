@@ -1,6 +1,4 @@
-/* DarkMark (C) 2019-2020 Stephane Charette <stephanecharette@gmail.com>
- * $Id$
- */
+// DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #pragma once
 
@@ -105,7 +103,7 @@ namespace dm
 			DMContent & copy_marks_from_previous_image();
 
 			DMContent & accept_current_mark();
-			
+
 			DMContent & accept_all_marks();
 
 			DMContent & erase_all_marks();
