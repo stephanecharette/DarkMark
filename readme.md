@@ -1,7 +1,7 @@
 # What is DarkMark?
 
 
-[![DarkMark and DarkHelp demo](darkmark_demo_thumbnail.png)](https://www.youtube.com/watch?v=w1lTCO2Kmsc)
+[![DarkMark and DarkHelp demo](src-dox/darkmark_demo_thumbnail.png)](https://www.youtube.com/watch?v=w1lTCO2Kmsc)
 
 DarkMark is a C++ GUI tool used to annotate images for use in neural networks.  It was written specifically to be used with the [Darknet](https://github.com/AlexeyAB/darknet) neural network framework, and has several features tailored for use with Darknet and YOLO.
 
