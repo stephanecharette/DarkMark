@@ -2,7 +2,7 @@
 
 The official web site for C Code Run's %DarkMark is http://www.ccoderun.ca/darkmark/. <br/>
 
-Source code for %DarkMark is available at http://www.ccoderun.ca/download/. <br/>
+Source code for %DarkMark is available at https://github.com/stephanecharette/DarkMark/. <br/>
 
 @note %DarkMark is @em not Darknet!  %DarkMark is a C++ GUI application used to mark up images, which then may be used with Darknet to train a neural network.
 

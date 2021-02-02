@@ -1,6 +1,5 @@
 # What is DarkMark?
 
-
 [![DarkMark and DarkHelp demo](src-dox/darkmark_demo_thumbnail.png)](https://www.youtube.com/watch?v=w1lTCO2Kmsc)
 
 DarkMark is a C++ GUI tool used to annotate images for use in neural networks.  It was written specifically to be used with the [Darknet](https://github.com/AlexeyAB/darknet) neural network framework, and has several features tailored for use with Darknet and YOLO.
@@ -21,11 +20,11 @@ Once ready, DarkMark can also be used to generate all of the Darknet and YOLO (o
 
 # License
 
-DarkHelp is open source and published using the GNU GPL v3 license.  See license.txt for details.
+DarkMark is open source and published using the GNU GPL v3 license.  See license.txt for details.
 
 # How to Build DarkMark
 
-DarkMark requires [DarkHelp](https://github.com/stephanecharette/DarkHelp/) to build correctly.  (And DarkHelp requires Darknet.)  So before you start building DarkMark, make sure you follow [the build instructions for DarkHelp](https://github.com/stephanecharette/DarkHelp/#how-to-build-darkhelp).
+DarkMark requires [DarkHelp](https://github.com/stephanecharette/DarkHelp/) to build.  (And DarkHelp requires Darknet.)  So before you start building DarkMark, make sure you follow [the build instructions for DarkHelp](https://github.com/stephanecharette/DarkHelp/#how-to-build-darkhelp).
 
 Once Darknet and DarkHelp have been built and installed, run the following commands to build DarkMark on Ubuntu:
 
@@ -39,7 +38,7 @@ Once Darknet and DarkHelp have been built and installed, run the following comma
 	make
 	make package
 
-# C++ API Doxygen Output
+# Doxygen Output
 
 The official DarkMark documentation and web site is at <https://www.ccoderun.ca/darkmark/>.
 
@@ -49,3 +48,5 @@ Some links to specific useful pages:
 - ["How To" on image markup](https://www.ccoderun.ca/darkmark/ImageMarkup.html)
 - [Data augmentation in Darknet](https://www.ccoderun.ca/darkmark/DataAugmentation.html)
 - [Darknet configuration files](https://www.ccoderun.ca/darkmark/Configuration.html)
+- [Darknet FAQ](https://www.ccoderun.ca/programming/darknet_faq/)
+- [Discord server for Darknet, YOLO, DarkHelp, and DarkMark](https://discord.gg/zSq8rtW)

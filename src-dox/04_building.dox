@@ -10,13 +10,15 @@
 @li Darknet
 @li DarkHelp
 
-Before attempting to build %DarkMark, please see the instructions for building DarkHelp:  https://www.ccoderun.ca/DarkHelp/api/Building.html.
+Before attempting to build %DarkMark, please see the instructions for building DarkHelp:  https://github.com/stephanecharette/DarkHelp/.
 
 The order in which you build and install the packages is important, since DarkHelp depends on @p libdarknet.so, and DarkMark depends on @p libdarkhelp.so.  After you've successfully built and installed DarkHelp, %DarkMark is built in a similar manner:
 
 ~~~~{.sh}
 sudo apt-get install build-essential cmake libopencv-dev libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev
-cd ~/src/DarkMark/
+cd ~/src
+git clone https://github.com/stephanecharette/DarkMark.git
+cd DarkMark
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
