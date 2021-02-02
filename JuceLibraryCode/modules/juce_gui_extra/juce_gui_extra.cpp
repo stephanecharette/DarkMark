@@ -40,10 +40,6 @@
 #define JUCE_GRAPHICS_INCLUDE_COREGRAPHICS_HELPERS 1
 #define JUCE_GUI_BASICS_INCLUDE_XHEADERS 1
 
-#if JUCE_USE_WIN_WEBVIEW2
- #define JUCE_EVENTS_INCLUDE_WINRT_WRAPPER 1
-#endif
-
 #ifndef JUCE_PUSH_NOTIFICATIONS
  #define JUCE_PUSH_NOTIFICATIONS 0
 #endif
@@ -149,8 +145,6 @@
 //==============================================================================
 #if JUCE_MAC || JUCE_IOS
 
- JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wundeclared-selector")
-
  #if JUCE_MAC
   #include "native/juce_mac_NSViewComponent.mm"
   #include "native/juce_mac_AppleRemote.mm"
@@ -164,8 +158,6 @@
  #if JUCE_WEB_BROWSER
   #include "native/juce_mac_WebBrowserComponent.mm"
  #endif
-
- JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
 //==============================================================================
 #elif JUCE_WINDOWS

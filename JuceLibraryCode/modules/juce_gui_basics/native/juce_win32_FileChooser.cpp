@@ -46,7 +46,7 @@ public:
                             const File& startingFile, const String& titleToUse,
                             const String& filtersToUse)
         : Thread ("Native Win32 FileChooser"),
-          owner (parent), title (titleToUse), filtersString (filtersToUse),
+          owner (parent), title (titleToUse), filtersString (filtersToUse.replaceCharacter (',', ';')),
           selectsDirectories ((flags & FileBrowserComponent::canSelectDirectories)   != 0),
           isSave             ((flags & FileBrowserComponent::saveMode)               != 0),
           warnAboutOverwrite ((flags & FileBrowserComponent::warnAboutOverwriting)   != 0),
@@ -167,6 +167,11 @@ private:
     Atomic<HWND> nativeDialogRef;
     Atomic<int>  shouldCancel;
 
+    struct FreeLPWSTR
+    {
+        void operator() (LPWSTR ptr) const noexcept { CoTaskMemFree (ptr); }
+    };
+
     bool showDialog (IFileDialog& dialog, bool async) const
     {
         FILEOPENDIALOGOPTIONS flags = {};
@@ -193,7 +198,17 @@ private:
         PIDLIST_ABSOLUTE pidl = {};
 
         if (FAILED (SHParseDisplayName (initialPath.toWideCharPointer(), nullptr, &pidl, SFGAO_FOLDER, nullptr)))
-            return false;
+        {
+            LPWSTR ptr = nullptr;
+            auto result = SHGetKnownFolderPath (FOLDERID_Desktop, 0, nullptr, &ptr);
+            std::unique_ptr<WCHAR, FreeLPWSTR> desktopPath (ptr);
+
+            if (FAILED (result))
+                return false;
+
+            if (FAILED (SHParseDisplayName (desktopPath.get(), nullptr, &pidl, SFGAO_FOLDER, nullptr)))
+                return false;
+        }
 
         const auto item = [&]
         {
@@ -228,14 +243,13 @@ private:
     {
         const auto getUrl = [] (IShellItem& item)
         {
-            struct Free
-            {
-                void operator() (LPWSTR ptr) const noexcept { CoTaskMemFree (ptr); }
-            };
-
             LPWSTR ptr = nullptr;
-            item.GetDisplayName (SIGDN_URL, &ptr);
-            return std::unique_ptr<WCHAR, Free> { ptr };
+
+            if (item.GetDisplayName (SIGDN_FILESYSPATH, &ptr) != S_OK)
+                return URL();
+
+            const auto path = std::unique_ptr<WCHAR, FreeLPWSTR> { ptr };
+            return URL (File (String (path.get())));
         };
 
         if (isSave)
@@ -262,7 +276,12 @@ private:
             if (item == nullptr)
                 return {};
 
-            return { URL (String (getUrl (*item).get())) };
+            const auto url = getUrl (*item);
+
+            if (url.isEmpty())
+                return {};
+
+            return { url };
         }
 
         const auto dialog = [&]
@@ -298,7 +317,12 @@ private:
             items->GetItemAt (i, scope.resetAndGetPointerAddress());
 
             if (scope != nullptr)
-                result.add (String (getUrl (*scope).get()));
+            {
+                const auto url = getUrl (*scope);
+
+                if (! url.isEmpty())
+                    result.add (url);
+            }
         }
 
         return result;
@@ -412,26 +436,44 @@ private:
 
         const Remover remover (*this);
 
-        if (SystemStats::getOperatingSystemType() >= SystemStats::WinVista)
+        if (SystemStats::getOperatingSystemType() >= SystemStats::WinVista
+            && customComponent == nullptr)
+        {
             return openDialogVistaAndUp (async);
+        }
 
         return openDialogPreVista (async);
     }
 
     void run() override
     {
+        // We use a functor rather than a lambda here because
+        // we want to move ownership of the Ptr into the function
+        // object, and C++11 doesn't support general lambda capture
+        struct AsyncCallback
+        {
+            AsyncCallback (Ptr p, Array<URL> r)
+                : ptr (std::move (p)),
+                  results (std::move (r)) {}
+
+            void operator()()
+            {
+                ptr->results = std::move (results);
+
+                if (ptr->owner != nullptr)
+                    ptr->owner->exitModalState (ptr->results.size() > 0 ? 1 : 0);
+            }
+
+            Ptr ptr;
+            Array<URL> results;
+        };
+
         // as long as the thread is running, don't delete this class
         Ptr safeThis (this);
         threadHasReference.signal();
 
         auto r = openDialog (true);
-        MessageManager::callAsync ([safeThis, r]
-        {
-            safeThis->results = r;
-
-            if (safeThis->owner != nullptr)
-                safeThis->owner->exitModalState (r.size() > 0 ? 1 : 0);
-        });
+        MessageManager::callAsync (AsyncCallback (std::move (safeThis), std::move (r)));
     }
 
     static HashMap<HWND, Win32NativeFileChooser*>& getNativeDialogList()
@@ -529,7 +571,7 @@ private:
                 auto screenRectangle = Rectangle<int>::leftTopRightBottom (dialogScreenRect.left,  dialogScreenRect.top,
                                                                            dialogScreenRect.right, dialogScreenRect.bottom);
 
-                auto scale = Desktop::getInstance().getDisplays().findDisplayForRect (screenRectangle, true).scale;
+                auto scale = Desktop::getInstance().getDisplays().getDisplayForRect (screenRectangle, true)->scale;
                 auto physicalComponentWidth = roundToInt (safeCustomComponent->getWidth() * scale);
 
                 SetWindowPos (hdlg, nullptr, screenRectangle.getX(), screenRectangle.getY(),
@@ -682,7 +724,7 @@ public:
           nativeFileChooser (new Win32NativeFileChooser (this, flags, previewComp, fileChooser.startingFile,
                                                          fileChooser.title, fileChooser.filters))
     {
-        auto mainMon = Desktop::getInstance().getDisplays().getMainDisplay().userArea;
+        auto mainMon = Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;
 
         setBounds (mainMon.getX() + mainMon.getWidth() / 4,
                    mainMon.getY() + mainMon.getHeight() / 4,

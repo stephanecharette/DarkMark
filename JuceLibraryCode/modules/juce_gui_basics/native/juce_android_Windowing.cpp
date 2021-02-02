@@ -258,7 +258,7 @@ public:
           fullScreen (false),
           navBarsHidden (false),
           sizeAllocated (0),
-          scale ((float) Desktop::getInstance().getDisplays().getMainDisplay().scale)
+          scale ((float) Desktop::getInstance().getDisplays().getPrimaryDisplay()->scale)
     {
         auto* env = getEnv();
 
@@ -546,7 +546,7 @@ public:
             setNavBarsHidden (false);
         }
 
-        Rectangle<int> r (shouldBeFullScreen ? Desktop::getInstance().getDisplays().getMainDisplay().userArea
+        Rectangle<int> r (shouldBeFullScreen ? Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea
                                              : lastNonFullscreenBounds);
 
         if ((! shouldBeFullScreen) && r.isEmpty())
@@ -1428,7 +1428,7 @@ public:
         if (newBounds != oldBounds)
         {
             auto& displays = Desktop::getInstance().getDisplays();
-            auto& mainDisplay = displays.getMainDisplay();
+            auto& mainDisplay = *displays.getPrimaryDisplay();
 
             Rectangle<int> userArea = newBounds / mainDisplay.scale;
 
@@ -1666,5 +1666,24 @@ const int KeyPress::playKey         = extendedKeyModifier + 45;
 const int KeyPress::stopKey         = extendedKeyModifier + 46;
 const int KeyPress::fastForwardKey  = extendedKeyModifier + 47;
 const int KeyPress::rewindKey       = extendedKeyModifier + 48;
+
+//==============================================================================
+#ifdef JUCE_PUSH_NOTIFICATIONS_ACTIVITY
+ struct JuceActivityNewIntentListener
+ {
+     #define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK) \
+      CALLBACK (appNewIntent, "appNewIntent", "(Landroid/content/Intent;)V")
+
+      DECLARE_JNI_CLASS (JavaActivity, JUCE_PUSH_NOTIFICATIONS_ACTIVITY)
+     #undef JNI_CLASS_MEMBERS
+
+     static void JNICALL appNewIntent (JNIEnv*, jobject /*activity*/, jobject intentData)
+     {
+         juce_handleNotificationIntent (static_cast<void*> (intentData));
+     }
+ };
+
+ JuceActivityNewIntentListener::JavaActivity_Class JuceActivityNewIntentListener::JavaActivity;
+#endif
 
 } // namespace juce
