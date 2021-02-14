@@ -27,13 +27,18 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, std
 			// and instead creates the file as "chart_<project>_yolov3[-tiny].png"?  Either way, ignore those chart*.png
 			// files when running DarkMark.
 
-			if (filename.find("chart.png") != std::string::npos)
+			if (filename.find("/chart.png") != std::string::npos)
 			{
 				continue;
 			}
 
-			if (filename.find("chart_"	) != std::string::npos and
+			if (filename.find("/chart_"	) != std::string::npos and
 				filename.find(".png"	) != std::string::npos)
+			{
+				continue;
+			}
+
+			if (filename.find("/darkmark_image_cache/") != std::string::npos)
 			{
 				continue;
 			}

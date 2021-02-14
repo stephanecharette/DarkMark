@@ -33,7 +33,13 @@ namespace dm
 			int			iterations;					///< number of iterations; e.g., @p 20,000
 			float		learning_rate;				///< learning rate
 			float		max_chart_loss;				///< maximum loss (Y-axis) to use when drawing chart.png
-			bool		resize_images;				///< whether images will be resized to match the network dimensions
+
+			/// Exactly 1 of the following 3 options must be set. @{
+			bool		do_not_resize_images;		///< Do not resize or tile any images.
+			bool		resize_images;				///< Resize the images to match the network dimensions.
+			bool		tile_images;				///< Tile the images to match the network dimensions.
+			/// @}
+
 			bool		recalculate_anchors;		///< whether darknet will be called to recalculate anchors
 			int			anchor_clusters;			///< number of anchor clusters to use (default is 9)
 			bool		class_imbalance;			///< whether counters_per_class will be added to each yolo section

@@ -661,7 +661,9 @@ void dm::StartupCanvas::filter_out_extra_weight_files()
 
 void dm::StartupCanvas::calculate_size_of_directory()
 {
-	int64_t bytes = 0;
+	int64_t total_bytes = 0;
+	int64_t image_cache_bytes = 0;
+
 	File dir(project_directory.toString());
 	for (auto dir_entry : RangedDirectoryIterator(dir, true))
 	{
@@ -670,12 +672,23 @@ void dm::StartupCanvas::calculate_size_of_directory()
 			break;
 		}
 
-		bytes += dir_entry.getFileSize();
+		total_bytes += dir_entry.getFileSize();
+
+		if (dir_entry.getFile().getFullPathName().contains("/darkmark_image_cache/"))
+		{
+			image_cache_bytes += dir_entry.getFileSize();
+		}
 	}
 
 	if (not done)
 	{
-		size_of_directory = String(File::descriptionOfSizeInBytes(bytes));
+		String str(File::descriptionOfSizeInBytes(total_bytes));
+		if (image_cache_bytes > 0)
+		{
+			str += " (" + File::descriptionOfSizeInBytes(image_cache_bytes) + " of which is in the cache)";
+		}
+
+		size_of_directory = str;
 	}
 
 	return;

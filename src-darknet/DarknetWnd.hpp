@@ -29,7 +29,22 @@ namespace dm
 					size_t & number_of_files_train	,
 					size_t & number_of_files_valid	,
 					size_t & number_of_skipped_files,
+					size_t & number_of_marks		,
+					size_t & number_of_tiles		);
+
+			void create_Darknet_training_and_validation_files_do_not_resize_images(
+					ThreadWithProgressWindow & progress_window,
+					VStr & images_to_use			,
+					VStr & images_skipped			,
+					size_t & number_of_files_train	,
+					size_t & number_of_files_valid	,
+					size_t & number_of_skipped_files,
 					size_t & number_of_marks		);
+
+			void resize_images(ThreadWithProgressWindow & progress_window, VStr & images_to_use);
+
+			void tile_images(ThreadWithProgressWindow & progress_window, VStr & images_to_use, size_t & number_of_tiles);
+
 			void create_Darknet_configuration_file();
 			void create_Darknet_shell_scripts();
 
@@ -46,7 +61,9 @@ namespace dm
 			Value v_iterations;
 			Value v_learning_rate;
 			Value v_max_chart_loss;
+			Value v_do_not_resize_images;
 			Value v_resize_images;
+			Value v_tile_images;
 			Value v_recalculate_anchors;
 			Value v_anchor_clusters;
 			Value v_class_imbalance;

@@ -20,7 +20,9 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	iterations					= cfg().get_int		(cfg_prefix + "darknet_iterations"				, 4000	);
 	learning_rate				= cfg().get_double	(cfg_prefix + "darknet_learning_rate"			, 0.00261);
 	max_chart_loss				= cfg().get_double	(cfg_prefix + "darknet_max_chart_loss"			, 4.0	);
+	do_not_resize_images		= cfg().get_bool	(cfg_prefix + "darknet_do_not_resize_images"	, true	);
 	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, false	);
+	tile_images					= cfg().get_bool	(cfg_prefix + "darknet_tile_images"				, false	);
 	recalculate_anchors			= cfg().get_bool	(cfg_prefix + "darknet_recalculate_anchors"		, false	);
 	anchor_clusters				= cfg().get_int		(cfg_prefix + "darknet_anchor_clusters"			, 9		);
 	class_imbalance				= cfg().get_bool	(cfg_prefix + "darknet_class_imbalance"			, false	);
@@ -34,6 +36,20 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	enable_mosaic				= cfg().get_bool	(cfg_prefix + "darknet_mosaic"					, true	);
 	enable_cutmix				= cfg().get_bool	(cfg_prefix + "darknet_cutmix"					, false	);
 	enable_mixup				= cfg().get_bool	(cfg_prefix + "darknet_mixup"					, false	);
+
+	// handle the special restrictions between the 3 "image resizing" modes since they're all related and exactly 1 *must* be enabled
+	if (do_not_resize_images == false and resize_images == false and tile_images == false)
+	{
+		do_not_resize_images = true;
+	}
+	if (do_not_resize_images and (resize_images or tile_images))
+	{
+		do_not_resize_images = false;
+	}
+	if (resize_images and tile_images)
+	{
+		resize_images = false;
+	}
 
 	try
 	{

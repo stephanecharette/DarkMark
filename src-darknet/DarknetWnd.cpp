@@ -25,6 +25,7 @@ class SaveTask : public ThreadWithProgressWindow
 				size_t number_of_files_valid	= 0;
 				size_t number_of_skipped_files	= 0;
 				size_t number_of_marks			= 0;
+				size_t number_of_tiles			= 0;
 
 				setStatusMessage("Creating training and validation files...");
 				wnd.create_Darknet_training_and_validation_files(
@@ -32,7 +33,9 @@ class SaveTask : public ThreadWithProgressWindow
 					number_of_files_train,
 					number_of_files_valid,
 					number_of_skipped_files,
-					number_of_marks);
+					number_of_marks,
+					number_of_tiles);
+
 				setStatusMessage("Creating configuration files and shell scripts...");
 				setProgress(0.333);
 				wnd.create_Darknet_configuration_file();
@@ -53,6 +56,12 @@ class SaveTask : public ThreadWithProgressWindow
 					<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
 					<< " marks per image." << std::endl
 					<< std::endl;
+
+				if (number_of_tiles)
+				{
+					ss	<< "The " << (number_of_files_train + number_of_files_valid) << " image files were used to create " << number_of_tiles << " tiles." << std::endl
+						<< std::endl;
+				}
 
 				if (number_of_skipped_files)
 				{
@@ -153,7 +162,9 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_iterations					= info.iterations;
 	v_learning_rate					= info.learning_rate;
 	v_max_chart_loss				= info.max_chart_loss;
+	v_do_not_resize_images			= info.do_not_resize_images;
 	v_resize_images					= info.resize_images;
+	v_tile_images					= info.tile_images;
 	v_recalculate_anchors			= info.recalculate_anchors;
 	v_anchor_clusters				= info.anchor_clusters;
 	v_class_imbalance				= info.class_imbalance;
@@ -179,8 +190,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	// counters_per_class depends on this being enabled
 	v_recalculate_anchors.addListener(this);
 
-	// when this value is toggled we need to show a warning to the user
-	v_resize_images.addListener(this);
+	// handle the strange interactions between the three "resize" options
+	v_do_not_resize_images	.addListener(this);
+	v_resize_images			.addListener(this);
+	v_tile_images			.addListener(this);
 
 	Array<PropertyComponent *> properties;
 	TextPropertyComponent		* t = nullptr;
@@ -227,11 +240,35 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s->setTooltip("The maximum amount of loss to display on the output image \"chart.png\". This sets the maximum value to use for the Y-axis, and is for display purposes only; it has zero impact on how the neural network is trained.");
 	properties.add(s);
 
-	b = new BooleanPropertyComponent(v_resize_images, "resize images", "resize images to match network");
-	b->setTooltip("Prior to training, use 'mogrify' from ImageMagick to resize the images to match the dimensions of the network. This speeds up training since Darknet doesn't have to dynamically resize the images while training.");
+	pp.addSection("configuration", properties, true);
+	properties.clear();
+
+	b = new BooleanPropertyComponent(v_do_not_resize_images, "do not resize images", "do not resize images");
+	b->setTooltip("Images will be left exactly as they are.  This means Darknet will resize them to match the network dimensions during training.");
 	properties.add(b);
 
-	pp.addSection("configuration", properties,true);
+	b = new BooleanPropertyComponent(v_resize_images, "resize images", "resize images to match the network dimensions");
+	b->setTooltip("DarkMark will automatically resize all the images to match the network dimensions. This speeds up training since Darknet doesn't have to dynamically resize the images while training.");
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_tile_images, "tile images", "tile images to match the network dimensions");
+	b->setTooltip("DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles.");
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
+	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. If you are training your own custom network then you probably want to enable this.");
+	properties.add(b);
+
+	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
+	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
+	percentage_slider = s; // remember this slider, because we need to enable/disable it based on the previous boolean toggle
+	if (v_train_with_all_images.getValue())
+	{
+		s->setEnabled(false);
+	}
+	properties.add(s);
+
+	pp.addSection("images", properties, true);
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_recalculate_anchors, "recalculate yolo anchors", "recalculate yolo anchors");
@@ -257,19 +294,6 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	pp.addSection("yolo", properties, false);
 	properties.clear();
-
-	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
-	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. If you are training your own custom network then you probably want to enable this.");
-	properties.add(b);
-
-	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
-	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
-	percentage_slider = s; // remember this slider, because we need to enable/disable it based on the previous boolean toggle
-	if (v_train_with_all_images.getValue())
-	{
-		s->setEnabled(false);
-	}
-	properties.add(s);
 
 	std::string name;
 	const std::string darknet_weights = cfg().get_str(content.cfg_prefix + "weights");
@@ -351,7 +375,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(550, 550);
+	r = r.withSizeKeepingCentre(550, 600);
 	setBounds(r);
 
 	// force some of the handlers to run on the initial config
@@ -493,7 +517,9 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
 	cfg().setValue(content.cfg_prefix + "darknet_learning_rate"			, v_learning_rate				);
 	cfg().setValue(content.cfg_prefix + "darknet_max_chart_loss"		, v_max_chart_loss				);
+	cfg().setValue(content.cfg_prefix + "darknet_do_not_resize_images"	, v_do_not_resize_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_resize_images"			, v_resize_images				);
+	cfg().setValue(content.cfg_prefix + "darknet_tile_images"			, v_tile_images					);
 	cfg().setValue(content.cfg_prefix + "darknet_recalculate_anchors"	, v_recalculate_anchors			);
 	cfg().setValue(content.cfg_prefix + "darknet_anchor_clusters"		, v_anchor_clusters				);
 	cfg().setValue(content.cfg_prefix + "darknet_class_imbalance"		, v_class_imbalance				);
@@ -519,7 +545,9 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.iterations					= v_iterations				.getValue();
 	info.learning_rate				= v_learning_rate			.getValue();
 	info.max_chart_loss				= v_max_chart_loss			.getValue();
+	info.do_not_resize_images		= v_do_not_resize_images	.getValue();
 	info.resize_images				= v_resize_images			.getValue();
+	info.tile_images				= v_tile_images				.getValue();
 	info.recalculate_anchors		= v_recalculate_anchors		.getValue();
 	info.anchor_clusters			= v_anchor_clusters			.getValue();
 	info.class_imbalance			= v_class_imbalance			.getValue();
@@ -550,22 +578,50 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		percentage_slider->setEnabled(not v_train_with_all_images.getValue());
 	}
 
+	// resize, do-not-resize, and tile need to behave like radio buttons
+	if (value.refersToSameSourceAs(v_do_not_resize_images))
+	{
+		if (v_do_not_resize_images.getValue())
+		{
+			v_resize_images	= false;
+			v_tile_images	= false;
+		}
+		else
+		{
+			if (not v_tile_images.getValue())
+			{
+				v_resize_images = true;
+			}
+		}
+	}
 	if (value.refersToSameSourceAs(v_resize_images))
 	{
 		if (v_resize_images.getValue())
 		{
-			const int w = v_image_width.getValue();
-			const int h = v_image_height.getValue();
-
-			AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark",
-				"WARNING!"
-				"\n\n"
-				"This option enables the use of 'mogrify' from ImageMagick to resize all of your images. "
-				"Every image in both the training set and validation set will be overwritten once you run the training script."
-				"\n\n"
-				"Images will be resized to " + std::to_string(w) + "x" + std::to_string(h) + " to match the dimensions of the neural network."
-				"\n\n"
-				"Please verify that you have a backup of your images prior to enabling this option.");
+			v_do_not_resize_images	= false;
+			v_tile_images			= false;
+		}
+		else
+		{
+			if (not v_do_not_resize_images.getValue())
+			{
+				v_tile_images = true;
+			}
+		}
+	}
+	if (value.refersToSameSourceAs(v_tile_images))
+	{
+		if (v_tile_images.getValue())
+		{
+			v_do_not_resize_images	= false;
+			v_resize_images			= false;
+		}
+		else
+		{
+			if (not v_resize_images.getValue())
+			{
+				v_do_not_resize_images = true;
+			}
 		}
 	}
 
@@ -695,7 +751,8 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		size_t & number_of_files_train	,
 		size_t & number_of_files_valid	,
 		size_t & number_of_skipped_files,
-		size_t & number_of_marks		)
+		size_t & number_of_marks		,
+		size_t & number_of_tiles		)
 {
 	if (true)
 	{
@@ -711,79 +768,28 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	number_of_files_valid	= 0;
 	number_of_skipped_files	= 0;
 	number_of_marks			= 0;
+	number_of_tiles			= 0;
 
-	if (true)
+	// these vectors will have the full path of the images we need to use (or which have been skipped)
+	VStr images_to_use;
+	VStr images_skipped;
+
+	create_Darknet_training_and_validation_files_do_not_resize_images(
+			progress_window			,
+			images_to_use			,
+			images_skipped			,
+			number_of_files_train	,
+			number_of_files_valid	,
+			number_of_skipped_files	,
+			number_of_marks			);
+
+	if (info.resize_images)
 	{
-		double work_done = 0.0;
-		double work_to_do = content.image_filenames.size() + 1.0;
-		progress_window.setStatusMessage("Finding all images and annotations...");
-
-		// only include the images for which we have at least 1 mark (or have been explicitly marked as empty)
-		VStr v;
-		VStr skipped;
-		for (const auto & filename : content.image_filenames)
-		{
-			work_done ++;
-			progress_window.setProgress(work_done / work_to_do);
-
-			File f = File(filename).withFileExtension(".json");
-			const size_t count = content.count_marks_in_json(f);
-			if (count == 0)
-			{
-				number_of_skipped_files ++;
-				skipped.push_back(filename);
-			}
-			else
-			{
-				number_of_marks += count;
-				v.push_back(filename);
-			}
-		}
-
-		work_done = 0.0;
-		work_to_do = v.size() + skipped.size() + 1.0 ;
-		progress_window.setStatusMessage("Writing training and validation files...");
-
-		std::random_shuffle(v.begin(), v.end());
-		const bool use_all_images = info.train_with_all_images;
-		number_of_files_train = std::round(info.training_images_percentage * v.size());
-		number_of_files_valid = v.size() - number_of_files_train;
-
-		if (use_all_images)
-		{
-			number_of_files_train = v.size();
-			number_of_files_valid = v.size();
-		}
-
-		std::ofstream fs_train(info.train_filename);
-		std::ofstream fs_valid(info.valid_filename);
-
-		for (size_t idx = 0; idx < v.size(); idx ++)
-		{
-			work_done ++;
-			progress_window.setProgress(work_done / work_to_do);
-
-			if (use_all_images or idx < number_of_files_train)
-			{
-				fs_train << v[idx] << std::endl;
-			}
-
-			if (use_all_images or idx >= number_of_files_train)
-			{
-				fs_valid << v[idx] << std::endl;
-			}
-		}
-
-		const std::string fn = File(info.valid_filename).getSiblingFile("skipped_images.txt").getFullPathName().toStdString();
-		std::random_shuffle(skipped.begin(), skipped.end());
-		std::ofstream fs_skipped(fn);
-		for (const auto & image_filename : skipped)
-		{
-			work_done ++;
-			progress_window.setProgress(work_done / work_to_do);
-
-			fs_skipped << image_filename << std::endl;
-		}
+		resize_images(progress_window, images_to_use);
+	}
+	if (info.tile_images)
+	{
+		tile_images(progress_window, images_to_use, number_of_tiles);
 	}
 
 	return;
@@ -825,27 +831,8 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 			<< ""												<< std::endl
 			<< "echo \"creating new log file\" > output.log"	<< std::endl
 			<< "date >> output.log"								<< std::endl
-			<< ""												<< std::endl;
-
-		if (info.resize_images)
-		{
-			ss	<< "if [ -x $(command -v mogrify) ]; then"																	<< std::endl
-				<< "	IMG_SIZE=" << info.image_width << "x" << info.image_height											<< std::endl
-				<< "	echo \"Resizing images to ${IMG_SIZE}...\" >> output.log"											<< std::endl
-				<< "	for txt in " << info.project_name << "_{train,valid}.txt; do"										<< std::endl
-				<< "		while read -r filename; do"																		<< std::endl
-				<< "			SIZE=$(identify -ping -format \"%wx%h\" ${filename})"										<< std::endl
-				<< "			if [ ${SIZE} != ${IMG_SIZE} ]; then"														<< std::endl
-				<< "				mogrify -verbose -resize ${IMG_SIZE}! \"${filename}\" 2>&1 | tee --append output.log"	<< std::endl
-				<< "			fi"																							<< std::endl
-				<< "		done < \"${txt}\""																				<< std::endl
-				<< "	done"																								<< std::endl
-				<< "	date >> output.log"																					<< std::endl
-				<< "fi"																										<< std::endl
-				<< ""																										<< std::endl;
-		}
-
-		ss	<< "ts1=$(date)"									<< std::endl
+			<< ""												<< std::endl
+			<< "ts1=$(date)"									<< std::endl
 			<< "ts2=$(date +%s)"								<< std::endl
 			<< "echo \"initial ts1: ${ts1}\" >> output.log"		<< std::endl
 			<< "echo \"initial ts2: ${ts2}\" >> output.log"		<< std::endl

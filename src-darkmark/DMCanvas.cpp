@@ -244,9 +244,10 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 
 	const auto previous_selected_mark = content.selected_mark;
 
-	const auto pos = event.getPosition();
+//	const auto shift_mod	= event.mods.isShiftDown();
+	const auto pos			= event.getPosition();
+	content.selected_mark	= -1;
 	const cv::Point p(pos.x, pos.y);
-	content.selected_mark = -1;
 
 	int index_to_delete = -1;
 
