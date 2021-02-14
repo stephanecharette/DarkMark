@@ -59,7 +59,7 @@ class SaveTask : public ThreadWithProgressWindow
 
 				if (number_of_tiles)
 				{
-					ss	<< "The " << (number_of_files_train + number_of_files_valid) << " image files were used to create " << number_of_tiles << " tiles." << std::endl
+					ss	<< "The " << (number_of_files_train + (wnd.info.train_with_all_images ? 0 : number_of_files_valid)) << " image files were used to create " << number_of_tiles << " tiles." << std::endl
 						<< std::endl;
 				}
 

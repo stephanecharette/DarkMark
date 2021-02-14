@@ -94,8 +94,6 @@ dm::DMContent::DMContent(const std::string & prefix) :
 		image_filenames.push_back(project_info.project_dir + "/no_image_found.png");
 	}
 
-	set_sort_order(sort_order);
-
 	return;
 }
 
@@ -249,6 +247,8 @@ void dm::DMContent::start_darknet()
 		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
 		crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 	}
+
+	set_sort_order(sort_order);
 
 	return;
 }
