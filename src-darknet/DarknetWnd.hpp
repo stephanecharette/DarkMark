@@ -26,24 +26,18 @@ namespace dm
 
 			void create_Darknet_training_and_validation_files(
 					ThreadWithProgressWindow & progress_window,
-					size_t & number_of_files_train	,
-					size_t & number_of_files_valid	,
-					size_t & number_of_skipped_files,
-					size_t & number_of_marks		,
-					size_t & number_of_tiles		);
+					size_t & number_of_files_train		,
+					size_t & number_of_files_valid		,
+					size_t & number_of_skipped_files	,
+					size_t & number_of_marks			,
+					size_t & number_of_resized_images	,
+					size_t & number_of_tiles_created	);
 
-			void create_Darknet_training_and_validation_files_do_not_resize_images(
-					ThreadWithProgressWindow & progress_window,
-					VStr & images_to_use			,
-					VStr & images_skipped			,
-					size_t & number_of_files_train	,
-					size_t & number_of_files_valid	,
-					size_t & number_of_skipped_files,
-					size_t & number_of_marks		);
+			void find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks);
 
-			void resize_images(ThreadWithProgressWindow & progress_window, VStr & images_to_use);
+			void resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images);
 
-			void tile_images(ThreadWithProgressWindow & progress_window, VStr & images_to_use, size_t & number_of_tiles);
+			void tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created);
 
 			void create_Darknet_configuration_file();
 			void create_Darknet_shell_scripts();

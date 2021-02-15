@@ -25,7 +25,8 @@ class SaveTask : public ThreadWithProgressWindow
 				size_t number_of_files_valid	= 0;
 				size_t number_of_skipped_files	= 0;
 				size_t number_of_marks			= 0;
-				size_t number_of_tiles			= 0;
+				size_t number_of_images_resized	= 0;
+				size_t number_of_tiles_created	= 0;
 
 				setStatusMessage("Creating training and validation files...");
 				wnd.create_Darknet_training_and_validation_files(
@@ -34,7 +35,8 @@ class SaveTask : public ThreadWithProgressWindow
 					number_of_files_valid,
 					number_of_skipped_files,
 					number_of_marks,
-					number_of_tiles);
+					number_of_images_resized,
+					number_of_tiles_created);
 
 				setStatusMessage("Creating configuration files and shell scripts...");
 				setProgress(0.333);
@@ -51,22 +53,28 @@ class SaveTask : public ThreadWithProgressWindow
 				ss	<< "The necessary files to run darknet have been saved to " << wnd.info.project_dir << "." << std::endl
 					<< std::endl
 					<< "There " << (singular ? "is " : "are ") << (wnd.content.names.size() - 1) << " class" << (singular ? "" : "es") << " with a total of "
-					<< number_of_files_train << " training files and "
-					<< number_of_files_valid << " validation files. The average is "
+					<< number_of_files_train << " training images and "
+					<< number_of_files_valid << " validation images. The average is "
 					<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
 					<< " marks per image." << std::endl
 					<< std::endl;
 
-				if (number_of_tiles)
+				if (number_of_images_resized)
 				{
-					ss	<< "The " << (number_of_files_train + number_of_files_valid) << " image files were used to create " << number_of_tiles << " tiles." << std::endl
+					ss	<< "The number of images resized to " << wnd.info.image_width << "x" << wnd.info.image_height << ": " << number_of_images_resized << "." << std::endl
+						<< std::endl;
+				}
+
+				if (number_of_tiles_created)
+				{
+					ss	<< "The number of new image tiles created: " << number_of_tiles_created << "." << std::endl
 						<< std::endl;
 				}
 
 				if (number_of_skipped_files)
 				{
-					ss	<< "IMPORTANT: " << number_of_skipped_files << " images were skipped because they have not yet been marked." << std::endl
-					<< std::endl;
+					ss	<< "IMPORTANT: " << number_of_skipped_files << " images were skipped because they have not yet been annotated." << std::endl
+						<< std::endl;
 				}
 
 				ss << "Run " << wnd.info.command_filename << " to start the training.";
@@ -244,15 +252,15 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_do_not_resize_images, "do not resize images", "do not resize images");
-	b->setTooltip("Images will be left exactly as they are.  This means Darknet will resize them to match the network dimensions during training.");
+	b->setTooltip("Images will be left exactly as they are.  This means Darknet will be responsible for resizing them to match the network dimensions during training.");
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_resize_images, "resize images", "resize images to match the network dimensions");
-	b->setTooltip("DarkMark will automatically resize all the images to match the network dimensions. This speeds up training since Darknet doesn't have to dynamically resize the images while training.");
+	b->setTooltip("DarkMark will automatically resize all the images to match the network dimensions. This speeds up training since Darknet doesn't have to dynamically resize the images while training. This may be combined with the 'tile images' option.");
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_tile_images, "tile images", "tile images to match the network dimensions");
-	b->setTooltip("DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles.");
+	b->setTooltip("DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
@@ -578,7 +586,7 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		percentage_slider->setEnabled(not v_train_with_all_images.getValue());
 	}
 
-	// resize, do-not-resize, and tile need to behave like radio buttons
+	// resize, do-not-resize, and tile need to behave like modified radio buttons
 	if (value.refersToSameSourceAs(v_do_not_resize_images))
 	{
 		if (v_do_not_resize_images.getValue())
@@ -586,42 +594,21 @@ void dm::DarknetWnd::valueChanged(Value & value)
 			v_resize_images	= false;
 			v_tile_images	= false;
 		}
-		else
+		else if (not v_resize_images.getValue() and not v_tile_images.getValue())
 		{
-			if (not v_tile_images.getValue())
-			{
-				v_resize_images = true;
-			}
+			v_resize_images	= true;
+			v_tile_images	= true;
 		}
 	}
-	if (value.refersToSameSourceAs(v_resize_images))
+	if (value.refersToSameSourceAs(v_resize_images) or value.refersToSameSourceAs(v_tile_images))
 	{
-		if (v_resize_images.getValue())
+		if (v_resize_images.getValue() or v_tile_images.getValue())
 		{
 			v_do_not_resize_images	= false;
-			v_tile_images			= false;
 		}
 		else
 		{
-			if (not v_do_not_resize_images.getValue())
-			{
-				v_tile_images = true;
-			}
-		}
-	}
-	if (value.refersToSameSourceAs(v_tile_images))
-	{
-		if (v_tile_images.getValue())
-		{
-			v_do_not_resize_images	= false;
-			v_resize_images			= false;
-		}
-		else
-		{
-			if (not v_resize_images.getValue())
-			{
-				v_do_not_resize_images = true;
-			}
+			v_do_not_resize_images = true;
 		}
 	}
 
@@ -748,11 +735,12 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 
 void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		ThreadWithProgressWindow & progress_window,
-		size_t & number_of_files_train	,
-		size_t & number_of_files_valid	,
-		size_t & number_of_skipped_files,
-		size_t & number_of_marks		,
-		size_t & number_of_tiles		)
+		size_t & number_of_files_train		,
+		size_t & number_of_files_valid		,
+		size_t & number_of_skipped_files	,
+		size_t & number_of_marks			,
+		size_t & number_of_resized_images	,
+		size_t & number_of_tiles_created	)
 {
 	if (true)
 	{
@@ -764,32 +752,72 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 			<< "backup = "	<< info.project_dir								<< std::endl;
 	}
 
-	number_of_files_train	= 0;
-	number_of_files_valid	= 0;
-	number_of_skipped_files	= 0;
-	number_of_marks			= 0;
-	number_of_tiles			= 0;
+	number_of_files_train		= 0;
+	number_of_files_valid		= 0;
+	number_of_skipped_files		= 0;
+	number_of_marks				= 0;
+	number_of_resized_images	= 0;
+	number_of_tiles_created		= 0;
+
+	File dir = File(info.project_dir).getChildFile("darkmark_image_cache");
+	dir.deleteRecursively();
 
 	// these vectors will have the full path of the images we need to use (or which have been skipped)
-	VStr images_to_use;
-	VStr images_skipped;
+	VStr annotated_images;
+	VStr skipped_images;
+	VStr all_output_images;
+	find_all_annotated_images(progress_window, annotated_images, skipped_images, number_of_marks);
+	number_of_skipped_files = skipped_images.size();
 
-	create_Darknet_training_and_validation_files_do_not_resize_images(
-			progress_window			,
-			images_to_use			,
-			images_skipped			,
-			number_of_files_train	,
-			number_of_files_valid	,
-			number_of_skipped_files	,
-			number_of_marks			);
-
+	if (info.do_not_resize_images)
+	{
+		all_output_images = annotated_images;
+	}
 	if (info.resize_images)
 	{
-		resize_images(progress_window, images_to_use);
+		resize_images(progress_window, annotated_images, all_output_images, number_of_resized_images);
 	}
 	if (info.tile_images)
 	{
-		tile_images(progress_window, images_to_use, number_of_tiles);
+		tile_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_tiles_created);
+	}
+
+	// now that we know the exact set of images (including resized and tiled images)
+	// we can create the training and validation .txt files
+
+	double work_done = 0.0;
+	double work_to_do = all_output_images.size() + 1.0;
+	progress_window.setProgress(0.0);
+	progress_window.setStatusMessage("Writing training and validation files...");
+
+	std::random_shuffle(all_output_images.begin(), all_output_images.end());
+	const bool use_all_images = info.train_with_all_images;
+	number_of_files_train = std::round(info.training_images_percentage * all_output_images.size());
+	number_of_files_valid = all_output_images.size() - number_of_files_train;
+
+	if (use_all_images)
+	{
+		number_of_files_train = all_output_images.size();
+		number_of_files_valid = all_output_images.size();
+	}
+
+	std::ofstream fs_train(info.train_filename);
+	std::ofstream fs_valid(info.valid_filename);
+
+	for (size_t idx = 0; idx < all_output_images.size(); idx ++)
+	{
+		work_done ++;
+		progress_window.setProgress(work_done / work_to_do);
+
+		if (use_all_images or idx < number_of_files_train)
+		{
+			fs_train << all_output_images[idx] << std::endl;
+		}
+
+		if (use_all_images or idx >= number_of_files_train)
+		{
+			fs_valid << all_output_images[idx] << std::endl;
+		}
 	}
 
 	return;

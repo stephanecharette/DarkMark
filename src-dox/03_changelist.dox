@@ -2,6 +2,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.3.1-1		| 2021-02-15	| Allow "resize" and "tile" options to be combined.
 1.3.0-1		| 2021-02-14	| DarkMark now has the ability to tile images for training.
 1.2.3-2		| 2021-02-02	| Update JUCE to the latest version (6.0.7-72)
 1.2.3-1		| 2021-02-01	| Converted from private SNV to Github repo (https://github.com/stephanecharette/DarkMark/).

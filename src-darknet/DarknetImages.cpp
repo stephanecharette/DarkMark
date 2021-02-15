@@ -5,19 +5,15 @@
 using json = nlohmann::json;
 
 
-void dm::DarknetWnd::create_Darknet_training_and_validation_files_do_not_resize_images(
-		ThreadWithProgressWindow & progress_window,
-		VStr & images_to_use			,
-		VStr & images_skipped			,
-		size_t & number_of_files_train	,
-		size_t & number_of_files_valid	,
-		size_t & number_of_skipped_files,
-		size_t & number_of_marks		)
+void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks)
 {
 	double work_done = 0.0;
 	double work_to_do = content.image_filenames.size() + 1.0;
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage("Finding all images and annotations...");
+
+	annotated_images.clear();
+	skipped_images.clear();
 
 	for (const auto & filename : content.image_filenames)
 	{
@@ -26,60 +22,26 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files_do_not_resize_
 
 		File f = File(filename).withFileExtension(".json");
 		const size_t count = content.count_marks_in_json(f);
-		if (count == 0)
+		if (count)
 		{
-			number_of_skipped_files ++;
-			images_skipped.push_back(filename);
+			annotated_images.push_back(filename);
 		}
 		else
 		{
-			number_of_marks += count;
-			images_to_use.push_back(filename);
+			skipped_images.push_back(filename);
 		}
+		number_of_marks += count;
 	}
-
-	// now that we know which images to use and skip, we can split them up
-	// into two lists (train + validation) and write the .txt files to disk
 
 	work_done = 0.0;
-	work_to_do = images_to_use.size() + images_skipped.size() + 1.0 ;
+	work_to_do = skipped_images.size() + 1.0;
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Writing training and validation files...");
+	progress_window.setStatusMessage("Listing skipped images...");
 
-	std::random_shuffle(images_to_use.begin(), images_to_use.end());
-	const bool use_all_images = info.train_with_all_images;
-	number_of_files_train = std::round(info.training_images_percentage * images_to_use.size());
-	number_of_files_valid = images_to_use.size() - number_of_files_train;
-
-	if (use_all_images)
-	{
-		number_of_files_train = images_to_use.size();
-		number_of_files_valid = images_to_use.size();
-	}
-
-	std::ofstream fs_train(info.train_filename);
-	std::ofstream fs_valid(info.valid_filename);
-
-	for (size_t idx = 0; idx < images_to_use.size(); idx ++)
-	{
-		work_done ++;
-		progress_window.setProgress(work_done / work_to_do);
-
-		if (use_all_images or idx < number_of_files_train)
-		{
-			fs_train << images_to_use[idx] << std::endl;
-		}
-
-		if (use_all_images or idx >= number_of_files_train)
-		{
-			fs_valid << images_to_use[idx] << std::endl;
-		}
-	}
-
-	const std::string fn = File(info.valid_filename).getSiblingFile("skipped_images.txt").getFullPathName().toStdString();
-	std::random_shuffle(images_skipped.begin(), images_skipped.end());
+	std::random_shuffle(skipped_images.begin(), skipped_images.end());
+	const std::string fn = File(info.project_dir).getChildFile("skipped_images.txt").getFullPathName().toStdString();
 	std::ofstream fs_skipped(fn);
-	for (const auto & image_filename : images_skipped)
+	for (const auto & image_filename : skipped_images)
 	{
 		work_done ++;
 		progress_window.setProgress(work_done / work_to_do);
@@ -91,15 +53,14 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files_do_not_resize_
 }
 
 
-void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, VStr & images_to_use)
+void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images)
 {
 	double work_done = 0.0;
-	double work_to_do = images_to_use.size() + 1.0;
+	double work_to_do = annotated_images.size() + 1.0;
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage("Copying and resizing images to " + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache");
-	dir.deleteRecursively();
 	const std::string dir_name = dir.getFullPathName().toStdString();
 	dir.createDirectory();
 	if (dir.isDirectory() == false)
@@ -107,29 +68,43 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, V
 		throw std::runtime_error("Failed to create directory " + dir_name + ".");
 	}
 
-	// at the same time we're resizing the images we need to re-save the training and validation .txt files to use the new image filenames
-	std::ofstream fs_train(info.train_filename);
-	std::ofstream fs_valid(info.valid_filename);
 	const cv::Size desired_image_size(info.image_width, info.image_height);
-	const size_t number_of_files_train = std::round(info.training_images_percentage * images_to_use.size());
-	const bool use_all_images = info.train_with_all_images;
 
-	size_t image_counter = 0;
-	for (const auto original_image : images_to_use)
+	std::ofstream resized_txt(dir_name + "/resized.txt");
+
+	for (const auto original_image : annotated_images)
 	{
 		work_done ++;
 		progress_window.setProgress(work_done / work_to_do);
 
 		std::stringstream ss;
-		ss << dir_name << "/" << std::setfill('0') << std::setw(8) << image_counter;
+		ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
 		const std::string output_base_name = ss.str();
 		const std::string output_image = output_base_name + ".jpg";
 		const std::string output_label = output_base_name + ".txt";
+		all_output_images.push_back(output_image);
 
 		// first we create the resized image file
 		cv::Mat mat = cv::imread(original_image);
+
 		cv::Mat dst;
-		cv::resize(mat, dst, desired_image_size, cv::INTER_AREA);
+		if (mat.cols != desired_image_size.width and mat.rows != desired_image_size.height)
+		{
+			cv::resize(mat, dst, desired_image_size, cv::INTER_AREA);
+			number_of_resized_images ++;
+		}
+		else
+		{
+			dst = mat;
+		}
+
+		resized_txt
+			<< original_image
+			<< " [" << mat.cols << "x" << mat.rows << "] -> "
+			<< output_image
+			<< " [" << dst.cols << "x" << dst.rows << "]"
+			<< std::endl;
+
 		cv::imwrite(output_image, dst, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
 
 		// next we copy the annoations in the .txt file
@@ -139,34 +114,20 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, V
 		{
 			throw std::runtime_error("Failed to copy " + txt.getFullPathName().toStdString() + ".");
 		}
-
-		// last we need to re-write the .txt files to use the new filenames
-		if (use_all_images or image_counter < number_of_files_train)
-		{
-			fs_train << output_image << std::endl;
-		}
-
-		if (use_all_images or image_counter >= number_of_files_train)
-		{
-			fs_valid << output_image << std::endl;
-		}
-
-		image_counter ++;
 	}
 
 	return;
 }
 
 
-void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, VStr & images_to_use, size_t & number_of_tiles)
+void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created)
 {
 	double work_done = 0.0;
-	double work_to_do = images_to_use.size() + 1.0;
+	double work_to_do = annotated_images.size() + 1.0;
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage("Copying and tiling images to " + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache");
-	dir.deleteRecursively();
 	const std::string dir_name = dir.getFullPathName().toStdString();
 	dir.createDirectory();
 	if (dir.isDirectory() == false)
@@ -175,12 +136,9 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, VSt
 	}
 
 	std::ofstream tiles_txt(dir_name + "/tiles.txt");
-	number_of_tiles = 0;
 	const cv::Size desired_tile_size(info.image_width, info.image_height);
 
-	VStr new_images;
-	size_t image_counter = 0;
-	for (const auto original_image : images_to_use)
+	for (const auto original_image : annotated_images)
 	{
 		work_done ++;
 		progress_window.setProgress(work_done / work_to_do);
@@ -202,6 +160,13 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, VSt
 			<< " -> [" << horizontal_tiles_count << "x" << vertical_tiles_count << "]"
 			<< " -> [" << cell_width << "x" << cell_height << "]"
 			<< std::endl;
+
+		if (info.resize_images and horizontal_tiles_count == 1 and vertical_tiles_count == 1)
+		{
+			// this image only has 1 tile, and we already have it since "resize" is enabled, so skip to the next image
+			tiles_txt << "-> skipped (single tile)" << std::endl;
+			continue;
+		}
 
 //		Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ") needs to be tiled as " + std::to_string(horizontal_tiles_count) + "x" + std::to_string(vertical_tiles_count) + " tiles each measuring " + std::to_string(desired_tile_size.width) + "x" + std::to_string(desired_tile_size.height));
 
@@ -264,13 +229,13 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, VSt
 				cv::Mat tile = mat(tile_rect);
 
 				std::stringstream ss;
-				ss << dir_name << "/" << std::setfill('0') << std::setw(8) << image_counter;
+				ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
 				const std::string output_base_name = ss.str();
 				const std::string output_image = output_base_name + ".jpg";
 				const std::string output_label = output_base_name + ".txt";
 
 				cv::imwrite(output_image, tile, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
-				new_images.push_back(output_image);
+				all_output_images.push_back(output_image);
 
 				// now re-create the .txt file with the appropriate annotations for this new tile
 				//
@@ -330,45 +295,17 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, VSt
 					}
 				}
 
+				number_of_marks += number_of_annotations;
+				number_of_tiles_created ++;
+
 				tiles_txt
 					<< "-> " << output_image
 					<< " [" << tile.cols << "x" << tile.rows << "]"
 					<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
 					<< std::endl;
-
-				image_counter ++;
 			}
 		}
 	}
-
-	// now that we have all our tiles we need to re-write the training and validation .txt files
-	work_done = 0.0;
-	work_to_do = new_images.size() + 1.0;
-	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Fixing training and validation files...");
-	std::ofstream fs_train(info.train_filename);
-	std::ofstream fs_valid(info.valid_filename);
-	const cv::Size desired_image_size(info.image_width, info.image_height);
-	const size_t number_of_files_train = std::round(info.training_images_percentage * new_images.size());
-	const bool use_all_images = info.train_with_all_images;
-
-	for (size_t idx = 0; idx < new_images.size(); idx ++)
-	{
-		work_done ++;
-		progress_window.setProgress(work_done / work_to_do);
-
-		if (use_all_images or idx < number_of_files_train)
-		{
-			fs_train << new_images[idx] << std::endl;
-		}
-
-		if (use_all_images or idx >= number_of_files_train)
-		{
-			fs_valid << new_images[idx] << std::endl;
-		}
-	}
-
-	number_of_tiles = new_images.size();
 
 	return;
 }
