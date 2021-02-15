@@ -248,7 +248,7 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 				{
 					const cv::Rect annotation_rect(j["rect"]["int_x"], j["rect"]["int_y"], j["rect"]["int_w"], j["rect"]["int_h"]);
 					const cv::Rect intersection = annotation_rect & tile_rect;
-					if (intersection.empty() == false)
+					if (intersection.area() > 0)
 					{
 						const int class_idx = j["class_idx"];
 						int x = j["rect"]["int_x"];
