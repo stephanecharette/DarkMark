@@ -47,6 +47,8 @@ class SaveTask : public ThreadWithProgressWindow
 				setStatusMessage("Done!");
 				setProgress(1.0);
 
+				const size_t number_of_images = (wnd.info.train_with_all_images ? number_of_files_train : (number_of_files_train + number_of_files_valid));
+
 				const bool singular = (wnd.content.names.size() == 2); // two because the "empty" class is appended to the names, but it does not get output
 
 				std::stringstream ss;
@@ -55,7 +57,7 @@ class SaveTask : public ThreadWithProgressWindow
 					<< "There " << (singular ? "is " : "are ") << (wnd.content.names.size() - 1) << " class" << (singular ? "" : "es") << " with a total of "
 					<< number_of_files_train << " training images and "
 					<< number_of_files_valid << " validation images. The average is "
-					<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_files_train + number_of_files_valid)
+					<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_images)
 					<< " marks per image." << std::endl
 					<< std::endl;
 
