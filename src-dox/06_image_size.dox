@@ -1,0 +1,29 @@
+/** @page ImageSize Image Size and Tiling
+
+@htmlonly[block]
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Oz-49MpO2rQ" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+@endhtmlonly
+
+There are 3 things to consider when talking about the size of objects to detect:
+
+@li The dimensions of the network in the @p [net] section at the top of the @p .cfg file, e.g., @p 416x416 or @p 608x608.  [<a target="_blank" href="https://www.ccoderun.ca/programming/darknet_faq/#square_network">FAQ</a>]
+@li The size of the images, e.g., @p 1920x1080.
+@li The size of the objects within the images.
+
+Darknet only cares about the network dimensions, and has no concept of the other two.  (While people looking at images typically ignore the network dimensions and only notice the other two!)
+
+When an image is given to Darknet -- either for training or for inference -- the first thing it does is convert the image to @em exactly match the network dimensions.  So even if you have extremely high definition images at @p 8000x6000, the first thing Darknet will do before looking at it is resize the entire thing to @p 416x416.  (Or whatever network dimensions you are using.)
+
+If the objects you'd like to find in your images are big, and you resize the image to @p 416x416, the object will still be relatively big, and image recognition happens normally.  If this is the case and everything is working correctly, you can stop reading here.
+
+But if your objects within your high resolution images are small, once the images are resized and stretched to match the network dimensions, the objects become so tiny they're virtually impossible to detect.
+
+This is where image tiling can help.  The inference side of image tiling is described <a target="blank" href="https://www.ccoderun.ca/darkhelp/api/Tiling.html">on the DarkHelp web page</a>.
+
+Meanwhile, from a %DarkMark perspective there are 3 options related to image size and tiling.  These are in the Darknet window, where you can choose to leave images as-is, resize images, or tile images:
+
+@image html darknet_options_partial.png
+
+More details on this can also be found in the Youtube video linked above.  The section where this is discussed further begins at 4m38s.
+
+*/
