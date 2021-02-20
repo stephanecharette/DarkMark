@@ -192,6 +192,7 @@ void dm::DMContent::start_darknet()
 			darkhelp().threshold							= cfg().get_int("darknet_threshold")			/ 100.0f;
 			darkhelp().hierarchy_threshold					= cfg().get_int("darknet_hierarchy_threshold")	/ 100.0f;
 			darkhelp().non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold")		/ 100.0f;
+			darkhelp().enable_tiles							= cfg().get_bool("darknet_image_tiling");
 			names = darkhelp().names;
 		}
 		catch (const std::exception & e)
@@ -565,6 +566,17 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	else if (keychar == 'S')
 	{
 		save_screenshot(true);
+		return true;
+	}
+	else if (keychar == 't')
+	{
+		if (dmapp().darkhelp)
+		{
+			dmapp().darkhelp->enable_tiles = ! dmapp().darkhelp->enable_tiles;
+			show_message("image tiling: " + std::string(dmapp().darkhelp->enable_tiles ? "enable" : "disable"));
+			load_image(image_filename_index);
+			cfg().setValue("darknet_image_tiling", dmapp().darkhelp->enable_tiles);
+		}
 		return true;
 	}
 	else if (keychar == 'y')

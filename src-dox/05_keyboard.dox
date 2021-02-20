@@ -33,6 +33,7 @@ Key							| Saves Modified Marks First	| Description
 @p R (uppercase)			| yes							| Sort images alphabetically.
 @p s (lowercase)			|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".  Screenshots must be saved in either @p .jpg or @p .png file format (default is @p PNG).
 @p S (uppercase)			|								| Same as @p 's' (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
+@p t						| yes							| Toggle image tiling.  See @ref ImageSize.
 @p y (lowercase)			|								| Copy marks from previous (alphabetical) marked up image.
 @p Y (uppercase)			|								| Copy marks from next (alphabetical) marked up image.
 @p 0-9						|								| Set the class ID of the currently selected mark to the specified value zero through nine.

@@ -56,6 +56,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("darknet_threshold"				, 50												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7e956a7d74f8d576e573da4ea92310f1
 	insert_if_not_exist("darknet_hierarchy_threshold"	, 50												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#a7766c935160b80d696e232067afe8430
 	insert_if_not_exist("darknet_nms_threshold"			, 45												); // https://www.ccoderun.ca/DarkHelp/api/classDarkHelp.html#ac533cda5d4cbba691deb4df5d89da318
+	insert_if_not_exist("darknet_image_tiling"			, false												);
 	insert_if_not_exist("review_table_row_height"		, 75												);
 	insert_if_not_exist("scrollfield_width"				, 100												);
 	insert_if_not_exist("scrollfield_marker_size"		, 7													);

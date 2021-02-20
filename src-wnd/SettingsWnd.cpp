@@ -72,6 +72,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		v_darkhelp_threshold							= std::round(100.0f * dmapp().darkhelp->threshold);
 		v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp->hierarchy_threshold);
 		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp->non_maximal_suppression_threshold);
+		v_image_tiling									= dmapp().darkhelp->enable_tiles;
 	}
 	else
 	{
@@ -79,6 +80,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		v_darkhelp_threshold							= cfg().get_int("darknet_threshold");
 		v_darkhelp_hierchy_threshold					= cfg().get_int("darknet_hierarchy_threshold");
 		v_darkhelp_non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold");
+		v_image_tiling									= cfg().get_bool("darknet_image_tiling");
 	}
 
 	v_scrollfield_width			= content.scrollfield_width;
@@ -91,6 +93,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_scrollfield_width							.addListener(this);
 	v_scrollfield_marker_size					.addListener(this);
 	v_show_mouse_pointer						.addListener(this);
+	v_image_tiling								.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
@@ -109,6 +112,10 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s = new SliderPropertyComponent(v_darkhelp_non_maximal_suppression_threshold, "nms threshold", 0, 100, 1);
 	s->setTooltip("Non-Maximal Suppression (NMS) suppresses overlapping bounding boxes and only retains the bounding box that has the maximum probability of object detection associated with it. It examines all bounding boxes and removes the least confident of the boxes that overlap with each other.");
 	properties.add(s);
+
+	b = new BooleanPropertyComponent(v_image_tiling, "enable image tiling", "enable image tiling");
+	b->setTooltip("Determines if images will be tiled when showing predictions.");
+	properties.add(b);
 
 	pp.addSection("darknet", properties);
 	properties.clear();
@@ -158,6 +165,7 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("scrollfield_width"			, v_scrollfield_width							.getValue());
 	cfg().setValue("scrollfield_marker_size"	, v_scrollfield_marker_size						.getValue());
 	cfg().setValue("show_mouse_pointer"			, v_show_mouse_pointer							.getValue());
+	cfg().setValue("darknet_image_tiling"		, v_image_tiling								.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -215,6 +223,7 @@ void dm::SettingsWnd::valueChanged(Value & value)
 		dmapp().darkhelp->hierarchy_threshold				= static_cast<float>(v_darkhelp_hierchy_threshold					.getValue()) / 100.0f;
 		dmapp().darkhelp->non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
 		dmapp().darkhelp->threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
+		dmapp().darkhelp->enable_tiles						= static_cast<bool>(v_image_tiling.getValue());
 	}
 	content.scrollfield_width			= v_scrollfield_width		.getValue();
 	content.scrollfield.triangle_size	= v_scrollfield_marker_size	.getValue();
