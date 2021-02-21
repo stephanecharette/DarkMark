@@ -289,12 +289,13 @@ void dm::DMContent::rebuild_image_and_repaint()
 }
 
 
-bool dm::DMContent::keyPressed(const KeyPress &key)
+bool dm::DMContent::keyPressed(const KeyPress & key)
 {
 //	Log("code=" + std::to_string(key.getKeyCode()) + " char=" + std::to_string(key.getTextCharacter()) + " description=" + key.getTextDescription().toStdString());
 
 	const auto keycode = key.getKeyCode();
 	const auto keychar = key.getTextCharacter();
+//	show_message(key.getTextDescription().toStdString());
 
 	const KeyPress key0 = KeyPress::createFromDescription("0");
 	const KeyPress key9 = KeyPress::createFromDescription("9");
@@ -556,6 +557,20 @@ bool dm::DMContent::keyPressed(const KeyPress &key)
 	else if (keychar == 'j')
 	{
 		show_jump_wnd();
+		return true;
+	}
+	else if (keychar == 'n')
+	{
+		if (number_of_marks == 0)
+		{
+			image_is_completely_empty = true;
+			need_to_save = true;
+
+			// pretend as if PAGEDOWN was pressed so we move to the next image
+			return keyPressed(KeyPress::createFromDescription("page down"));
+		}
+
+		show_message("delete annotations before marking the image as empty");
 		return true;
 	}
 	else if (keychar == 's')

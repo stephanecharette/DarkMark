@@ -28,6 +28,7 @@ Key							| Saves Modified Marks First	| Description
 @p j						| yes							| Jump to a different image.
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).
+@p n						| yes							| Mark image as empty ("none") and move to the next image.
 @p p						|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)
 @p r (lowercase)			| yes							| Randomly shuffle the images and load the first image.
 @p R (uppercase)			| yes							| Sort images alphabetically.
