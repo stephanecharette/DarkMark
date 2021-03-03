@@ -37,6 +37,7 @@ Once Darknet and DarkHelp have been built and installed, run the following comma
 	cmake -DCMAKE_BUILD_TYPE=Release ..
 	make
 	make package
+	sudo dpkg -i darkmark*.deb
 
 # Doxygen Output
 
