@@ -540,7 +540,7 @@ void dm::VideoImportWindow::run()
 				}
 				else if (save_as_jpg)
 				{
-					cv::imwrite(ss.str() + ".jpg", mat, {CV_IMWRITE_JPEG_OPTIMIZE, 1, CV_IMWRITE_JPEG_QUALITY, jpg_quality});
+					cv::imwrite(ss.str() + ".jpg", mat, {CV_IMWRITE_JPEG_QUALITY, jpg_quality});
 				}
 
 				frame_number ++;

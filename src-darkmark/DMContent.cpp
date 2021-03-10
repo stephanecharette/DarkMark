@@ -1871,7 +1871,7 @@ dm::DMContent & dm::DMContent::save_screenshot(const bool full_size, const std::
 		}
 		else
 		{
-			cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_JPEG_OPTIMIZE, 1, CV_IMWRITE_JPEG_QUALITY, 75});
+			cv::imwrite(f.getFullPathName().toStdString(), scaled_image, {CV_IMWRITE_JPEG_QUALITY, 75});
 		}
 
 		if (scaled_image_size != old_scaled_image_size)
