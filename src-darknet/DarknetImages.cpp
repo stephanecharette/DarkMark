@@ -181,47 +181,48 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 //				Log("-> old tile: x=" + std::to_string(tile_x) + " y=" + std::to_string(tile_y) + " w=" + std::to_string(tile_w) + " h=" + std::to_string(tile_h));
 
 				// if a cell is smaller than our desired tile, then we can grab a few more pixels to fill out the tile and get it closer to the desired network size
-				if (tile_w < desired_tile_size.width)
+				int delta = desired_tile_size.width - tile_w;
+				tile_x -= delta / 2;
+				tile_w += delta;
+
+				// if we moved beyond the right border then move the X coordinate back
+				if (tile_x + tile_w >= mat.cols)
 				{
-					int delta = desired_tile_size.width - tile_w;
-					tile_x -= delta / 2;
-					tile_w += delta;
-					// if we moved beyond the right border then move the X coordinate back
-					if (tile_x + tile_w >= mat.cols)
-					{
-						tile_x = mat.cols - tile_w;
-					}
-					// if we moved beyond the *left* border, then reset to zero
-					if (tile_x < 0)
-					{
-						tile_x = 0;
-					}
-					// make sure the cell width doesn't extend beyond the right border
-					if (tile_x + tile_w >= mat.cols)
-					{
-						tile_w = (mat.cols - tile_x);
-					}
+					tile_x = mat.cols - tile_w;
 				}
-				if (tile_h < desired_tile_size.height)
+
+				// if we moved beyond the *left* border, then reset to zero
+				if (tile_x < 0)
 				{
-					int delta = desired_tile_size.height - tile_h;
-					tile_y -= delta / 2;
-					tile_h += delta;
-					// if we moved beyond the bottom border then move the Y coordinate back
-					if (tile_y + tile_h >= mat.rows)
-					{
-						tile_y = mat.rows - tile_h;
-					}
-					// if we moved beyond the *top* border, then reset to zero
-					if (tile_y < 0)
-					{
-						tile_y = 0;
-					}
-					// make sure the cell width doesn't extend beyond the bottom border
-					if (tile_y + tile_h >= mat.rows)
-					{
-						tile_h = (mat.rows - tile_y);
-					}
+					tile_x = 0;
+				}
+
+				// make sure the cell width doesn't extend beyond the right border
+				if (tile_x + tile_w >= mat.cols)
+				{
+					tile_w = (mat.cols - tile_x);
+				}
+
+				delta = desired_tile_size.height - tile_h;
+				tile_y -= delta / 2;
+				tile_h += delta;
+
+				// if we moved beyond the bottom border then move the Y coordinate back
+				if (tile_y + tile_h >= mat.rows)
+				{
+					tile_y = mat.rows - tile_h;
+				}
+
+				// if we moved beyond the *top* border, then reset to zero
+				if (tile_y < 0)
+				{
+					tile_y = 0;
+				}
+
+				// make sure the cell width doesn't extend beyond the bottom border
+				if (tile_y + tile_h >= mat.rows)
+				{
+					tile_h = (mat.rows - tile_y);
 				}
 //				Log("-> new tile: x=" + std::to_string(tile_x) + " y=" + std::to_string(tile_y) + " w=" + std::to_string(tile_w) + " h=" + std::to_string(tile_h));
 

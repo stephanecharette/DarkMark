@@ -676,6 +676,7 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 
 	MStr m =
 	{
+		{"use_cuda_graph"	, "0"													},
 		{"flip"				, enable_flip	? "1" : "0"								},
 		{"mosaic"			, enable_mosaic	? "1" : "0"								},
 		{"cutmix"			, enable_cutmix	? "1" : "0"								},

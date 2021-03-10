@@ -549,6 +549,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		show_message("shade: " + std::string(shade_rectangles ? "enable" : "disable"));
 		return true;
 	}
+	else if (keychar == 'C')
+	{
+		erase_all_marks();
+		return true;
+	}
 	else if (keychar == 'c' or keycode == KeyPress::returnKey)
 	{
 		create_class_menu().showMenuAsync(PopupMenu::Options());
