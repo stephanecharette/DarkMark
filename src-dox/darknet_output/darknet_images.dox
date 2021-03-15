@@ -1,0 +1,64 @@
+/** @page darknet_images Images
+
+@tableofcontents
+
+The "images" options control how DarkMark handles annotated images when creating the Darknet project files.
+
+@image html darknet_images.png
+
+The examples below reference this @p 1600x1200 source image:
+
+@image html 2020-10-01-233757_20_r180.jpg
+
+@section do_not_resize Do Not Resize Images
+
+When you select @p "do not resize images", the images and annotations will be passed as-is to Darknet, regardless of the network dimensions.  This means Darknet itself will be responsible for any necessary resizing of images required during training.
+
+Note that this is the @em slowest training option, as Darknet must continuously resize all of the images as they are loaded from disk.  Darknet does not keep a local image cache.
+
+Using the image above as an example -- regardless of the configuration type or network dimensions -- the image given to Darknet for training will measure @p 1600x1200.
+
+@note When resizing images, Darknet does @em not maintain or respect aspect ratio.  All images will be stretched as necessary to match the @em exact network dimensions defined in the @p "[net]" section of the @p cfg file.
+
+@section resize_images Resize Images
+
+When you select @p "resize images", DarkMark will auto-resize @em all of the images as it prepares the Darknet files.  For example, if the network measures @p 416x416, the original @p 1600x1200 image above will be stretched to match the @em exact network dimensions.  Similarly to the previous option, this does not attempt to maintain the aspect ratio.
+
+All image annotations are maintained when images are resized.
+
+This image option can be combined with the other tile and crop/zoom options.
+
+@image html darknet_resize_images.png
+
+@section tile_images Tile Images
+
+When you select @p "tile images", DarkMark will split any large images into individual tiles.  This is discussed further in @ref ImageSize.
+
+The image tiles are the same aspect ratio as the network dimensions, so the images are not distorted when tiled.
+
+The coordinates of all image annotations are automatically fixed by DarkMark during this process.  Only annotations appearing on the tile are exported.
+
+This image option can be combined with the other resize and crop/zoom options.
+
+Given a @p 416x416 network, the original @p 1600x1200 image may be split like this:
+
+@image html darknet_tile_images.png
+
+@section crop_and_zoom_images Crop & Zoom Images
+
+When you select @p "crop & zoom images", DarkMark will choose a random region of large images, crop that region to create a new image, and then zoom the new image to match the @em exact network dimensions.  This is similar to the previous option, but only 1 new tile is created per image, and the random size of the region means the relative size of the annotated objects will change.
+
+The cropped region is the same aspect ratio as the network dimensions, so the image is not distorted when it is resized.
+
+The coordinates of all image annotations are automatically fixed by DarkMark during this process.  Only annotations appearing on the new output image are exported.
+
+This image option can be combined with the other resize and tiling options.
+
+@image html darknet_crop_and_zoom_images.png
+
+@section darkmark_image_cache Image Cache
+
+When the previous "images" options are used in DarkMark to resize or tile images for network training, DarkMark automatically creates a subdirectory called @p darkmark_image_cache.  DarkMark knows to ignore this directory when annotating images, or showing annotated images.
+
+Once training has completed, this directory containing images and Darknet annotation @p txt files may be deleted to recover disk space.
+*/

@@ -38,6 +38,7 @@ namespace dm
 			bool		do_not_resize_images;		///< Do not resize or tile any images.
 			bool		resize_images;				///< Resize the images to match the network dimensions.
 			bool		tile_images;				///< Tile the images to match the network dimensions.
+			bool		zoom_images;				///< Zoom images.
 			/// @}
 
 			bool		recalculate_anchors;		///< whether darknet will be called to recalculate anchors

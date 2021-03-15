@@ -27,6 +27,7 @@ class SaveTask : public ThreadWithProgressWindow
 				size_t number_of_marks			= 0;
 				size_t number_of_images_resized	= 0;
 				size_t number_of_tiles_created	= 0;
+				size_t number_of_zooms_created	= 0;
 
 				setStatusMessage("Creating training and validation files...");
 				wnd.create_Darknet_training_and_validation_files(
@@ -36,7 +37,8 @@ class SaveTask : public ThreadWithProgressWindow
 					number_of_skipped_files,
 					number_of_marks,
 					number_of_images_resized,
-					number_of_tiles_created);
+					number_of_tiles_created,
+					number_of_zooms_created);
 
 				setStatusMessage("Creating configuration files and shell scripts...");
 				setProgress(0.333);
@@ -70,6 +72,12 @@ class SaveTask : public ThreadWithProgressWindow
 				if (number_of_tiles_created)
 				{
 					ss	<< "The number of new image tiles created: " << number_of_tiles_created << "." << std::endl
+						<< std::endl;
+				}
+
+				if (number_of_zooms_created)
+				{
+					ss	<< "The number of random crop & zoom images created: " << number_of_zooms_created << "." << std::endl
 						<< std::endl;
 				}
 
@@ -175,6 +183,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_do_not_resize_images			= info.do_not_resize_images;
 	v_resize_images					= info.resize_images;
 	v_tile_images					= info.tile_images;
+	v_zoom_images					= info.zoom_images;
 	v_recalculate_anchors			= info.recalculate_anchors;
 	v_anchor_clusters				= info.anchor_clusters;
 	v_class_imbalance				= info.class_imbalance;
@@ -200,10 +209,11 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	// counters_per_class depends on this being enabled
 	v_recalculate_anchors.addListener(this);
 
-	// handle the strange interactions between the three "resize" options
+	// handle the strange interactions between the "resize" options
 	v_do_not_resize_images	.addListener(this);
 	v_resize_images			.addListener(this);
 	v_tile_images			.addListener(this);
+	v_zoom_images			.addListener(this);
 
 	Array<PropertyComponent *> properties;
 	TextPropertyComponent		* t = nullptr;
@@ -263,6 +273,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	b = new BooleanPropertyComponent(v_tile_images, "tile images", "tile images to match the network dimensions");
 	b->setTooltip("DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_zoom_images, "crop & zoom images", "random crop and zoom images");
+	b->setTooltip("DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
@@ -457,7 +471,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 {
 	if (button == &help_button)
 	{
-		URL url("https://www.ccoderun.ca/DarkMark/DataAugmentation.html");
+		URL url("https://www.ccoderun.ca/DarkMark/darknet_output.html");
+
 		url.launchInDefaultBrowser();
 
 		return;
@@ -530,6 +545,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_do_not_resize_images"	, v_do_not_resize_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_resize_images"			, v_resize_images				);
 	cfg().setValue(content.cfg_prefix + "darknet_tile_images"			, v_tile_images					);
+	cfg().setValue(content.cfg_prefix + "darknet_zoom_images"			, v_zoom_images					);
 	cfg().setValue(content.cfg_prefix + "darknet_recalculate_anchors"	, v_recalculate_anchors			);
 	cfg().setValue(content.cfg_prefix + "darknet_anchor_clusters"		, v_anchor_clusters				);
 	cfg().setValue(content.cfg_prefix + "darknet_class_imbalance"		, v_class_imbalance				);
@@ -558,6 +574,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.do_not_resize_images		= v_do_not_resize_images	.getValue();
 	info.resize_images				= v_resize_images			.getValue();
 	info.tile_images				= v_tile_images				.getValue();
+	info.zoom_images				= v_zoom_images				.getValue();
 	info.recalculate_anchors		= v_recalculate_anchors		.getValue();
 	info.anchor_clusters			= v_anchor_clusters			.getValue();
 	info.class_imbalance			= v_class_imbalance			.getValue();
@@ -595,16 +612,18 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		{
 			v_resize_images	= false;
 			v_tile_images	= false;
+			v_zoom_images	= false;
 		}
-		else if (not v_resize_images.getValue() and not v_tile_images.getValue())
+		else if (not v_resize_images.getValue() and not v_tile_images.getValue() and not v_zoom_images.getValue())
 		{
 			v_resize_images	= true;
 			v_tile_images	= true;
+			v_zoom_images	= true;
 		}
 	}
-	if (value.refersToSameSourceAs(v_resize_images) or value.refersToSameSourceAs(v_tile_images))
+	if (value.refersToSameSourceAs(v_resize_images) or value.refersToSameSourceAs(v_tile_images) or value.refersToSameSourceAs(v_zoom_images))
 	{
-		if (v_resize_images.getValue() or v_tile_images.getValue())
+		if (v_resize_images.getValue() or v_tile_images.getValue() or v_zoom_images.getValue())
 		{
 			v_do_not_resize_images	= false;
 		}
@@ -743,7 +762,8 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		size_t & number_of_skipped_files	,
 		size_t & number_of_marks			,
 		size_t & number_of_resized_images	,
-		size_t & number_of_tiles_created	)
+		size_t & number_of_tiles_created	,
+		size_t & number_of_zooms_created	)
 {
 	if (true)
 	{
@@ -761,6 +781,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	number_of_marks				= 0;
 	number_of_resized_images	= 0;
 	number_of_tiles_created		= 0;
+	number_of_zooms_created		= 0;
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache");
 	dir.deleteRecursively();
@@ -783,6 +804,10 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	if (info.tile_images)
 	{
 		tile_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_tiles_created);
+	}
+	if (info.zoom_images)
+	{
+		random_zoom_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_zooms_created);
 	}
 
 	// now that we know the exact set of images (including resized and tiled images)

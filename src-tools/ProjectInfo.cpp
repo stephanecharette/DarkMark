@@ -23,6 +23,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	do_not_resize_images		= cfg().get_bool	(cfg_prefix + "darknet_do_not_resize_images"	, false	);
 	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, true	);
 	tile_images					= cfg().get_bool	(cfg_prefix + "darknet_tile_images"				, true	);
+	zoom_images					= cfg().get_bool	(cfg_prefix + "darknet_zoom_images"				, true	);
 	recalculate_anchors			= cfg().get_bool	(cfg_prefix + "darknet_recalculate_anchors"		, false	);
 	anchor_clusters				= cfg().get_int		(cfg_prefix + "darknet_anchor_clusters"			, 9		);
 	class_imbalance				= cfg().get_bool	(cfg_prefix + "darknet_class_imbalance"			, false	);
@@ -38,14 +39,15 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	enable_mixup				= cfg().get_bool	(cfg_prefix + "darknet_mixup"					, false	);
 
 	// handle the special restrictions between the 3 "image resizing" modes since they're all related and exactly 1 *must* be enabled
-	if (do_not_resize_images == false and resize_images == false and tile_images == false)
+	if (do_not_resize_images == false and resize_images == false and tile_images == false and zoom_images == false)
 	{
 		do_not_resize_images = true;
 	}
 	if (do_not_resize_images)
 	{
-		do_not_resize_images = false;
-		tile_images = false;
+		resize_images	= false;
+		tile_images		= false;
+		zoom_images		= false;
 	}
 
 	try

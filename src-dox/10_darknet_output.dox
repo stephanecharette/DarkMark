@@ -1,0 +1,13 @@
+/** @page darknet_output Darknet Output
+
+DarkMark can export everything necessary to train a new neural network with Darknet.  This includes scripts to begin training, the @p project.data file, the @p project.cfg file, and both of the @p train.txt and @p valid.txt files.
+
+@image html create_darknet_files.png
+
+See the following pages for additional information:
+
+@li @subpage Configuration
+@li @subpage darknet_images
+@li @subpage DataAugmentation
+
+*/

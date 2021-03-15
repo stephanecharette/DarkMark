@@ -31,13 +31,16 @@ namespace dm
 					size_t & number_of_skipped_files	,
 					size_t & number_of_marks			,
 					size_t & number_of_resized_images	,
-					size_t & number_of_tiles_created	);
+					size_t & number_of_tiles_created	,
+					size_t & number_of_zooms_created	);
 
 			void find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks);
 
 			void resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images);
 
 			void tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created);
+
+			void random_zoom_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_zooms_created);
 
 			void create_Darknet_configuration_file();
 			void create_Darknet_shell_scripts();
@@ -58,6 +61,7 @@ namespace dm
 			Value v_do_not_resize_images;
 			Value v_resize_images;
 			Value v_tile_images;
+			Value v_zoom_images;
 			Value v_recalculate_anchors;
 			Value v_anchor_clusters;
 			Value v_class_imbalance;
