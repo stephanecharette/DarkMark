@@ -82,6 +82,8 @@ namespace dm
 
 			DMContent & save_json();
 
+			DMContent & import_text_annotations(const VStr & image_filenames);
+
 			size_t count_marks_in_json(File & f);
 
 			bool load_text();

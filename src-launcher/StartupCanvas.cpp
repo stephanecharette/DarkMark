@@ -126,7 +126,8 @@ void dm::StartupCanvas::initialize_on_thread()
 
 	VStr image_filenames;
 	VStr json_filenames;
-	find_files(dir, image_filenames, json_filenames, done);
+	VStr images_without_json;
+	find_files(dir, image_filenames, json_filenames, images_without_json, done);
 	if (not done)
 	{
 		const size_t image_counter	= image_filenames.size();

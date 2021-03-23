@@ -3,7 +3,7 @@
 #include "DarkMark.hpp"
 
 
-void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, std::atomic<bool> & done)
+void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, VStr & images_without_json, std::atomic<bool> & done)
 {
 	image_filenames.clear();
 	json_filenames.clear();
@@ -49,6 +49,14 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, std
 			if (json_file.existsAsFile())
 			{
 				json_filenames.push_back(json_file.getFullPathName().toStdString());
+			}
+			else
+			{
+				File txt_file = f.withFileExtension(".txt");
+				if (txt_file.existsAsFile())
+				{
+					images_without_json.push_back(filename);
+				}
 			}
 		}
 	}

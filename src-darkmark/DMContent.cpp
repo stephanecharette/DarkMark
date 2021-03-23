@@ -48,8 +48,9 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	setWantsKeyboardFocus(true);
 
 	VStr json_filenames;
+	VStr images_without_json;
 	std::atomic<bool> done = false;
-	find_files(File(project_info.project_dir), image_filenames, json_filenames, done);
+	find_files(File(project_info.project_dir), image_filenames, json_filenames, images_without_json, done);
 	Log("number of images found in " + project_info.project_dir + ": " + std::to_string(image_filenames.size()));
 
 	const std::string exclusion_regex = cfg().get_str(cfg_prefix + "exclusion_regex");
@@ -85,6 +86,26 @@ dm::DMContent::DMContent(const std::string & prefix) :
 		{
 			AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The \"exclusion regex\" for this project has caused an error and has been skipped.");
 		}
+	}
+
+	if (images_without_json.empty() == false)
+	{
+		String msg = "1 image file was found with \".txt\" annotations.";
+		if (images_without_json.size() > 1)
+		{
+			msg = String(images_without_json.size()) + " image files were found with \".txt\" annotations.";
+		}
+		msg += "\n\nWould you like to import the annotations into DarkMark?";
+
+		AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark", msg, "", "", this,
+				ModalCallbackFunction::create(
+					[=](int result)
+					{
+						if (result == 1)
+						{
+							this->import_text_annotations(images_without_json);
+						}
+					}));
 	}
 
 	if (image_filenames.empty())
@@ -1188,6 +1209,15 @@ dm::DMContent & dm::DMContent::save_json()
 	}
 
 	need_to_save = false;
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::import_text_annotations(const VStr & image_filenames)
+{
+	DMContentImportTxt helper(*this, image_filenames);
+	helper.runThread(); // waits for this to finish before continuing
 
 	return *this;
 }
