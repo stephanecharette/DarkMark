@@ -43,6 +43,8 @@ void dm::ScrollField::rebuild_entire_field_on_thread()
 		cached_image	= juce::Image();
 		map_idx_imagesets.clear();
 
+		Log("ScrollField: starting new thread");
+
 		startThread(); // see ScrollField::run()
 	}
 
@@ -52,6 +54,8 @@ void dm::ScrollField::rebuild_entire_field_on_thread()
 
 void dm::ScrollField::run()
 {
+	Log("ScrollField: running thread");
+
 	field			= cv::Mat();
 	resized_image	= cv::Mat();
 	cached_image	= juce::Image();
@@ -74,6 +78,8 @@ void dm::ScrollField::run()
 	{
 		if (threadShouldExit())
 		{
+			Log("ScrollField: 1: thread has been cancelled (idx=" + std::to_string(idx) + ")");
+			field = cv::Mat();
 			break;
 		}
 
@@ -91,6 +97,8 @@ void dm::ScrollField::run()
 		{
 			if (threadShouldExit())
 			{
+				Log("ScrollField: 2: thread has been cancelled (idx=" + std::to_string(idx) + ")");
+				field = cv::Mat();
 				break;
 			}
 
@@ -134,6 +142,8 @@ void dm::ScrollField::update_index(const size_t idx)
 	}
 
 	const std::string & filename = content.image_filenames.at(idx);
+//	Log("ScrollField: updating for idx=" + std::to_string(idx));
+
 	File f = File(filename).withFileExtension(".json");
 	if (f.existsAsFile() == false)
 	{
@@ -294,15 +304,27 @@ void dm::ScrollField::jump_to_location(const MouseEvent & event, const bool full
 
 void dm::ScrollField::rebuild_cache_image()
 {
+	if (isThreadRunning())
+	{
+		Log("ScrollField: skipping rebuild_cache_image since thread is running");
+		need_to_rebuild_cache_image = false;
+		return;
+	}
+
+	Log("ScrollField: rebuild cache image");
+
 	resized_image	= cv::Mat();
 	cached_image	= juce::Image();
 
 	if (field.empty())
 	{
+		Log("ScrollField: starting thread to rebuild the image");
 		rebuild_entire_field_on_thread();
 	}
 	else
 	{
+		Log("ScrollField: scale and redrawing image");
+
 		const int w = getWidth();
 		const int h = getHeight();
 

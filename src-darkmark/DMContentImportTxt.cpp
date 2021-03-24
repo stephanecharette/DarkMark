@@ -62,8 +62,16 @@ void dm::DMContentImportTxt::run()
 		if (s.count(fn) == 1)
 		{
 			// we found a match -- load this image to force the creation of the json file
-			content.load_image(idx);
-			content.need_to_save = true;
+			Log("importing annotations for " + fn);
+			try
+			{
+				content.load_image(idx);
+				content.need_to_save = true;
+			}
+			catch (const std::exception & e)
+			{
+				Log("exception caught while loading " + fn + ": " + e.what());
+			}
 		}
 		s.erase(fn);
 	}
