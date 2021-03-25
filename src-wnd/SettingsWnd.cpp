@@ -241,9 +241,9 @@ void dm::SettingsWnd::timerCallback()
 
 	stopTimer();
 
-	content.scrollfield.rebuild_cache_image();
 	content.load_image(content.image_filename_index);
 	content.resized();
+	content.scrollfield.rebuild_cache_image();
 
 	return;
 }

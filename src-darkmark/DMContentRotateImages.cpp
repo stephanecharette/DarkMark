@@ -22,6 +22,13 @@ void dm::DMContentRotateImages::run()
 {
 	DarkMarkApplication::setup_signal_handling();
 
+	const auto previous_scrollfield_width = content.scrollfield_width;
+	if (previous_scrollfield_width > 0)
+	{
+		content.scrollfield_width = 0;
+		content.resized();
+	}
+
 	// briefly pause here so the window can properly redraw itself (hack?)
 	getAlertWindow()->repaint();
 	sleep(250); // milliseconds
@@ -190,13 +197,13 @@ void dm::DMContentRotateImages::run()
 		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Error during rotation of \"" + new_fn + "\": " + e.what());
 	}
 
+	content.scrollfield_width = previous_scrollfield_width;
 	content.show_predictions = previous_predictions;
+	content.load_image(0);
+	content.scrollfield.rebuild_entire_field_on_thread();
 
 	if (threadShouldExit() == false)
 	{
-		content.load_image(0);
-		content.scrollfield.rebuild_entire_field_on_thread();
-
 		std::stringstream ss;
 		ss << "Rotation tool ";
 		if (images_skipped > 0)

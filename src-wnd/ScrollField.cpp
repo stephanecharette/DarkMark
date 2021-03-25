@@ -36,7 +36,7 @@ dm::ScrollField::~ScrollField()
 
 void dm::ScrollField::rebuild_entire_field_on_thread()
 {
-	if (isThreadRunning() == false)
+	if (content.scrollfield_width > 0 and isThreadRunning() == false)
 	{
 		field			= cv::Mat();
 		resized_image	= cv::Mat();
@@ -61,12 +61,19 @@ void dm::ScrollField::run()
 	cached_image	= juce::Image();
 	map_idx_imagesets.clear();
 
+	if (content.scrollfield_width < 1)
+	{
+		Log("ScrollField: ending thread since size=" + std::to_string(content.scrollfield_width));
+		return;
+	}
+
 	const size_t number_of_images = content.image_filenames.size();
 	const size_t number_of_classes = content.names.size();
 
 	if (number_of_images < 1 or number_of_classes < 1)
 	{
 		// things are still loading, so return now and we'll try again later
+		Log("ScrollField: ending thread since app is still loading");
 		need_to_rebuild_cache_image = true;
 		return;
 	}
@@ -76,7 +83,7 @@ void dm::ScrollField::run()
 
 	for (size_t idx = 0; idx < number_of_images; idx ++)
 	{
-		if (threadShouldExit())
+		if (threadShouldExit() or content.scrollfield_width < 1)
 		{
 			Log("ScrollField: 1: thread has been cancelled (idx=" + std::to_string(idx) + ")");
 			field = cv::Mat();
@@ -95,7 +102,7 @@ void dm::ScrollField::run()
 		// find all of the different image sets so we can display the white "arrow"
 		for (size_t idx = 0; idx < number_of_images; idx ++)
 		{
-			if (threadShouldExit())
+			if (threadShouldExit() or content.scrollfield_width < 1)
 			{
 				Log("ScrollField: 2: thread has been cancelled (idx=" + std::to_string(idx) + ")");
 				field = cv::Mat();
@@ -132,6 +139,11 @@ void dm::ScrollField::update_index(const size_t idx)
 	if (idx >= content.image_filenames.size())
 	{
 		// nothing we can do with an index that is out of range
+		return;
+	}
+
+	if (content.scrollfield_width < 1)
+	{
 		return;
 	}
 
@@ -307,6 +319,13 @@ void dm::ScrollField::rebuild_cache_image()
 	if (isThreadRunning())
 	{
 		Log("ScrollField: skipping rebuild_cache_image since thread is running");
+		need_to_rebuild_cache_image = false;
+		return;
+	}
+
+	if (content.scrollfield_width < 1)
+	{
+		Log("ScrollField: skipping rebuild_cache_image since scrollfield is disabled");
 		need_to_rebuild_cache_image = false;
 		return;
 	}

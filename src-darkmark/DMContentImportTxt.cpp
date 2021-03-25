@@ -22,6 +22,13 @@ void dm::DMContentImportTxt::run()
 {
 	DarkMarkApplication::setup_signal_handling();
 
+	const auto previous_scrollfield_width = content.scrollfield_width;
+	if (previous_scrollfield_width > 0)
+	{
+		content.scrollfield_width = 0;
+		content.resized();
+	}
+
 	double max_work = image_filenames.size();
 	double work_completed = 0.0;
 
@@ -76,8 +83,10 @@ void dm::DMContentImportTxt::run()
 		s.erase(fn);
 	}
 
+	content.scrollfield_width = previous_scrollfield_width;
 	content.show_predictions = previous_predictions;
 	content.load_image(0);
+	content.scrollfield.rebuild_entire_field_on_thread();
 
 	return;
 }
