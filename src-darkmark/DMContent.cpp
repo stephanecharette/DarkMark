@@ -76,8 +76,8 @@ dm::DMContent::DMContent(const std::string & prefix) :
 				AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::InfoIcon, "DarkMark",
 						"This project has an exclusion regex:\n\n"
 						"\t\t" + exclusion_regex + "\n\n" +
-						std::to_string(v.size() - image_filenames.size()) + " images were excluded by this filter, bringing the total number of images down from " +
-						std::to_string(v.size()) + " to " + std::to_string(image_filenames.size()) + ".\n\n"
+						std::to_string(v.size() - image_filenames.size()) + " images were excluded by this filter, bringing the total number of images from " +
+						std::to_string(v.size()) + " down to " + std::to_string(image_filenames.size()) + ".\n\n"
 						"Clear the \"exclusion regex\" field in the launcher window to include all images in the project."
 						);
 			}
