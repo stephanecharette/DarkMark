@@ -6,6 +6,81 @@
 using json = nlohmann::json;
 
 
+std::string format_bytes(double bytes)
+{
+	const std::vector<std::string> suffix = {"", "K", "M", "G", "T", "P"};
+	size_t idx;
+	for (idx = 0; idx < suffix.size() - 1; idx ++)
+	{
+		if (bytes < 512)
+		{
+			break;
+		}
+		bytes /= 1024.0;
+	}
+
+	std::stringstream ss;
+	if (bytes < 0.0)
+	{
+		// do nothing, return a blank string
+	}
+	else if (idx == 0)
+	{
+		ss << static_cast<int>(bytes) << " Bytes";
+	}
+	else
+	{
+		ss << std::fixed << std::setprecision(1) << bytes << " " << suffix[idx] << "iB";
+	}
+
+	return ss.str();
+}
+
+
+std::string format_timestamp(const std::time_t timestamp)
+{
+	std::stringstream ss;
+
+	if (timestamp > 0)
+	{
+		auto tm = std::localtime(&timestamp);
+		char buffer[50] = "";
+		std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
+		ss << buffer;
+
+		const std::time_t now = std::time(nullptr);
+		if (now > timestamp)
+		{
+			const double second	= 1.0;
+			const double minute	= 60.0	* second;
+			const double hour	= 60.0	* minute;
+			const double day	= 24.0	* hour;
+			const double week	= 7.0	* day;
+			const double year	= day	* 365.24;
+			const double month	= year	/ 12.0;
+			const double diff	= now - timestamp;
+
+			if (diff > 2.0 * year)			{ ss << " (" << std::round(diff / year	) << " years ago)";		}
+			else if (diff > 2.0 * month)	{ ss << " (" << std::round(diff / month	) << " months ago)";	}
+			else if (diff > 2.0 * week)		{ ss << " (" << std::round(diff / week	) << " weeks ago)";		}
+			else if (diff > 2.0 * day)		{ ss << " (" << std::round(diff / day	) << " days ago)";		}
+			else if (diff > 2.0 * hour)		{ ss << " (" << std::round(diff / hour	) << " hours ago)";		}
+			else if (diff > 2.0 * minute)	{ ss << " (" << std::round(diff / minute) << " minutes ago)";	}
+		}
+	}
+
+	return ss.str();
+}
+
+
+std::string format_timestamp(const Time t)
+{
+	const std::time_t timestamp = t.toMilliseconds() / 1000;
+
+	return format_timestamp(timestamp);
+}
+
+
 dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & dir) :
 	Component("Startup Notebook Canvas"),
 	cfg_key(key),
@@ -40,6 +115,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 
 	properties.add(new TextPropertyComponent(project_directory				, "project directory"		, 1000, false, false));
 	properties.add(new TextPropertyComponent(size_of_directory				, "size of directory"		, 1000, false, false));
+	properties.add(new TextPropertyComponent(last_used						, "last used"				, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_images				, "image files"				, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_json					, "markup files"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_classes				, "number of classes"		, 1000, false, false));
@@ -49,6 +125,9 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 
 	auto tmp = new TextPropertyComponent(exclusion_regex					, "exclusion regex"			, 1000, false, true);
 	tmp->setTooltip("Exclusion regex is used to temporarily exclude a subset of images from the project. The regex will be applied individually to each image path and filename.\n\nFor example, set to \"car|truck\" to exclude all images that contains either the text \"car\" or \"truck\" anywhere in the path or filename.\n\nNormally, this field should be left blank.");
+	properties.add(tmp);
+
+	tmp = new TextPropertyComponent(darknet_network_dimensions				, "network dimensions"		, 1000, false, false);
 	properties.add(tmp);
 
 	tmp = new TextPropertyComponent(darknet_configuration_template			, "darknet template"		, 1000, false, true);
@@ -83,7 +162,7 @@ dm::StartupCanvas::~StartupCanvas()
 void dm::StartupCanvas::resized()
 {
 	const int margin_size		= 5;
-	const int number_of_lines	= 13;
+	const int number_of_lines	= 15;
 	const int height_per_line	= 25;
 	const int total_pp_height	= number_of_lines * height_per_line;
 
@@ -174,21 +253,8 @@ void dm::StartupCanvas::initialize_on_thread()
 			}
 		}
 
-		char buffer[50] = "";
-		if (oldest > 0)
-		{
-			auto tm = localtime(&oldest);
-			std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
-		}
-		oldest_markup = buffer;
-
-		buffer[0] = '\0';
-		if (newest > 0)
-		{
-			auto tm = localtime(&newest);
-			std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
-		}
-		newest_markup = buffer;
+		oldest_markup = format_timestamp(oldest).c_str();
+		newest_markup = format_timestamp(newest).c_str();
 
 		const int classes = number_of_classes.getValue();
 		std::stringstream ss;
@@ -256,8 +322,8 @@ void dm::StartupCanvas::find_all_darknet_files()
 			dfi.type		= type;
 			dfi.full_name	= f.getFullPathName().toStdString();
 			dfi.short_name	= f.getFileName().toStdString();
-			dfi.file_size	= File::descriptionOfSizeInBytes(f.getSize()).toStdString();
-			dfi.timestamp	= f.getLastModificationTime().formatted("%Y-%m-%d %H:%M:%S").toStdString();
+			dfi.file_size	= format_bytes(f.getSize());
+			dfi.timestamp	= format_timestamp(f.getLastModificationTime());
 			v.push_back(dfi);
 		}
 	}
@@ -376,7 +442,18 @@ void dm::StartupCanvas::refresh()
 	newest_markup		= "...";
 	oldest_markup		= "...";
 
-	exclusion_regex					= cfg().getValue("project_" + cfg_key + "_exclusion_regex"	);
+	last_used = format_timestamp(cfg().getIntValue("project_" + cfg_key + "_timestamp")).c_str();
+
+	String dims =
+			String(cfg().getIntValue("project_" + cfg_key + "_darknet_image_width"	)) + " x " +
+			String(cfg().getIntValue("project_" + cfg_key + "_darknet_image_height"	));
+	if (dims == "0 x 0")
+	{
+		dims = "";
+	}
+
+	exclusion_regex					= cfg().getValue("project_" + cfg_key + "_exclusion_regex"		);
+	darknet_network_dimensions		= dims;
 	darknet_configuration_template	= cfg().getValue("project_" + cfg_key + "_darknet_cfg_template"	);
 	darknet_configuration_filename	= cfg().getValue("project_" + cfg_key + "_cfg"					);
 	darknet_weights_filename		= cfg().getValue("project_" + cfg_key + "_weights"				);
@@ -683,10 +760,10 @@ void dm::StartupCanvas::calculate_size_of_directory()
 
 	if (not done)
 	{
-		String str(File::descriptionOfSizeInBytes(total_bytes));
+		String str = format_bytes(total_bytes);
 		if (image_cache_bytes > 0)
 		{
-			str += " (" + File::descriptionOfSizeInBytes(image_cache_bytes) + " of which is in the cache)";
+			str += " (" + String(format_bytes(image_cache_bytes)) + " of which is in the cache)";
 		}
 
 		size_of_directory = str;

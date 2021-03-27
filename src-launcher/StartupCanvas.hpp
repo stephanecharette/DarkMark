@@ -65,6 +65,7 @@ namespace dm
 		PropertyPanel pp;
 		Value project_directory;	///< full path where this project is located
 		Value size_of_directory;
+		Value last_used;
 		Value number_of_images;
 		Value number_of_json;
 		Value number_of_classes;
@@ -72,6 +73,7 @@ namespace dm
 		Value newest_markup;
 		Value oldest_markup;
 		Value exclusion_regex;
+		Value darknet_network_dimensions;
 		Value darknet_configuration_template;
 		Value darknet_configuration_filename;
 		Value darknet_weights_filename;
