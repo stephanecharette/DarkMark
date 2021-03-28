@@ -2,6 +2,12 @@
 
 @note Several binary packages for %DarkMark are typically released along with the source.  If you don't want to build it yourself, <a target="_blank" href="https://www.ccoderun.ca/download/?C=M;O=D">see if a binary package is available</a> for your operating system.
 
+Extremely simple easy-to-follow tutorial on how to build Darknet, DarkHelp, and DarkMark:
+
+@htmlonly[block]
+<iframe width="560" height="315" src="https://www.youtube.com/embed/pJ2iyf_E9PM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+@endhtmlonly
+
 %DarkMark has several dependencies which must be built and/or installed first:
 
 @li JUCE is a C++ framework.  It has several required development libraries.

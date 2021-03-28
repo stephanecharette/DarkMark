@@ -24,6 +24,10 @@ DarkMark is open source and published using the GNU GPL v3 license.  See license
 
 # How to Build DarkMark
 
+Extremely simple easy-to-follow tutorial on how to build Darknet, DarkHelp, and DarkMark:
+
+[![DarkMark build tutorial](src-dox/darkmark_build_thumbnail.png)](https://www.youtube.com/watch?v=pJ2iyf_E9PM)
+
 DarkMark requires [DarkHelp](https://github.com/stephanecharette/DarkHelp/) to build.  (And DarkHelp requires Darknet.)  So before you start building DarkMark, make sure you follow [the build instructions for DarkHelp](https://github.com/stephanecharette/DarkHelp/#how-to-build-darkhelp).
 
 Once Darknet and DarkHelp have been built and installed, run the following commands to build DarkMark on Ubuntu:
