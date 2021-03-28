@@ -356,128 +356,163 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 			continue;
 		}
 
-		/* The amount we're going to "zoom in" depends on exactly how big the image is compared to the final size.
-		 * This value is the "factor" by which we multiply the desired image size.  We need to make sure that both
-		 * the horizontal and vertical values can be satisfied.
-		 */
-		const float horizontal_factor	= static_cast<float>(original_mat.cols) / static_cast<float>(desired_size.width);
-		const float vertical_factor		= static_cast<float>(original_mat.rows) / static_cast<float>(desired_size.height);
-		const float min_factor			= std::min(horizontal_factor, vertical_factor);
+		// keep creating cropped/zoomed images as long as we're finding new parts of the image that we didn't previously cover
+		std::vector<cv::Rect> all_previous_rectangles;
+		size_t failed_consecutive_attempts = 0;
 
-		std::uniform_real_distribution<float> uni_f(1.0f, min_factor);
-		const float factor = uni_f(rng);
-
-		// This describes the size of the RoI we're going to carve out of the original image mat.
-		const cv::Size size(
-				std::round(factor * desired_size.width),
-				std::round(factor * desired_size.height));
-
-		// Now that we know the size, we can create the rectangle which is used to carve out the RoI.
-		cv::Rect roi(cv::Point(0, 0), size);
-
-		// Now figure out how much room remains outside of the RoI, and randomly choose some spacing to assing.
-		const int delta_h = original_mat.cols - roi.width;
-		const int delta_v = original_mat.rows - roi.height;
-		std::uniform_int_distribution<int> uni_h(0, delta_h);
-		std::uniform_int_distribution<int> uni_v(0, delta_v);
-		roi.x = uni_h(rng);
-		roi.y = uni_v(rng);
-
-		// Crop the original image, and at the same time resize it to be the exact dimensions we need.
-		cv::Mat output_mat;
-		cv::resize(original_mat(roi), output_mat, desired_size);
-
-		std::stringstream ss;
-		ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
-		const std::string output_base_name = ss.str();
-		const std::string output_image = output_base_name + ".jpg";
-		const std::string output_label = output_base_name + ".txt";
-
-		cv::imwrite(output_image, output_mat, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
-		all_output_images.push_back(output_image);
-
-		// Read the annotations, crop them to match the image, and re-calculate the values for the .txt file.
-
-		json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
-		std::ofstream fs_txt(output_label);
-		fs_txt << std::fixed << std::setprecision(10);
-		size_t number_of_annotations = 0;
-		for (auto j : root["mark"])
+		while (failed_consecutive_attempts < 3)
 		{
-			int x = j["rect"]["int_x"];
-			int y = j["rect"]["int_y"];
-			int w = j["rect"]["int_w"];
-			int h = j["rect"]["int_h"];
-			const cv::Rect annotation_rect(x, y, w, h);
-			const cv::Rect intersection = annotation_rect & roi;
-			if (intersection.area() == 0)
+			/* The amount we're going to "zoom in" depends on exactly how big the image is compared to the final size.
+			* This value is the "factor" by which we multiply the desired image size.  We need to make sure that both
+			* the horizontal and vertical values can be satisfied.
+			*/
+			const float horizontal_factor	= static_cast<float>(original_mat.cols) / static_cast<float>(desired_size.width);
+			const float vertical_factor		= static_cast<float>(original_mat.rows) / static_cast<float>(desired_size.height);
+			const float min_factor			= std::min(horizontal_factor, vertical_factor);
+
+			std::uniform_real_distribution<float> uni_f(1.0f, min_factor);
+			const float factor = uni_f(rng);
+
+			// This describes the size of the RoI we're going to carve out of the original image mat.
+			const cv::Size size(
+					std::round(factor * desired_size.width),
+					std::round(factor * desired_size.height));
+
+			// Now that we know the size, we can create the rectangle which is used to carve out the RoI.
+			cv::Rect roi(cv::Point(0, 0), size);
+
+			// Now figure out how much room remains outside of the RoI, and randomly choose some spacing to assing.
+			const int delta_h = original_mat.cols - roi.width;
+			const int delta_v = original_mat.rows - roi.height;
+			std::uniform_int_distribution<int> uni_h(0, delta_h);
+			std::uniform_int_distribution<int> uni_v(0, delta_v);
+			roi.x = uni_h(rng);
+			roi.y = uni_v(rng);
+
+			// See if the middle point of this RoI was already covered by a previous rectangle.
+			bool continue_crop_and_zoom = true;
+			const cv::Point middle_point(roi.x + roi.width/2, roi.y + roi.height/2);
+			for (const auto & r : all_previous_rectangles)
 			{
-				// this annotation does not appear in our new image
+				if (r.contains(middle_point))
+				{
+					continue_crop_and_zoom = false;
+					break;
+				}
+			}
+
+			if (continue_crop_and_zoom == false)
+			{
+				zoom_txt
+					<< original_image
+					<< " -> skipped RoI [x=" << roi.x << " y=" << roi.y << " w=" << roi.width << " h=" << roi.height << "] due to overlap" << std::endl;
+				failed_consecutive_attempts ++;
 				continue;
 			}
 
-			const int class_idx = j["class_idx"];
+			// ...otherise, if we get here then we seem to be covering a new part of the image
+			failed_consecutive_attempts = 0;
+			all_previous_rectangles.push_back(roi);
+			zoom_txt
+				<< original_image
+				<< " -> creating RoI from [x=" << roi.x << " y=" << roi.y << " w=" << roi.width << " h=" << roi.height << "]" << std::endl;
 
-			if (x < roi.x)
+			// Crop the original image, and at the same time resize it to be the exact dimensions we need.
+			cv::Mat output_mat;
+			cv::resize(original_mat(roi), output_mat, desired_size);
+
+			std::stringstream ss;
+			ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
+			const std::string output_base_name = ss.str();
+			const std::string output_image = output_base_name + ".jpg";
+			const std::string output_label = output_base_name + ".txt";
+
+			cv::imwrite(output_image, output_mat, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
+			all_output_images.push_back(output_image);
+
+			// Read the annotations, crop them to match the image, and re-calculate the values for the .txt file.
+
+			json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
+			std::ofstream fs_txt(output_label);
+			fs_txt << std::fixed << std::setprecision(10);
+			size_t number_of_annotations = 0;
+			for (auto j : root["mark"])
 			{
-				// X is beyond the left border, we need to move it to the right
-				int delta = roi.x - x;
-				x += delta;
-				w -= delta;
-			}
-			if (y < roi.y)
-			{
-				// Y is beyond the top border, we need to move it down
-				int delta = roi.y - y;
-				y += delta;
-				h -= delta;
-			}
-			if (x + w > roi.x + roi.width)
-			{
-				// width is beyond the right border
-				w = roi.x + roi.width - x;
-			}
-			if (y + h > roi.y + roi.height)
-			{
-				// height is beyond the bottom border
-				h = roi.y + roi.height - y;
+				int x = j["rect"]["int_x"];
+				int y = j["rect"]["int_y"];
+				int w = j["rect"]["int_w"];
+				int h = j["rect"]["int_h"];
+				const cv::Rect annotation_rect(x, y, w, h);
+				const cv::Rect intersection = annotation_rect & roi;
+				if (intersection.area() == 0)
+				{
+					// this annotation does not appear in our new image
+					continue;
+				}
+
+				const int class_idx = j["class_idx"];
+
+				if (x < roi.x)
+				{
+					// X is beyond the left border, we need to move it to the right
+					int delta = roi.x - x;
+					x += delta;
+					w -= delta;
+				}
+				if (y < roi.y)
+				{
+					// Y is beyond the top border, we need to move it down
+					int delta = roi.y - y;
+					y += delta;
+					h -= delta;
+				}
+				if (x + w > roi.x + roi.width)
+				{
+					// width is beyond the right border
+					w = roi.x + roi.width - x;
+				}
+				if (y + h > roi.y + roi.height)
+				{
+					// height is beyond the bottom border
+					h = roi.y + roi.height - y;
+				}
+
+				if (w < 5 or h < 5)
+				{
+					// ignore extremely tiny slices of annotations
+					continue;
+				}
+
+				// bring all the coordinates back down to zero
+				x -= roi.x;
+				y -= roi.y;
+
+				const double normalized_w = static_cast<double>(w) / static_cast<double>(roi.width	);
+				const double normalized_h = static_cast<double>(h) / static_cast<double>(roi.height	);
+				const double normalized_x = static_cast<double>(x) / static_cast<double>(roi.width	) + normalized_w / 2.0;
+				const double normalized_y = static_cast<double>(y) / static_cast<double>(roi.height	) + normalized_h / 2.0;
+
+				fs_txt << class_idx << " " << normalized_x <<  " " << normalized_y << " " << normalized_w << " " << normalized_h << std::endl;
+				number_of_annotations ++;
 			}
 
-			if (w < 5 or h < 5)
-			{
-				// ignore extremely tiny slices of annotations
-				continue;
-			}
+			number_of_marks += number_of_annotations;
+			number_of_zooms_created ++;
 
-			// bring all the coordinates back down to zero
-			x -= roi.x;
-			y -= roi.y;
-
-			const double normalized_w = static_cast<double>(w) / static_cast<double>(roi.width	);
-			const double normalized_h = static_cast<double>(h) / static_cast<double>(roi.height	);
-			const double normalized_x = static_cast<double>(x) / static_cast<double>(roi.width	) + normalized_w / 2.0;
-			const double normalized_y = static_cast<double>(y) / static_cast<double>(roi.height	) + normalized_h / 2.0;
-
-			fs_txt << class_idx << " " << normalized_x <<  " " << normalized_y << " " << normalized_w << " " << normalized_h << std::endl;
-			number_of_annotations ++;
+			zoom_txt
+				<< original_image
+				<< " [" << original_mat.cols << "x" << original_mat.rows << "]"
+				<< " -> " << output_image
+				<< " [f=" << factor
+				<< " x=" << roi.x
+				<< " y=" << roi.y
+				<< " w=" << roi.width
+				<< " h=" << roi.height
+				<< "]"
+				<< " -> [" << output_mat.cols << "x" << output_mat.rows << "]"
+				<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
+				<< std::endl;
 		}
-
-		number_of_marks += number_of_annotations;
-		number_of_zooms_created ++;
-
-		zoom_txt
-			<< original_image
-			<< " [" << original_mat.cols << "x" << original_mat.rows << "]"
-			<< " -> " << output_image
-			<< " [f=" << factor
-			<< " x=" << roi.x
-			<< " y=" << roi.y
-			<< " w=" << roi.width
-			<< " h=" << roi.height
-			<< "]"
-			<< " -> [" << output_mat.cols << "x" << output_mat.rows << "]"
-			<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
-			<< std::endl;
 	}
 
 	return;
