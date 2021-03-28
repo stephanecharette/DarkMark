@@ -46,9 +46,9 @@ Given a @p 416x416 network, the original @p 1600x1200 image may be split like th
 
 @section crop_and_zoom_images Crop & Zoom Images
 
-When you select @p "crop & zoom images", DarkMark will choose a random region of large images, crop that region to create a new image, and then zoom the new image to match the @em exact network dimensions.  This is similar to the previous option, but only 1 new tile is created per image, and the random size of the region means the relative size of the annotated objects will change.
+When you select @p "crop & zoom images", DarkMark will choose random regions of large images, crop those regions to create several new images, and then zoom the new images to match the @em exact network dimensions.  This is similar to the previous option, but it doesn't guarantee 100% coverage as the regions and zoom levels are random, and the relative size of the annotated objects will change.
 
-The cropped region is the same aspect ratio as the network dimensions, so the image is not distorted when it is resized.
+The cropped regions are always the same aspect ratio as the network dimensions, so the image is not distorted when it is resized.
 
 The coordinates of all image annotations are automatically fixed by DarkMark during this process.  Only annotations appearing on the new output image are exported.
 
