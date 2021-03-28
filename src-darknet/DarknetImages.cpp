@@ -370,7 +370,7 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 			const float vertical_factor		= static_cast<float>(original_mat.rows) / static_cast<float>(desired_size.height);
 			const float min_factor			= std::min(horizontal_factor, vertical_factor);
 
-			std::uniform_real_distribution<float> uni_f(1.0f, min_factor);
+			std::uniform_real_distribution<float> uni_f(0.8f, min_factor);
 			const float factor = uni_f(rng);
 
 			// This describes the size of the RoI we're going to carve out of the original image mat.
