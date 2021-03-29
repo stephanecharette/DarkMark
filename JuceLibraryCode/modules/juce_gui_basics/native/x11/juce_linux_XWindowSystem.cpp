@@ -55,6 +55,25 @@ namespace
 
     template <typename Data>
     std::unique_ptr<Data, XFreeDeleter> makeXFreePtr (Data* raw) { return std::unique_ptr<Data, XFreeDeleter> (raw); }
+
+    template <typename Data, typename Deleter>
+    std::unique_ptr<Data, Deleter> makeDeletedPtr (Data* raw, const Deleter& d) { return std::unique_ptr<Data, Deleter> (raw, d); }
+
+    template <typename XValueType>
+    struct XValueHolder
+    {
+        XValueHolder (XValueType&& xv, const std::function<void(XValueType&)>& cleanup)
+            : value (std::move (xv)), cleanupFunc (cleanup)
+        {}
+
+        ~XValueHolder()
+        {
+            cleanupFunc (value);
+        }
+
+        XValueType value;
+        std::function<void(XValueType&)> cleanupFunc;
+    };
 }
 
 //==============================================================================
@@ -173,8 +192,11 @@ XContext windowHandleXContext;
 
 struct MotifWmHints
 {
-    unsigned long flags = 0, functions = 0, decorations = 0, status = 0;
-    long input_mode = 0;
+    unsigned long flags       = 0;
+    unsigned long functions   = 0;
+    unsigned long decorations = 0;
+    long          input_mode  = 0;
+    unsigned long status      = 0;
 };
 
 //=============================== X11 - Error Handling =========================
@@ -336,14 +358,14 @@ static void updateKeyModifiers (int status) noexcept
 {
     int keyMods = 0;
 
-    if ((status & ShiftMask) != 0)     keyMods |= ModifierKeys::shiftModifier;
-    if ((status & ControlMask) != 0)   keyMods |= ModifierKeys::ctrlModifier;
+    if ((status & ShiftMask)     != 0) keyMods |= ModifierKeys::shiftModifier;
+    if ((status & ControlMask)   != 0) keyMods |= ModifierKeys::ctrlModifier;
     if ((status & Keys::AltMask) != 0) keyMods |= ModifierKeys::altModifier;
 
     ModifierKeys::currentModifiers = ModifierKeys::currentModifiers.withOnlyMouseButtons().withFlags (keyMods);
 
     Keys::numLock  = ((status & Keys::NumLockMask) != 0);
-    Keys::capsLock = ((status & LockMask) != 0);
+    Keys::capsLock = ((status & LockMask)          != 0);
 }
 
 static bool updateKeyModifiersFromSym (KeySym sym, bool press) noexcept
@@ -606,13 +628,13 @@ namespace Visuals
                         {
                             for (int i = 0; i < numVisuals; ++i)
                             {
-                                auto pictVisualFormat = X11Symbols::getInstance()->xRenderFindVisualFormat (display, xvinfos[i].visual);
+                                auto pictVisualFormat = X11Symbols::getInstance()->xRenderFindVisualFormat (display, xvinfos.get()[i].visual);
 
                                 if (pictVisualFormat != nullptr
                                      && pictVisualFormat->type == PictTypeDirect
                                      && pictVisualFormat->direct.alphaMask)
                                 {
-                                    visual = xvinfos[i].visual;
+                                    visual = xvinfos.get()[i].visual;
                                     matchedDepth = 32;
                                     break;
                                 }
@@ -910,6 +932,158 @@ private:
 //=============================== X11 - Displays ===============================
 namespace DisplayHelpers
 {
+    template <typename Callback>
+    void parseXSettings (const unsigned char* dataPtr, const size_t bytes, Callback&& callback)
+    {
+        struct Header
+        {
+            CARD8 byteOrder;
+            CARD8 padding[3];
+            CARD32 serial;
+            CARD32 nSettings;
+        };
+
+        auto* data     = dataPtr;
+        size_t byteNum = 0;
+
+        const auto increment = [&] (size_t amount)
+        {
+            data    += amount;
+            byteNum += amount;
+        };
+
+        const auto* header = reinterpret_cast<const Header*> (data);
+        increment (sizeof (Header));
+
+        const auto readCARD16 = [&]() -> CARD16
+        {
+            if (byteNum + sizeof (CARD16) > bytes)
+                return {};
+
+            const auto value = header->byteOrder == MSBFirst ? ByteOrder::bigEndianShort (data)
+                                                             : ByteOrder::littleEndianShort (data);
+            increment (sizeof (CARD16));
+            return value;
+        };
+
+        const auto readCARD32 = [&]() -> CARD32
+        {
+            if (byteNum + sizeof (CARD32) > bytes)
+                return {};
+
+            const auto value = header->byteOrder == MSBFirst ? ByteOrder::bigEndianInt (data)
+                                                             : ByteOrder::littleEndianInt (data);
+            increment (sizeof (CARD32));
+            return value;
+        };
+
+        const auto readString = [&] (size_t nameLen) -> std::string
+        {
+            const auto padded = (nameLen + 3) & (~(size_t) 3);
+
+            if (byteNum + padded > bytes)
+                return {};
+
+            auto* ptr = reinterpret_cast<const char*> (data);
+            const std::string result (ptr, ptr + nameLen);
+            increment (padded);
+            return result;
+        };
+
+        CARD16 setting = 0;
+
+        while (byteNum < bytes && setting < header->nSettings)
+        {
+            const auto type = *reinterpret_cast<const char*> (data);
+            increment (2);
+
+            const auto name   = readString (readCARD16());
+            const auto serial = readCARD32();
+            ignoreUnused (serial);
+
+            enum { XSettingsTypeInteger, XSettingsTypeString, XSettingsTypeColor };
+
+            switch (type)
+            {
+                case XSettingsTypeInteger:
+                {
+                    callback (name, (INT32) readCARD32());
+                    break;
+                }
+
+                case XSettingsTypeString:
+                {
+                    callback (name, readString (readCARD32()));
+                    break;
+                }
+
+                case XSettingsTypeColor:
+                {
+                    // Order is important, these should be kept as separate statements!
+                    const auto r = readCARD16();
+                    const auto g = readCARD16();
+                    const auto b = readCARD16();
+                    const auto a = readCARD16();
+                    callback (name, r, g, b, a);
+                    break;
+                }
+            }
+
+            setting += 1;
+        }
+    }
+
+    double getScalingFactorFromXSettings()
+    {
+        if (auto* display = XWindowSystem::getInstance()->getDisplay())
+        {
+            using namespace XWindowSystemUtilities;
+
+            ScopedXLock xLock;
+
+            const auto selectionWindow = X11Symbols::getInstance()->xGetSelectionOwner (display,
+                                                                                        Atoms::getCreating (display, "_XSETTINGS_S0"));
+
+            if (selectionWindow != None)
+            {
+                const auto xsettingsSettingsAtom = Atoms::getCreating (display, "_XSETTINGS_SETTINGS");
+
+                const GetXProperty prop { selectionWindow,
+                                          xsettingsSettingsAtom,
+                                          0L,
+                                          std::numeric_limits<long>::max(),
+                                          false,
+                                          xsettingsSettingsAtom };
+
+                if (prop.success
+                    && prop.actualType == xsettingsSettingsAtom
+                    && prop.actualFormat == 8)
+                {
+                    struct ExtractRelevantSettings
+                    {
+                        void operator() (const std::string& name, INT32 value)
+                        {
+                            if (name == "Gdk/WindowScalingFactor")
+                                scaleFactor = value;
+                        }
+
+                        void operator() (const std::string&, const std::string&) {}
+                        void operator() (const std::string&, CARD16, CARD16, CARD16, CARD16) {}
+
+                        INT32 scaleFactor = 0;
+                    };
+
+                    ExtractRelevantSettings callback;
+                    parseXSettings (prop.data, prop.numItems, callback);
+
+                    return (double) callback.scaleFactor;
+                }
+            }
+        }
+
+        return 0.0;
+    }
+
     static double getDisplayDPI (::Display* display, int index)
     {
         auto widthMM  = X11Symbols::getInstance()->xDisplayWidthMM  (display, index);
@@ -924,6 +1098,11 @@ namespace DisplayHelpers
 
     static double getDisplayScale (const String& name, double dpi)
     {
+        const auto scaleFactorFromXSettings = getScalingFactorFromXSettings();
+
+        if (scaleFactorFromXSettings > 0.0)
+            return scaleFactorFromXSettings;
+
         if (name.isNotEmpty())
         {
             // Ubuntu and derived distributions now save a per-display scale factor as a configuration
@@ -1031,10 +1210,9 @@ namespace PixmapHelpers
                                                                 X11Symbols::getInstance()->xDefaultRootWindow (display),
                                                                 width, height, 24);
 
-        auto gc = X11Symbols::getInstance()->xCreateGC (display, pixmap, 0, nullptr);
-
-        X11Symbols::getInstance()->xPutImage (display, pixmap, gc, ximage.get(), 0, 0, 0, 0, width, height);
-        X11Symbols::getInstance()->xFreeGC (display, gc);
+        XValueHolder<GC> gc (X11Symbols::getInstance()->xCreateGC (display, pixmap, 0, nullptr),
+                             [&display] (GC& g) { X11Symbols::getInstance()->xFreeGC (display, g); });
+        X11Symbols::getInstance()->xPutImage (display, pixmap, gc.value, ximage.get(), 0, 0, 0, 0, width, height);
 
         return pixmap;
     }
@@ -1621,14 +1799,14 @@ Rectangle<int> XWindowSystem::getWindowBounds (::Window windowH, ::Window parent
         }
         else
         {
-            parentScreenPosition = Desktop::getInstance().getDisplays().physicalToLogical (Point<int> (rootX, rootY));
+            parentScreenPosition = Point<int> (rootX, rootY);
         }
     }
 
     return { wx, wy, (int) ww, (int) wh };
 }
 
-Point<int> XWindowSystem::getParentScreenPosition() const
+Point<int> XWindowSystem::getPhysicalParentScreenPosition() const
 {
     return parentScreenPosition;
 }
@@ -1671,6 +1849,25 @@ bool XWindowSystem::isMinimised (::Window windowH) const
     }
 
     return false;
+}
+
+void XWindowSystem::setMaximised (::Window windowH, bool shouldBeMaximised) const
+{
+    const auto root = X11Symbols::getInstance()->xRootWindow (display, X11Symbols::getInstance()->xDefaultScreen (display));
+
+    XEvent ev;
+    ev.xclient.window = windowH;
+    ev.xclient.type   = ClientMessage;
+    ev.xclient.format = 32;
+    ev.xclient.message_type = XWindowSystemUtilities::Atoms::getCreating (display, "_NET_WM_STATE");
+    ev.xclient.data.l[0] = shouldBeMaximised;
+    ev.xclient.data.l[1] = (long) XWindowSystemUtilities::Atoms::getCreating (display, "_NET_WM_STATE_MAXIMIZED_HORZ");
+    ev.xclient.data.l[2] = (long) XWindowSystemUtilities::Atoms::getCreating (display, "_NET_WM_STATE_MAXIMIZED_VERT");
+    ev.xclient.data.l[3] = 1;
+    ev.xclient.data.l[4] = 0;
+
+    XWindowSystemUtilities::ScopedXLock xLock;
+    X11Symbols::getInstance()->xSendEvent (display, root, false, SubstructureRedirectMask | SubstructureNotifyMask, &ev);
 }
 
 void XWindowSystem::toFront (::Window windowH, bool) const
@@ -1786,7 +1983,7 @@ bool XWindowSystem::canUseARGBImages() const
                                                                          X11Symbols::getInstance()->xDefaultVisual (display, X11Symbols::getInstance()->xDefaultScreen (display)),
                                                                          24, ZPixmap, nullptr, &segmentinfo, 64, 64);
 
-            canUseARGB = (testImage->bits_per_pixel == 32);
+            canUseARGB = testImage != nullptr && testImage->bits_per_pixel == 32;
             X11Symbols::getInstance()->xDestroyImage (testImage);
         }
         else
@@ -1930,7 +2127,8 @@ void* XWindowSystem::createCustomMouseCursorInfo (const Image& image, Point<int>
     auto hotspotY = hotspot.y;
 
    #if JUCE_USE_XCURSOR
-    if (auto* xcImage = X11Symbols::getInstance()->xcursorImageCreate ((int) imageW, (int) imageH))
+    if (auto xcImage = makeDeletedPtr (X11Symbols::getInstance()->xcursorImageCreate ((int) imageW, (int) imageH),
+                                       [] (XcursorImage* i) { X11Symbols::getInstance()->xcursorImageDestroy (i); }))
     {
         xcImage->xhot = (XcursorDim) hotspotX;
         xcImage->yhot = (XcursorDim) hotspotY;
@@ -1940,8 +2138,7 @@ void* XWindowSystem::createCustomMouseCursorInfo (const Image& image, Point<int>
             for (int x = 0; x < (int) imageW; ++x)
                 *dest++ = image.getPixelAt (x, y).getARGB();
 
-        auto* result = (void*) X11Symbols::getInstance()->xcursorImageLoadCursor (display, xcImage);
-        X11Symbols::getInstance()->xcursorImageDestroy (xcImage);
+        auto* result = (void*) X11Symbols::getInstance()->xcursorImageLoadCursor (display, xcImage.get());
 
         if (result != nullptr)
             return result;
@@ -1995,20 +2192,16 @@ void* XWindowSystem::createCustomMouseCursorInfo (const Image& image, Point<int>
         }
     }
 
-    auto sourcePixmap = X11Symbols::getInstance()->xCreatePixmapFromBitmapData (display, root, sourcePlane.getData(), cursorW, cursorH, 0xffff, 0, 1);
-    auto maskPixmap   = X11Symbols::getInstance()->xCreatePixmapFromBitmapData (display, root, maskPlane.getData(),   cursorW, cursorH, 0xffff, 0, 1);
+    auto xFreePixmap = [this] (Pixmap& p) { X11Symbols::getInstance()->xFreePixmap (display, p); };
+    XValueHolder<Pixmap> sourcePixmap (X11Symbols::getInstance()->xCreatePixmapFromBitmapData (display, root, sourcePlane.getData(), cursorW, cursorH, 0xffff, 0, 1), xFreePixmap);
+    XValueHolder<Pixmap> maskPixmap   (X11Symbols::getInstance()->xCreatePixmapFromBitmapData (display, root, maskPlane.getData(),   cursorW, cursorH, 0xffff, 0, 1), xFreePixmap);
 
     XColor white, black;
     black.red = black.green = black.blue = 0;
     white.red = white.green = white.blue = 0xffff;
 
-    auto* result = (void*) X11Symbols::getInstance()->xCreatePixmapCursor (display, sourcePixmap, maskPixmap, &white, &black,
-                                                                           (unsigned int) hotspotX, (unsigned int) hotspotY);
-
-    X11Symbols::getInstance()->xFreePixmap (display, sourcePixmap);
-    X11Symbols::getInstance()->xFreePixmap (display, maskPixmap);
-
-    return result;
+    return (void*) X11Symbols::getInstance()->xCreatePixmapCursor (display, sourcePixmap.value, maskPixmap.value, &white, &black,
+                                                                   (unsigned int) hotspotX, (unsigned int) hotspotY);
 }
 
 void XWindowSystem::deleteMouseCursor (void* cursorHandle) const
@@ -2022,14 +2215,13 @@ void XWindowSystem::deleteMouseCursor (void* cursorHandle) const
 
 void* createDraggingHandCursor()
 {
-    static unsigned char dragHandData[] = {
+    constexpr unsigned char dragHandData[] = {
         71,73,70,56,57,97,16,0,16,0,145,2,0,0,0,0,255,255,255,0,0,0,0,0,0,33,249,4,1,0,0,2,0,44,0,0,0,0,16,0,16,0,
         0,2,52,148,47,0,200,185,16,130,90,12,74,139,107,84,123,39,132,117,151,116,132,146,248,60,209,138,98,22,203,
         114,34,236,37,52,77,217, 247,154,191,119,110,240,193,128,193,95,163,56,60,234,98,135,2,0,59
     };
-    static constexpr auto dragHandDataSize = numElementsInArray (dragHandData);
 
-    return CustomMouseCursorInfo (ImageFileFormat::loadFrom (dragHandData, dragHandDataSize), { 8, 7 }).create();
+    return CustomMouseCursorInfo (ImageFileFormat::loadFrom (dragHandData, (size_t) numElementsInArray (dragHandData)), { 8, 7 }).create();
 }
 
 void* XWindowSystem::createStandardMouseCursor (MouseCursor::StandardCursorType type) const
@@ -2064,15 +2256,14 @@ void* XWindowSystem::createStandardMouseCursor (MouseCursor::StandardCursorType 
 
         case MouseCursor::CopyingCursor:
         {
-            static unsigned char copyCursorData[] = {
+            constexpr unsigned char copyCursorData[] = {
                 71,73,70,56,57,97,21,0,21,0,145,0,0,0,0,0,255,255,255,0,128,128,255,255,255,33,249,4,1,0,0,3,0,44,0,0,0,0,
                 21,0,21,0,0,2,72,4,134,169,171,16,199,98,11,79,90,71,161,93,56,111,78,133,218,215,137,31,82,154,100,200,
                 86,91,202,142,12,108,212,87,235,174,15,54,214,126,237,226,37,96,59,141,16,37,18,201,142,157,230,204,51,112,
                 252,114,147,74,83,5,50,68,147,208,217,16,71,149,252,124,5,0,59,0,0
             };
-            static constexpr auto copyCursorSize = numElementsInArray (copyCursorData);
 
-            return CustomMouseCursorInfo (ImageFileFormat::loadFrom (copyCursorData, copyCursorSize), { 1, 3 }).create();
+            return CustomMouseCursorInfo (ImageFileFormat::loadFrom (copyCursorData, (size_t) numElementsInArray (copyCursorData)), { 1, 3 }).create();
         }
 
         case MouseCursor::NumStandardCursorTypes:
@@ -2185,6 +2376,7 @@ Array<Displays::Display> XWindowSystem::findDisplays (float masterScale) const
     auto workAreaHints = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WORKAREA");
 
    #if JUCE_USE_XRANDR
+    if (workAreaHints != None)
     {
         int major_opcode, first_event, first_error;
 
@@ -2201,7 +2393,8 @@ Array<Displays::Display> XWindowSystem::findDisplays (float masterScale) const
                 if (! hasWorkAreaData (prop))
                     continue;
 
-                if (auto* screens = X11Symbols::getInstance()->xRRGetScreenResources (display, rootWindow))
+                if (auto screens = makeDeletedPtr (X11Symbols::getInstance()->xRRGetScreenResources (display, rootWindow),
+                                                   [] (XRRScreenResources* srs) { X11Symbols::getInstance()->xRRFreeScreenResources (srs); }))
                 {
                     for (int j = 0; j < screens->noutput; ++j)
                     {
@@ -2212,11 +2405,13 @@ Array<Displays::Display> XWindowSystem::findDisplays (float masterScale) const
                             if (! mainDisplay)
                                 mainDisplay = screens->outputs[j];
 
-                            if (auto* output = X11Symbols::getInstance()->xRRGetOutputInfo (display, screens, screens->outputs[j]))
+                            if (auto output = makeDeletedPtr (X11Symbols::getInstance()->xRRGetOutputInfo (display, screens.get(), screens->outputs[j]),
+                                                              [] (XRROutputInfo* oi) { X11Symbols::getInstance()->xRRFreeOutputInfo (oi); }))
                             {
                                 if (output->crtc)
                                 {
-                                    if (auto* crtc = X11Symbols::getInstance()->xRRGetCrtcInfo (display, screens, output->crtc))
+                                    if (auto crtc = makeDeletedPtr (X11Symbols::getInstance()->xRRGetCrtcInfo (display, screens.get(), output->crtc),
+                                                                    [] (XRRCrtcInfo* ci) { X11Symbols::getInstance()->xRRFreeCrtcInfo (ci); }))
                                     {
                                         Displays::Display d;
                                         d.totalArea = { crtc->x, crtc->y, (int) crtc->width, (int) crtc->height };
@@ -2229,7 +2424,7 @@ Array<Displays::Display> XWindowSystem::findDisplays (float masterScale) const
                                                   + ((static_cast<double> (crtc->height) * 25.4 * 0.5) / static_cast<double> (output->mm_height));
 
                                         auto scale = DisplayHelpers::getDisplayScale (output->name, d.dpi);
-                                        scale = (scale <= 0.1 ? 1.0 : scale);
+                                        scale = (scale <= 0.1 || ! JUCEApplicationBase::isStandaloneApp()) ? 1.0 : scale;
 
                                         d.scale = masterScale * scale;
 
@@ -2237,17 +2432,11 @@ Array<Displays::Display> XWindowSystem::findDisplays (float masterScale) const
                                             displays.insert (0, d);
                                         else
                                             displays.add (d);
-
-                                        X11Symbols::getInstance()->xRRFreeCrtcInfo (crtc);
                                     }
                                 }
-
-                                X11Symbols::getInstance()->xRRFreeOutputInfo (output);
                             }
                         }
                     }
-
-                    X11Symbols::getInstance()->xRRFreeScreenResources (screens);
                 }
             }
 
@@ -2496,7 +2685,7 @@ void XWindowSystem::removeWindowDecorations (::Window windowH) const
 {
     jassert (windowH != 0);
 
-    Atom hints = XWindowSystemUtilities::Atoms::getIfExists (display, "_MOTIF_WM_HINTS");
+    auto hints = XWindowSystemUtilities::Atoms::getIfExists (display, "_MOTIF_WM_HINTS");
 
     if (hints != None)
     {
@@ -2539,14 +2728,25 @@ void XWindowSystem::removeWindowDecorations (::Window windowH) const
     }
 }
 
+static void addAtomIfExists (bool condition, const char* key, ::Display* display, std::vector<Atom>& atoms)
+{
+    if (condition)
+    {
+        auto atom = XWindowSystemUtilities::Atoms::getIfExists (display, key);
+
+        if (atom != None)
+            atoms.push_back (atom);
+    }
+}
+
 void XWindowSystem::addWindowButtons (::Window windowH, int styleFlags) const
 {
     jassert (windowH != 0);
 
     XWindowSystemUtilities::ScopedXLock xLock;
-    Atom hints = XWindowSystemUtilities::Atoms::getIfExists (display, "_MOTIF_WM_HINTS");
+    auto motifAtom = XWindowSystemUtilities::Atoms::getIfExists (display, "_MOTIF_WM_HINTS");
 
-    if (hints != None)
+    if (motifAtom != None)
     {
         MotifWmHints motifHints;
         zerostruct (motifHints);
@@ -2577,29 +2777,24 @@ void XWindowSystem::addWindowButtons (::Window windowH, int styleFlags) const
             motifHints.decorations |= 0x4; /* MWM_DECOR_RESIZEH */
         }
 
-        xchangeProperty (windowH, hints, hints, 32, &motifHints, 5);
+        xchangeProperty (windowH, motifAtom, motifAtom, 32, &motifHints, 5);
     }
 
-    hints = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_ALLOWED_ACTIONS");
+    auto actionsAtom = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_ALLOWED_ACTIONS");
 
-    if (hints != None)
+    if (actionsAtom != None)
     {
-        Atom netHints [6];
-        int num = 0;
+        std::vector<Atom> netHints;
 
-        if ((styleFlags & ComponentPeer::windowIsResizable) != 0)
-            netHints [num++] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_ACTION_RESIZE");
+        addAtomIfExists ((styleFlags & ComponentPeer::windowIsResizable)       != 0, "_NET_WM_ACTION_RESIZE",     display, netHints);
+        addAtomIfExists ((styleFlags & ComponentPeer::windowHasMaximiseButton) != 0, "_NET_WM_ACTION_FULLSCREEN", display, netHints);
+        addAtomIfExists ((styleFlags & ComponentPeer::windowHasMinimiseButton) != 0, "_NET_WM_ACTION_MINIMIZE",   display, netHints);
+        addAtomIfExists ((styleFlags & ComponentPeer::windowHasCloseButton)    != 0, "_NET_WM_ACTION_CLOSE",      display, netHints);
 
-        if ((styleFlags & ComponentPeer::windowHasMaximiseButton) != 0)
-            netHints [num++] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_ACTION_FULLSCREEN");
+        auto numHints = (int) netHints.size();
 
-        if ((styleFlags & ComponentPeer::windowHasMinimiseButton) != 0)
-            netHints [num++] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_ACTION_MINIMIZE");
-
-        if ((styleFlags & ComponentPeer::windowHasCloseButton) != 0)
-            netHints [num++] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_ACTION_CLOSE");
-
-        xchangeProperty (windowH, hints, XA_ATOM, 32, &netHints, num);
+        if (numHints > 0)
+            xchangeProperty (windowH, actionsAtom, XA_ATOM, 32, netHints.data(), numHints);
     }
 }
 
@@ -2607,26 +2802,29 @@ void XWindowSystem::setWindowType (::Window windowH, int styleFlags) const
 {
     jassert (windowH != 0);
 
-    Atom netHints [2];
+    if (atoms.windowType != None)
+    {
+        auto hint = (styleFlags & ComponentPeer::windowIsTemporary) != 0
+                    || ((styleFlags & ComponentPeer::windowHasDropShadow) == 0 && Desktop::canUseSemiTransparentWindows())
+                        ? XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_WINDOW_TYPE_COMBO")
+                        : XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_WINDOW_TYPE_NORMAL");
 
-    if ((styleFlags & ComponentPeer::windowIsTemporary) != 0
-        || ((styleFlags & ComponentPeer::windowHasDropShadow) == 0 && Desktop::canUseSemiTransparentWindows()))
-        netHints [0] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_WINDOW_TYPE_COMBO");
-    else
-        netHints [0] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_WINDOW_TYPE_NORMAL");
+        if (hint != None)
+            xchangeProperty (windowH, atoms.windowType, XA_ATOM, 32, &hint, 1);
+    }
 
-    xchangeProperty (windowH, atoms.windowType, XA_ATOM, 32, &netHints, 1);
+    if (atoms.windowState != None)
+    {
+        std::vector<Atom> netStateHints;
 
-    int numHints = 0;
+        addAtomIfExists ((styleFlags & ComponentPeer::windowAppearsOnTaskbar) == 0, "_NET_WM_STATE_SKIP_TASKBAR", display, netStateHints);
+        addAtomIfExists (getPeerFor (windowH)->getComponent().isAlwaysOnTop(),      "_NET_WM_STATE_ABOVE",        display, netStateHints);
 
-    if ((styleFlags & ComponentPeer::windowAppearsOnTaskbar) == 0)
-        netHints [numHints++] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_STATE_SKIP_TASKBAR");
+        auto numHints = (int) netStateHints.size();
 
-    if (getPeerFor (windowH)->getComponent().isAlwaysOnTop())
-        netHints [numHints++] = XWindowSystemUtilities::Atoms::getIfExists (display, "_NET_WM_STATE_ABOVE");
-
-    if (numHints > 0)
-        xchangeProperty (windowH, atoms.windowState, XA_ATOM, 32, &netHints, numHints);
+        if (numHints > 0)
+            xchangeProperty (windowH, atoms.windowState, XA_ATOM, 32, netStateHints.data(), numHints);
+    }
 }
 
 void XWindowSystem::initialisePointerMap()
@@ -2687,7 +2885,8 @@ void XWindowSystem::updateModifierMappings() const
     Keys::AltMask = 0;
     Keys::NumLockMask = 0;
 
-    if (auto* mapping = X11Symbols::getInstance()->xGetModifierMapping (display))
+    if (auto mapping = makeDeletedPtr (X11Symbols::getInstance()->xGetModifierMapping (display),
+                                       [] (XModifierKeymap* mk) { X11Symbols::getInstance()->xFreeModifiermap (mk); }))
     {
         for (int modifierIdx = 0; modifierIdx < 8; ++modifierIdx)
         {
@@ -2701,8 +2900,6 @@ void XWindowSystem::updateModifierMappings() const
                     Keys::NumLockMask = 1 << modifierIdx;
             }
         }
-
-        X11Symbols::getInstance()->xFreeModifiermap (mapping);
     }
 }
 
@@ -2716,7 +2913,7 @@ long XWindowSystem::getUserTime (::Window windowH) const
         return 0;
 
     long result = 0;
-    memcpy (&result, prop.data, sizeof (long));
+    std::memcpy (&result, prop.data, sizeof (long));
 
     return result;
 }
@@ -2816,7 +3013,7 @@ bool XWindowSystem::initialiseXDisplay()
     if (! displayVisuals->isValid())
     {
         Logger::outputDebugString ("ERROR: System doesn't support 32, 24 or 16 bit RGB display.\n");
-        Process::terminate();
+        return false;
     }
 
     // Setup input event handler

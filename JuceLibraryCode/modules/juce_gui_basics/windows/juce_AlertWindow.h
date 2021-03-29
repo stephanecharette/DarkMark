@@ -228,7 +228,7 @@ public:
     //==============================================================================
     // easy-to-use message box functions:
 
-   #if JUCE_MODAL_LOOPS_PERMITTED
+   #if JUCE_MODAL_LOOPS_PERMITTED || DOXYGEN
     /** Shows a dialog box that just has a message and a single button to get rid of it.
 
         The box is shown modally, and the method will block until the user has clicked the
@@ -394,7 +394,7 @@ public:
                             it'll show a box with just an ok button
         @returns true if the ok button was pressed, false if they pressed cancel.
     */
-   #if JUCE_MODAL_LOOPS_PERMITTED
+   #if JUCE_MODAL_LOOPS_PERMITTED || DOXYGEN
     static bool JUCE_CALLTYPE showNativeDialogBox (const String& title,
                                                    const String& bodyText,
                                                    bool isOkCancel);
@@ -460,6 +460,8 @@ protected:
     void userTriedToCloseWindow() override;
     /** @internal */
     int getDesktopWindowStyleFlags() const override;
+    /** @internal */
+    float getDesktopScaleFactor() const override { return desktopScale; }
 
 private:
     //==============================================================================
@@ -479,6 +481,7 @@ private:
     StringArray textboxNames, comboBoxNames;
     Component* const associatedComponent;
     bool escapeKeyCancels = true;
+    float desktopScale = 1.0f;
 
     void exitAlert (Button* button);
     void updateLayout (bool onlyIncreaseSize);

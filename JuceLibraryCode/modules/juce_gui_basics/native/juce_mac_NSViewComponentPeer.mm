@@ -726,6 +726,12 @@ public:
             [notificationCenter removeObserver: view
                                           name: NSWindowWillMiniaturizeNotification
                                         object: currentWindow];
+
+           #if JUCE_COREGRAPHICS_DRAW_ASYNC
+            [notificationCenter removeObserver: view
+                                          name: NSWindowDidBecomeKeyNotification
+                                        object: currentWindow];
+           #endif
         }
 
         if (isSharedWindow && [view window] == window && newWindow == nullptr)
@@ -802,7 +808,7 @@ public:
     {
         // (need to retain this in case a modal loop runs in handleKeyEvent and
         // our event object gets lost)
-        const std::unique_ptr<NSEvent, NSObjectDeleter> r ([ev retain]);
+        const NSUniquePtr<NSEvent> r ([ev retain]);
 
         updateKeysDown (ev, true);
         bool used = handleKeyEvent (ev, true);
@@ -832,7 +838,7 @@ public:
     void redirectModKeyChange (NSEvent* ev)
     {
         // (need to retain this in case a modal loop runs and our event object gets lost)
-        const std::unique_ptr<NSEvent, NSObjectDeleter> r ([ev retain]);
+        const NSUniquePtr<NSEvent> r ([ev retain]);
 
         keysCurrentlyDown.clear();
         handleKeyUpOrDown (true);
@@ -1112,6 +1118,13 @@ public:
                                    selector: dismissModalsSelector
                                        name: NSWindowWillMiniaturizeNotification
                                      object: currentWindow];
+
+           #if JUCE_COREGRAPHICS_DRAW_ASYNC
+            [notificationCenter addObserver: view
+                                   selector: becomeKeySelector
+                                       name: NSWindowDidBecomeKeyNotification
+                                     object: currentWindow];
+           #endif
         }
     }
 
@@ -1119,6 +1132,11 @@ public:
     {
         if (hasNativeTitleBar() || isSharedWindow)
             sendModalInputAttemptIfBlocked();
+    }
+
+    void becomeKey()
+    {
+        component.repaint();
     }
 
     void liveResizingStart()
@@ -1224,7 +1242,7 @@ public:
         String unmodified;
 
        #if JUCE_SUPPORT_CARBON
-        if (TISInputSourceRef currentKeyboard = TISCopyCurrentKeyboardInputSource())
+        if (auto currentKeyboard = CFUniquePtr<TISInputSourceRef> (TISCopyCurrentKeyboardInputSource()))
         {
             if (auto layoutData = (CFDataRef) TISGetInputSourceProperty (currentKeyboard,
                                                                          kTISPropertyUnicodeKeyLayoutData))
@@ -1241,8 +1259,6 @@ public:
                         unmodified = String (CharPointer_UTF16 (reinterpret_cast<CharPointer_UTF16::CharType*> (buffer)), 4);
                 }
             }
-
-            CFRelease (currentKeyboard);
         }
 
         // did the above layout conversion fail
@@ -1488,6 +1504,7 @@ public:
     static const SEL frameChangedSelector;
     static const SEL asyncMouseDownSelector;
     static const SEL asyncMouseUpSelector;
+    static const SEL becomeKeySelector;
 
 private:
     static NSView* createViewInstance();
@@ -1657,6 +1674,7 @@ const SEL NSViewComponentPeer::dismissModalsSelector  = @selector (dismissModals
 const SEL NSViewComponentPeer::frameChangedSelector   = @selector (frameChanged:);
 const SEL NSViewComponentPeer::asyncMouseDownSelector = @selector (asyncMouseDown:);
 const SEL NSViewComponentPeer::asyncMouseUpSelector   = @selector (asyncMouseUp:);
+const SEL NSViewComponentPeer::becomeKeySelector      = @selector (becomeKey:);
 JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
 //==============================================================================
@@ -1727,6 +1745,7 @@ struct JuceNSViewClass   : public ObjCClass<NSView>
         addMethod (NSViewComponentPeer::asyncMouseDownSelector, asyncMouseDown,           "v@:@");
         addMethod (NSViewComponentPeer::asyncMouseUpSelector,   asyncMouseUp,             "v@:@");
         addMethod (NSViewComponentPeer::frameChangedSelector,   frameChanged,             "v@:@");
+        addMethod (NSViewComponentPeer::becomeKeySelector,      becomeKey,                "v@:@");
 
         addProtocol (@protocol (NSTextInput));
 
@@ -1795,6 +1814,7 @@ private:
     static void frameChanged (id self, SEL, NSNotification*)   { if (auto* p = getOwner (self)) p->redirectMovedOrResized(); }
     static void viewDidMoveToWindow (id self, SEL)             { if (auto* p = getOwner (self)) p->viewMovedToWindow(); }
     static void dismissModals (id self, SEL)                   { if (auto* p = getOwner (self)) p->dismissModals(); }
+    static void becomeKey (id self, SEL)                       { if (auto* p = getOwner (self)) p->becomeKey(); }
 
     static void viewWillDraw (id self, SEL)
     {
