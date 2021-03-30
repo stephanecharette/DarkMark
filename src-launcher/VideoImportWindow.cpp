@@ -2,6 +2,7 @@
 
 #include "DarkMark.hpp"
 #include <random>
+#include <magic.h>
 
 
 dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v) :
@@ -134,23 +135,47 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 			throw std::runtime_error("failed to open video file " + filename);
 		}
 
-		const auto number_of_frames	= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_COUNT	);
-		const auto fps				= cap.get(cv::VideoCaptureProperties::CAP_PROP_FPS			);
-		const auto frame_width		= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH	);
-		const auto frame_height		= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_HEIGHT	);
+		const auto number_of_frames		= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_COUNT			);
+		const auto fps					= cap.get(cv::VideoCaptureProperties::CAP_PROP_FPS					);
+		const auto frame_width			= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH			);
+		const auto frame_height			= cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_HEIGHT			);
 
-		const size_t len_minutes = static_cast<size_t>(static_cast<size_t>(number_of_frames / fps) / 60);
-		const size_t len_seconds = static_cast<size_t>(static_cast<size_t>(number_of_frames / fps) % 60);
+		const auto fpm					= fps * 60.0;
+		const auto len_minutes			= std::floor(number_of_frames / fpm);
+		const auto len_seconds			= (number_of_frames - (len_minutes * fpm)) / fps;
+
+		// Almost all videos will be "avc1" and "I420", but every once in a while we might see something else.
+		const uint32_t fourcc			= cap.get(cv::VideoCaptureProperties::CAP_PROP_FOURCC				);
+		const uint32_t format			= cap.get(cv::VideoCaptureProperties::CAP_PROP_CODEC_PIXEL_FORMAT	);
+		const std::string fourcc_str	= (fourcc == 0 ? std::to_string(fourcc) : std::string(reinterpret_cast<const char *>(&fourcc), 4));
+		const std::string format_str	= (format == 0 ? std::to_string(format) : std::string(reinterpret_cast<const char *>(&format), 4));
+
+		std::string description;
+		magic_t magic_cookie = magic_open(MAGIC_NONE);
+		if (magic_cookie != 0)
+		{
+			const auto rc = magic_load(magic_cookie, nullptr);
+			if (rc == 0)
+			{
+				description = magic_file(magic_cookie, filename.c_str());
+			}
+			magic_close(magic_cookie);
+		}
 
 		if (v.size() > 1)
 		{
 			ss << "There are " << v.size() << " videos to import." << std::endl << std::endl;
 		}
 
-		ss	<< "The video file \"" << shortname << "\" contains " << number_of_frames << " frames at " << fps << " FPS "
-			<< "for a total length of " << len_minutes << "m " << len_seconds << "s. " << std::endl
+		ss	<< "Using " << cap.getBackendName() << " to read the video file \"" << shortname << "\"." << std::endl
 			<< std::endl
-			<< "Each frame is " << static_cast<int>(frame_width) << " x " << static_cast<int>(frame_height) << ".";
+			<< "File type is FourCC: " << fourcc_str << ", pixel format: " << format_str
+			<< (description.empty() ? "" : ", " + description) << "." << std::endl
+			<< std::endl
+			<< "The video contains " << number_of_frames << " individual frames at " << fps << " FPS "
+			<< "for a total length of " << len_minutes << "m " << std::fixed << std::setprecision(1) << len_seconds << "s. " << std::endl
+			<< std::endl
+			<< "Each frame measures " << static_cast<int>(frame_width) << " x " << static_cast<int>(frame_height) << ".";
 	}
 	catch (...)
 	{
@@ -171,7 +196,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	}
 	else
 	{
-		centreWithSize(380, 530);
+		centreWithSize(380, 600);
 	}
 
 	setVisible(true);
@@ -225,7 +250,7 @@ void dm::VideoImportWindow::resized()
 	fb_rows.alignItems		= FlexBox::AlignItems::stretch;
 	fb_rows.justifyContent	= FlexBox::JustifyContent::flexStart;
 
-	fb_rows.items.add(FlexItem(header_message			).withHeight(height * 4));
+	fb_rows.items.add(FlexItem(header_message			).withHeight(height * 8).withFlex(1.0));
 	fb_rows.items.add(FlexItem(tb_extract_all			).withHeight(height).withMargin(new_row_indent));
 	fb_rows.items.add(FlexItem(tb_extract_sequences		).withHeight(height));
 

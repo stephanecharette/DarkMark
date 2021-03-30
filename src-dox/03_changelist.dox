@@ -2,6 +2,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.4.8-1		| 2021-03-30	| Output more details on the videos when importing frames.
 1.4.6-1		| 2021-03-28	| Better (and more) training images when using the crop-and-zoom option.
 1.4.1-1		| 2021-03-22	| Import images with only .txt annotations on startup to create JSON files.
 1.4.0-1		| 2021-03-14	| Added new "crop and zoom" option to augment image tiling.

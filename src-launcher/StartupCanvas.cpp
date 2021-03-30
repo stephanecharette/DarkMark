@@ -115,7 +115,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 
 	properties.add(new TextPropertyComponent(project_directory				, "project directory"		, 1000, false, false));
 	properties.add(new TextPropertyComponent(size_of_directory				, "size of directory"		, 1000, false, false));
-	properties.add(new TextPropertyComponent(last_used						, "last used"				, 1000, false, false));
+	properties.add(new TextPropertyComponent(last_used						, "last opened"				, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_images				, "image files"				, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_json					, "markup files"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(number_of_classes				, "number of classes"		, 1000, false, false));
