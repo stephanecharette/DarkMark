@@ -52,6 +52,7 @@ namespace dm
 			TextButton		cancel;
 			TextButton		ok;
 
+			size_t			extra_lines_needed;
 			size_t			number_of_processed_frames;
 	};
 }

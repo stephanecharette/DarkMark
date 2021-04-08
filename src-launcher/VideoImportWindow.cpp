@@ -31,6 +31,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 	sl_jpeg_quality			(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
 	cancel					("Cancel"),
 	ok						("Import"),
+	extra_lines_needed(0),
 	number_of_processed_frames(0)
 {
 	setContentNonOwned		(&canvas, true	);
@@ -164,7 +165,8 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 
 		if (v.size() > 1)
 		{
-			ss << "There are " << v.size() << " videos to import." << std::endl << std::endl;
+			ss << "There are " << v.size() << " videos to import. The settings below will be applied individually to each video." << std::endl << std::endl;
+			extra_lines_needed += 2;
 		}
 
 		ss	<< "Using " << cap.getBackendName() << " to read the video file \"" << shortname << "\"." << std::endl
@@ -250,7 +252,7 @@ void dm::VideoImportWindow::resized()
 	fb_rows.alignItems		= FlexBox::AlignItems::stretch;
 	fb_rows.justifyContent	= FlexBox::JustifyContent::flexStart;
 
-	fb_rows.items.add(FlexItem(header_message			).withHeight(height * 8).withFlex(1.0));
+	fb_rows.items.add(FlexItem(header_message			).withHeight(height * (8 + extra_lines_needed)).withFlex(1.0));
 	fb_rows.items.add(FlexItem(tb_extract_all			).withHeight(height).withMargin(new_row_indent));
 	fb_rows.items.add(FlexItem(tb_extract_sequences		).withHeight(height));
 
@@ -427,8 +429,23 @@ void dm::VideoImportWindow::run()
 
 			const std::string shortname = File(filename).getFileName().toStdString(); // filename+extension, but no path
 
+			std::string sanitized_name = shortname;
+			while (true)
+			{
+				auto p = sanitized_name.find_first_not_of(
+					"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+					"abcdefghijklmnopqrstuvwxyz"
+					"0123456789"
+					"-_");
+				if (p == std::string::npos)
+				{
+					break;
+				}
+				sanitized_name[p] = '_';
+			}
+
 			File dir(base_directory);
-			File child = dir.getChildFile(Time::getCurrentTime().formatted("video_import_%Y-%m-%d_%H-%M-%S"));
+			File child = dir.getChildFile(Time::getCurrentTime().formatted("video_import_%Y-%m-%d_%H-%M-%S_" + sanitized_name));
 			child.createDirectory();
 			std::string partial_output_filename = child.getChildFile(shortname).getFullPathName().toStdString();
 			size_t pos = partial_output_filename.rfind("."); // erase the extension if we find one

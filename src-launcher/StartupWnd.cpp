@@ -190,7 +190,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		if (notebook_canvas)
 		{
 			const auto base_directory = notebook_canvas->project_directory.toString();
-			FileChooser fc("Video to import...", base_directory, "*");
+			FileChooser fc("Select one or more video to import...", base_directory, "*");
 			if (fc.browseForMultipleFilesToOpen())
 			{
 				bool ok_to_proceed = true;
