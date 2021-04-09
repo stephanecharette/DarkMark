@@ -145,9 +145,20 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 		const auto len_minutes			= std::floor(number_of_frames / fpm);
 		const auto len_seconds			= (number_of_frames - (len_minutes * fpm)) / fps;
 
+		std::string opencv_ver_and_name	= "OpenCV v" + std::to_string(CV_VERSION_MAJOR) + "." + std::to_string(CV_VERSION_MINOR) + "." + std::to_string(CV_VERSION_REVISION);
+
 		// Almost all videos will be "avc1" and "I420", but every once in a while we might see something else.
 		const uint32_t fourcc			= cap.get(cv::VideoCaptureProperties::CAP_PROP_FOURCC				);
+
+#if CV_VERSION_MAJOR >= 4
+		// Turns out the pixel format enum and backend name only exists in OpenCV v4.x and newer,
+		// but Ubuntu 18.04 is still using the older version 3.2, so those have to be handled differently.
 		const uint32_t format			= cap.get(cv::VideoCaptureProperties::CAP_PROP_CODEC_PIXEL_FORMAT	);
+		opencv_ver_and_name				+= "/" + cap.getBackendName();
+#else
+		const uint32_t format			= 0;
+#endif
+
 		const std::string fourcc_str	= (fourcc == 0 ? std::to_string(fourcc) : std::string(reinterpret_cast<const char *>(&fourcc), 4));
 		const std::string format_str	= (format == 0 ? std::to_string(format) : std::string(reinterpret_cast<const char *>(&format), 4));
 
@@ -169,7 +180,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 			extra_lines_needed += 2;
 		}
 
-		ss	<< "Using " << cap.getBackendName() << " to read the video file \"" << shortname << "\"." << std::endl
+		ss	<< "Using " << opencv_ver_and_name << " to read the video file \"" << shortname << "\"." << std::endl
 			<< std::endl
 			<< "File type is FourCC: " << fourcc_str << ", pixel format: " << format_str
 			<< (description.empty() ? "" : ", " + description) << "." << std::endl
