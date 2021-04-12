@@ -7,6 +7,7 @@ dm::CrosshairComponent::CrosshairComponent(DMContent & c) :
 	Component("CrosshairComponent"),
 	content(c),
 	mouse_drag_is_enabled(false),
+	mouse_drag_offset(0, 0),
 	invalid_point(-1, -1),
 	invalid_rectangle(-1, -1, 0, 0),
 	mouse_current_loc(invalid_point),
@@ -186,6 +187,7 @@ void dm::CrosshairComponent::mouseDown(const MouseEvent & event)
 {
 	mouse_previous_loc	= mouse_current_loc;
 	mouse_current_loc	= event.getPosition();
+	mouse_drag_offset	= cv::Point(0, 0);
 
 	mouse_drag_rectangle.setPosition(mouse_current_loc);
 	mouse_drag_rectangle.setSize(0, 0);
@@ -196,8 +198,8 @@ void dm::CrosshairComponent::mouseDown(const MouseEvent & event)
 
 void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 {
-	mouse_previous_loc		= mouse_current_loc;
-	mouse_current_loc		= event.getPosition();
+	mouse_previous_loc	= mouse_current_loc;
+	mouse_current_loc	= event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
 
 	if (mouse_drag_is_enabled and mouse_drag_rectangle != invalid_rectangle)
 	{
@@ -217,9 +219,11 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 			mouseDragFinished(mouse_drag_rectangle);
 		}
 	}
-	mouse_drag_rectangle = invalid_rectangle;
 
-	need_to_rebuild_cache_image = true;
+	mouse_drag_rectangle		= invalid_rectangle;
+	mouse_drag_offset			= cv::Point(0, 0);
+	need_to_rebuild_cache_image	= true;
+
 	repaint();
 
 	return;
@@ -229,7 +233,7 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 {
 	mouse_previous_loc	= mouse_current_loc;
-	mouse_current_loc	= event.getPosition();
+	mouse_current_loc	= event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
 
 	if (mouse_drag_rectangle == invalid_rectangle or
 		mouse_drag_rectangle.getX() == -1 or

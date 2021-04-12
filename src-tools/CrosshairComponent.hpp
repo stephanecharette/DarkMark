@@ -58,6 +58,8 @@ namespace dm
 
 			bool mouse_drag_is_enabled;
 
+			cv::Point mouse_drag_offset;
+
 			const juce::Point<int> invalid_point;
 			const juce::Rectangle<int> invalid_rectangle;
 

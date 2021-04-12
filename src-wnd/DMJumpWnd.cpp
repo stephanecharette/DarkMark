@@ -108,11 +108,11 @@ void dm::DMJumpWnd::userTriedToCloseWindow()
 }
 
 
-void dm::DMJumpWnd::sliderValueChanged(Slider * slider)
+void dm::DMJumpWnd::sliderValueChanged(Slider * changed_slider)
 {
-	if (slider)
+	if (changed_slider)
 	{
-		size_t idx = slider->getValue() - 1;
+		size_t idx = changed_slider->getValue() - 1;
 		if (idx >= content.image_filenames.size())
 		{
 			// something is wrong with the index, pick a safe number to use instead

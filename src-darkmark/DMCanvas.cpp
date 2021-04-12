@@ -273,9 +273,13 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 						// we've clicked on a corner!
 
 						const auto opposite_corner = static_cast<ECorner>((static_cast<int>(type) + 2) % 4);
-						const cv::Point corner_point = m.get_corner(opposite_corner);
-						mouse_drag_rectangle.setPosition(corner_point.x, corner_point.y);
+						const cv::Point opposite_point = m.get_corner(opposite_corner);
+						mouse_drag_rectangle.setPosition(opposite_point.x, opposite_point.y);
 						index_to_delete = static_cast<int>(idx);
+
+						// remember the offset between where we clicked, and where the actual corner is located -- this will need to be applied to each mouse event
+						mouse_drag_offset = corner_point - p;
+
 						break;
 					}
 				}

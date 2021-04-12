@@ -404,7 +404,7 @@ void dm::StartupCanvas::find_all_darknet_files()
 	const String fn = darknet_names_filename.toString();
 	if (File(fn).existsAsFile())
 	{
-		VStr v;
+		VStr vstr;
 		std::ifstream ifs(fn.toStdString());
 		std::string line;
 		while (std::getline(ifs, line))
@@ -413,9 +413,9 @@ void dm::StartupCanvas::find_all_darknet_files()
 			{
 				break;
 			}
-			v.push_back(line);
+			vstr.push_back(line);
 		}
-		number_of_classes = String(v.size());
+		number_of_classes = String(vstr.size());
 	}
 	else
 	{

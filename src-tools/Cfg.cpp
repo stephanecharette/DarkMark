@@ -7,15 +7,15 @@ dm::Cfg::Cfg(void) :
 	PropertiesFile(
 		[]
 		{
-			PropertiesFile::Options options;
+			PropertiesFile::Options opt;
 
-			options.storageFormat			= PropertiesFile::StorageFormat::storeAsXML;
-			options.applicationName			= "DarkMark";
-			options.filenameSuffix			= ".cfg";
-			options.commonToAllUsers		= false;
-			options.ignoreCaseOfKeyNames	= true;
+			opt.storageFormat			= PropertiesFile::StorageFormat::storeAsXML;
+			opt.applicationName			= "DarkMark";
+			opt.filenameSuffix			= ".cfg";
+			opt.commonToAllUsers		= false;
+			opt.ignoreCaseOfKeyNames	= true;
 
-			return options;
+			return opt;
 		}() )
 {
 	Log("configuration file used: " + getFile().getFullPathName().toStdString());

@@ -9,7 +9,8 @@ INCLUDE_DIRECTORIES ( BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/JuceLibraryCode )
 INCLUDE_DIRECTORIES ( BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/JuceLibraryCode/modules )
 ADD_SUBDIRECTORY ( src-juce )
 
-ADD_DEFINITIONS ( "-Wall -Wextra -Werror -Wno-unused-parameter" )
+# Would love to also have -Wshadow, but JUCE prevents me from using it.
+ADD_DEFINITIONS ( "-Wall -Wextra -Werror -Wno-unused-parameter") # -Wshadow" )
 
 INCLUDE_DIRECTORIES ( BEFORE src-main		)
 INCLUDE_DIRECTORIES ( BEFORE src-tools		)

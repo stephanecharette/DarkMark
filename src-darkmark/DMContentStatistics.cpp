@@ -146,10 +146,10 @@ void dm::DMContentStatistics::run()
 			s.avg_a = double(s.sum_a) / double(s.count);
 
 			double sum_of_diff_squared = 0.0;
-			for (auto iter : s.width_counts)
+			for (auto i : s.width_counts)
 			{
-				const double w				= iter.first;
-				const size_t count			= iter.second;
+				const double w				= i.first;
+				const size_t count			= i.second;
 				const double diff			= w - s.avg_w;
 				const double diff_squared	= diff * diff;
 				sum_of_diff_squared			+= (count * diff_squared);
@@ -157,10 +157,10 @@ void dm::DMContentStatistics::run()
 			s.standard_deviation_width = std::sqrt(sum_of_diff_squared / double(s.count));
 
 			sum_of_diff_squared = 0.0;
-			for (auto iter : s.height_counts)
+			for (auto i : s.height_counts)
 			{
-				const double h				= iter.first;
-				const size_t count			= iter.second;
+				const double h				= i.first;
+				const size_t count			= i.second;
 				const double diff			= h - s.avg_h;
 				const double diff_squared	= diff * diff;
 				sum_of_diff_squared			+= (count * diff_squared);

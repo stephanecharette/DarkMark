@@ -1214,9 +1214,9 @@ dm::DMContent & dm::DMContent::save_json()
 }
 
 
-dm::DMContent & dm::DMContent::import_text_annotations(const VStr & image_filenames)
+dm::DMContent & dm::DMContent::import_text_annotations(const VStr & images_fn)
 {
-	DMContentImportTxt helper(*this, image_filenames);
+	DMContentImportTxt helper(*this, images_fn);
 	helper.runThread(); // waits for this to finish before continuing
 
 	return *this;

@@ -261,15 +261,15 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 						if (x < tile_rect.x)
 						{
 							// X is beyond the left border, we need to move it to the right
-							int delta = tile_rect.x - x;
-							x += delta;
-							w -= delta;
+							const int delta_x = tile_rect.x - x;
+							x += delta_x;
+							w -= delta_x;
 						}
 						if (y < tile_rect.y)
 						{
-							int delta = tile_rect.y - y;
-							y += delta;
-							h -= delta;
+							const int delta_y = tile_rect.y - y;
+							y += delta_y;
+							h -= delta_y;
 						}
 						if (x + w > tile_rect.x + tile_rect.width)
 						{

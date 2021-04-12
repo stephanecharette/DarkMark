@@ -93,10 +93,10 @@ dm::StartupWnd::~StartupWnd()
 {
 	for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
 	{
-		StartupCanvas * canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
-		if (canvas)
+		StartupCanvas * startup_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
+		if (startup_canvas)
 		{
-			canvas->done = true;
+			startup_canvas->done = true;
 		}
 	}
 

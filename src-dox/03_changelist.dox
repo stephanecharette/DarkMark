@@ -2,6 +2,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.4.11-1	| 2021-04-12	| Fix off-by-1 errors in drawing annotation, and remove mouse click/drag offsets.
 1.4.10-1	| 2021-04-09	| Fix compile problem when using OpenCV v3.2 from Ubuntu 18.04.
 1.4.8-1		| 2021-03-30	| Output more details on the videos when importing frames.
 1.4.6-1		| 2021-03-28	| Better (and more) training images when using the crop-and-zoom option.

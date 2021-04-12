@@ -308,12 +308,12 @@ void calc_anchors(const std::string & train_images_filename, const size_t number
 	std::multimap<float, std::string> mm;
 	for (size_t row = 0; row < number_of_clusters; row ++)
 	{
-		const float w			= anchors_data.centers.row_and_col(row, 0);
-		const float h			= anchors_data.centers.row_and_col(row, 1);
-		const float area		= w * h;
-		const size_t width		= std::round(w);
-		const size_t height		= std::round(h);
-		const std::string text	= std::to_string(width) + "," + std::to_string(height);
+		const float w				= anchors_data.centers.row_and_col(row, 0);
+		const float h				= anchors_data.centers.row_and_col(row, 1);
+		const float area			= w * h;
+		const size_t round_width	= std::round(w);
+		const size_t round_height	= std::round(h);
+		const std::string text	= std::to_string(round_width) + "," + std::to_string(round_height);
 		mm.insert(std::make_pair(area, text));
 	}
 	for (auto [key, val] : mm)
