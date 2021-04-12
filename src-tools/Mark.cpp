@@ -151,8 +151,8 @@ cv::Rect dm::Mark::get_bounding_rect() const
 	// limit the rectangle to the exact size of the image
 	if (r.x < 0) r.x = 0;
 	if (r.y < 0) r.y = 0;
-	if (r.x + r.width	>= image_dimensions.width)		r.width		= image_dimensions.width	- r.x - 1;
-	if (r.y + r.height	>= image_dimensions.height)		r.height	= image_dimensions.height	- r.y - 1;
+	if (r.x + r.width	> image_dimensions.width)		r.width		= image_dimensions.width	- r.x;
+	if (r.y + r.height	> image_dimensions.height)		r.height	= image_dimensions.height	- r.y;
 
 	return r;
 }
