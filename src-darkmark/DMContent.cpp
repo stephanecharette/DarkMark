@@ -486,6 +486,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		}
 		return true;
 	}
+	else if (keycode == KeyPress::deleteKey and key.getModifiers().isShiftDown())
+	{
+		delete_current_image();
+		return true;
+	}
 	else if (keycode == KeyPress::deleteKey or keycode == KeyPress::backspaceKey or keycode == KeyPress::numberPadDelete)
 	{
 		if (selected_mark >= 0)
@@ -1347,13 +1352,17 @@ dm::DMContent & dm::DMContent::delete_current_image()
 {
 	if (image_filename_index < image_filenames.size())
 	{
+		need_to_save = false;
 		File f(image_filenames[image_filename_index]);
 		Log("deleting the file at index #" + std::to_string(image_filename_index) + ": " + f.getFullPathName().toStdString());
-		f.deleteFile();
-		f.withFileExtension(".txt"	).deleteFile();
-		f.withFileExtension(".json"	).deleteFile();
+
+		f.moveToTrash();
+		f.withFileExtension(".txt"	).moveToTrash();
+		f.withFileExtension(".json"	).moveToTrash();
+
 		image_filenames.erase(image_filenames.begin() + image_filename_index);
 		load_image(image_filename_index);
+		scrollfield.rebuild_entire_field_on_thread();
 	}
 
 	return *this;

@@ -15,6 +15,7 @@ Key							| Saves Modified Marks First	| Description
 @p ENTER (or @p RETURN)		|								| Display the 'class' menu (see @p 'c' key).
 @p DEL						|								| Delete the currently selected marking.
 @p BACKSPACE				|								| Same as @p DEL.
+@p SHIFT + @p DEL			| no							| Delete the current image from disk.  Moves the image to the trash, removing it from the data set.  Be careful, this @em does @em not prompt!
 @p ESC						| yes							| Quit from DarkMark.
 @p F1						|								| About DarkMark.
 @p TAB						|								| Move focus to the next marking.
