@@ -78,8 +78,10 @@ void dm::ScrollField::run()
 		return;
 	}
 
+	Log("Scrollfield: creating a new image, 200x" + std::to_string(number_of_images) + ", for " + std::to_string(number_of_classes) + " classes");
 	field = cv::Mat(number_of_images, 200, CV_8UC3, {0.0, 0.0, 0.0});
 	line_width = static_cast<double>(field.cols) / static_cast<double>(number_of_classes);
+	Log("Scrollfield: size of field is " + std::to_string(field.cols) + "x" + std::to_string(field.rows) + ", and the width of each line is " + std::to_string(line_width) + " pixels");
 
 	for (size_t idx = 0; idx < number_of_images; idx ++)
 	{
@@ -129,6 +131,7 @@ void dm::ScrollField::run()
 
 	need_to_rebuild_cache_image = true;
 	repaint();
+	content.resized();
 
 	return;
 }
@@ -136,20 +139,27 @@ void dm::ScrollField::run()
 
 void dm::ScrollField::update_index(const size_t idx)
 {
+	if (field.empty())
+	{
+		// if we don't have an image to draw into, then return immediately
+		return;
+	}
+
 	if (idx >= content.image_filenames.size())
 	{
 		// nothing we can do with an index that is out of range
+		Log("ScrollField: idx=" + std::to_string(idx) + " but we only have " + std::to_string(content.image_filenames.size()) + " images");
+		return;
+	}
+
+	if (static_cast<size_t>(field.rows) != content.image_filenames.size())
+	{
+		Log("Scrollfield: height=" + std::to_string(field.rows) + " but we have " + std::to_string(content.image_filenames.size()) + " images");
 		return;
 	}
 
 	if (content.scrollfield_width < 1)
 	{
-		return;
-	}
-
-	if (field.empty())
-	{
-		// if we don't have an image to draw into, then return immediately
 		return;
 	}
 
@@ -164,9 +174,13 @@ void dm::ScrollField::update_index(const size_t idx)
 		return;
 	}
 
+	std::string msg;
 	try
 	{
+		const std::string fn = f.getFullPathName().toStdString();
+		msg = "loading " + fn;
 		json root = json::parse(f.loadFileAsString().toStdString());
+		msg = "done " + msg;
 
 		if (root.value("completely_empty", false) == true)
 		{
@@ -174,6 +188,7 @@ void dm::ScrollField::update_index(const size_t idx)
 			root["mark"][0]["class_idx"] = content.empty_image_name_index;
 		}
 
+		msg = "checking marks in " + fn;
 		if (root["mark"].size() == 0)
 		{
 			// What is going on here?  Why do we have a JSON, but it isn't marked "empty" and doesn't have any marks?
@@ -182,25 +197,30 @@ void dm::ScrollField::update_index(const size_t idx)
 		}
 		else
 		{
+			msg = "drawing scrollfield line for " + fn;
 			cv::line(field, cv::Point(0, idx), cv::Point(field.cols, idx), {0.0, 0.0, 0.0}, 1, cv::LINE_4); // start with a black background
 			for (auto m : root["mark"])
 			{
 				const int class_idx = m["class_idx"];
 				const cv::Point p1(line_width * class_idx, idx);
 				const cv::Point p2 = p1 + cv::Point(line_width, 0);
-				cv::line(field, p1, p2, content.annotation_colours.at(class_idx), 1, cv::LINE_4);
+				msg = "drawing scrollfield line (class #" + std::to_string(class_idx) + ") for " + fn;
+				cv::line(field, p1, p2, content.annotation_colours.at(class_idx % content.annotation_colours.size()), 1, cv::LINE_4);
 			}
+			msg = "done " + msg;
 		}
 	}
 	catch (const std::exception & e)
 	{
 		// the .json file is broken somehow, so use a pure red line
+		Log("Scrollfield: msg: " + msg);
 		Log("ScrollField: error detected at idx #" + std::to_string(idx) + " (" + filename + "): " + e.what());
 		cv::line(field, cv::Point(0, idx), cv::Point(field.cols, idx), {0.0, 0.0, 255.0}, 1, cv::LINE_4);
 	}
 	catch (...)
 	{
 		// the .json file is broken somehow, so use a pure red line
+		Log("Scrollfield: msg: " + msg);
 		Log("ScrollField: error detected at idx #" + std::to_string(idx) + " (" + filename + ")");
 		cv::line(field, cv::Point(0, idx), cv::Point(field.cols, idx), {0.0, 0.0, 255.0}, 1, cv::LINE_4);
 	}

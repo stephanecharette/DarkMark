@@ -1062,7 +1062,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	catch(const std::exception & e)
 	{
 		exception_caught = true;
-		Log("Error: exception caught while " + task + ": " + e.what());
+		Log("Error with " + long_filename + ": exception caught while " + task + ": " + e.what());
 		what_msg = e.what();
 	}
 	catch(...)
@@ -1078,11 +1078,11 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 		AlertWindow::showMessageBoxAsync(
 			AlertWindow::AlertIconType::WarningIcon,
 			"DarkMark",
-			"Failure occurred while " + task + ". See log file for details.\n"
+			"Failure occurred while " + task + ". This happened while processing " + short_filename + ". See the log file for details.\n"
 			"\n"
-			"The most likely cause of this failure is when Darknet has been recently updated, but the version of DarkHelp installed is for an older version of libdarknet. If this is the case, then rebuilding DarkHelp should fix the issue.\n"
+			"A possible cause for this failure is when Darknet has been recently updated, but the version of DarkHelp installed is for an older version of libdarknet. If this is the case, then rebuilding DarkHelp should fix the issue.\n"
 			"\n"
-			"Another possible cause of this failure is if the image cannot be opened or loaded correctly by OpenCV.\n"
+			"Another is if the image cannot be opened or loaded correctly by OpenCV.\n"
 			"\n"
 			"The exact error message logged is: " + what_msg);
 	}
@@ -1734,6 +1734,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	image.addItem("jump..."																										, std::function<void()>( [&]{ show_jump_wnd();				} ));
 	image.addSeparator();
 	image.addItem("rotate images..."																							, std::function<void()>( [&]{ rotate_every_image();			} ));
+	image.addItem("move empty images..."																						, std::function<void()>( [&]{ move_empty_images();			} ));
 	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
 
 	PopupMenu help;
@@ -1819,6 +1820,25 @@ dm::DMContent & dm::DMContent::rotate_every_image()
 	if (result > 0)
 	{
 		DMContentRotateImages helper(*this, (result == 0));
+		helper.runThread();
+	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::move_empty_images()
+{
+	const int result = AlertWindow::showOkCancelBox(AlertWindow::QuestionIcon, "DarkMark",
+		"Some people like to organize their images so \"empty\" (aka \"negative sample\") images are stored together. This has "
+		"zero impact on how the neural network is trained. The length of time to train won't change, and the effectiveness of "
+		"the neural network will be exactly the same. The only real purpose is to help people organize their images for review.\n"
+		"\n"
+		"Do you wish to move the empty images into a folder called \"empty_images\"?");
+
+	if (result != 0)
+	{
+		DMContentMoveEmptyImages helper(*this);
 		helper.runThread();
 	}
 

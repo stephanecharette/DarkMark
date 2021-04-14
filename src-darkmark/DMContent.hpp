@@ -120,6 +120,8 @@ namespace dm
 
 			DMContent & rotate_every_image();
 
+			DMContent & move_empty_images();
+
 			DMContent & reload_resave_every_image();
 
 			DMContent & show_jump_wnd();
