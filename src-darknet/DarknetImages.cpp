@@ -356,16 +356,42 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 			continue;
 		}
 
+		const cv::Rect original_rect(0, 0, original_mat.cols, original_mat.rows);
+		json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
+		std::vector<cv::Point> points_of_interest;
+		for (auto j : root["mark"])
+		{
+			const int x = j["rect"]["int_x"];
+			const int y = j["rect"]["int_y"];
+			const int w = j["rect"]["int_w"];
+			const int h = j["rect"]["int_h"];
+
+			for (const cv::Point p :
+				{
+					cv::Point(x + 0, y + 0),	// TL
+					cv::Point(x + w, y + 0),	// TR
+					cv::Point(x + w, y + h),	// BR
+					cv::Point(x + 0, y + h),	// BL
+					cv::Point(x + w/2, y + h/2)	// middle
+				})
+			{
+				if (original_rect.contains(p))
+				{
+					points_of_interest.push_back(p);
+				}
+			}
+		}
+
 		// keep creating cropped/zoomed images as long as we're finding new parts of the image that we didn't previously cover
 		std::vector<cv::Rect> all_previous_rectangles;
 		size_t failed_consecutive_attempts = 0;
 
-		while (failed_consecutive_attempts < 3)
+		while (failed_consecutive_attempts < 5)
 		{
 			/* The amount we're going to "zoom in" depends on exactly how big the image is compared to the final size.
-			* This value is the "factor" by which we multiply the desired image size.  We need to make sure that both
-			* the horizontal and vertical values can be satisfied.
-			*/
+			 * This value is the "factor" by which we multiply the desired image size.  We need to make sure that both
+			 * the horizontal and vertical values can be satisfied.
+			 */
 			const float horizontal_factor	= static_cast<float>(original_mat.cols) / static_cast<float>(desired_size.width);
 			const float vertical_factor		= static_cast<float>(original_mat.rows) / static_cast<float>(desired_size.height);
 			const float min_factor			= std::min(horizontal_factor, vertical_factor);
@@ -396,8 +422,23 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 			{
 				if (r.contains(middle_point))
 				{
+					// we've already covered this point
 					continue_crop_and_zoom = false;
 					break;
+				}
+			}
+
+			if (continue_crop_and_zoom == false)
+			{
+				// before we give up on this RoI, see if it covers one of the remaining points of interest
+				for (const auto & p : points_of_interest)
+				{
+					if (roi.contains(p))
+					{
+						zoom_txt << original_image << "-> adding RoI because it includes point-of-interest x=" << p.x << " y=" << p.y << std::endl;
+						continue_crop_and_zoom = true;
+						break;
+					}
 				}
 			}
 
@@ -417,6 +458,21 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 				<< original_image
 				<< " -> creating RoI from [x=" << roi.x << " y=" << roi.y << " w=" << roi.width << " h=" << roi.height << "]" << std::endl;
 
+			// remove from "points-of-interest" any points located within the RoI we've just created
+			auto iter = points_of_interest.begin();
+			while (iter != points_of_interest.end())
+			{
+				const auto & p = *iter;
+				if (roi.contains(p))
+				{
+					iter = points_of_interest.erase(iter);
+				}
+				else
+				{
+					iter ++;
+				}
+			}
+
 			// Crop the original image, and at the same time resize it to be the exact dimensions we need.
 			cv::Mat output_mat;
 			cv::resize(original_mat(roi), output_mat, desired_size);
@@ -430,9 +486,8 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 			cv::imwrite(output_image, output_mat, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
 			all_output_images.push_back(output_image);
 
-			// Read the annotations, crop them to match the image, and re-calculate the values for the .txt file.
+			// crop the annotations to match the image, and re-calculate the values for the .txt file.
 
-			json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
 			std::ofstream fs_txt(output_label);
 			fs_txt << std::fixed << std::setprecision(10);
 			size_t number_of_annotations = 0;
@@ -512,6 +567,11 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 				<< " -> [" << output_mat.cols << "x" << output_mat.rows << "]"
 				<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
 				<< std::endl;
+		}
+
+		if (points_of_interest.empty() == false)
+		{
+			zoom_txt << original_image << " -> still had " << points_of_interest.size() << " items remaining in the points-of-interest" << std::endl;
 		}
 	}
 
