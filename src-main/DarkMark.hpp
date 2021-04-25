@@ -8,12 +8,6 @@
 #include <thread>
 #include <chrono>
 #include <DarkHelp.hpp>
-
-#if (DARKMARK_ENABLE_OPENCV_CSRT_TRACKER > 0)
-// Not enabled by default.  See CM_definitions.cmake for details.
-#include <opencv2/tracking/tracker.hpp>
-#endif
-
 #include <JuceHeader.h>
 
 
