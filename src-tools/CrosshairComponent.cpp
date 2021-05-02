@@ -2,6 +2,12 @@
 
 #include "DarkMark.hpp"
 
+/** When set, this next define causes DarkMark to draw a square with some details
+ * on the mouse, the state of zoom, and the currently selected mark (annotation).
+ */
+#define INCLUDE_DEBUG_MOUSE_LOC 0
+#define DEBUG_MOUSE_LOC_RECT 600, 10, 250, 125
+
 
 dm::CrosshairComponent::CrosshairComponent(DMContent & c) :
 	Component("CrosshairComponent"),
@@ -14,7 +20,8 @@ dm::CrosshairComponent::CrosshairComponent(DMContent & c) :
 	mouse_previous_loc(invalid_point),
 	mouse_down_loc(invalid_point),
 	mouse_drag_rectangle(invalid_rectangle),
-	need_to_rebuild_cache_image(true)
+	need_to_rebuild_cache_image(true),
+	zoom_image_offset(0, 0)
 {
 	setBufferedToImage(false);
 
@@ -73,7 +80,7 @@ void dm::CrosshairComponent::paint(Graphics & g)
 	{
 		const int h = getHeight();
 		const int w = getWidth();
-		g.drawImage(cached_image, 0, 0, w, h, 0, 0, w, h);
+		g.drawImage(cached_image, 0, 0, w, h, zoom_image_offset.x, zoom_image_offset.y, w, h);
 
 		if (mouse_drag_is_enabled and mouse_drag_rectangle != invalid_rectangle)
 		{
@@ -92,7 +99,7 @@ void dm::CrosshairComponent::paint(Graphics & g)
 
 			juce::Rectangle<int> r(x1, y1, x2 - x1, y2 - y1);
 
-//			const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx);
+//			const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx % ...);
 //			const juce::Colour colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 
 			g.setColour(content.crosshair_colour);
@@ -125,6 +132,47 @@ void dm::CrosshairComponent::paint_crosshairs(Graphics & g)
 		g.drawVerticalLine(		mouse_current_loc.x, 0, h);
 	}
 
+	#if INCLUDE_DEBUG_MOUSE_LOC
+	String str =
+		"zoom offset:"
+		" x=" + String(zoom_image_offset.x) +
+		" y=" + String(zoom_image_offset.y) +
+		"\n" +
+		"zoom factor=" + String(content.current_zoom_factor) +
+		"\n" +
+		"wnd mouse loc:"
+		" x=" + String(mouse_current_loc.x) +
+		" y=" + String(mouse_current_loc.y) +
+		"\n" +
+		"img mouse loc:" +
+		" x=" + String(std::round((mouse_current_loc.x + zoom_image_offset.x) / content.current_zoom_factor)) + "," +
+		" y=" + String(std::round((mouse_current_loc.y + zoom_image_offset.y) / content.current_zoom_factor)) +
+		"\n" +
+		"scaled image:"
+		" w=" + String(content.scaled_image_size.width) +
+		" h=" + String(content.scaled_image_size.height) +
+		"\n" +
+		"current mark=" + String(content.selected_mark);
+
+	if (content.selected_mark >= 0)
+	{
+		auto & m = content.marks.at(content.selected_mark);
+		auto r = m.get_bounding_rect(content.scaled_image_size);
+		str += "\n"
+			"mark[" + String(content.selected_mark) + "]:"
+			" x=" + String(r.x) +
+			" y=" + String(r.y) +
+			" w=" + String(r.width) +
+			" h=" + String(r.height);
+	}
+
+	g.setColour(Colours::white);
+	g.fillRect(DEBUG_MOUSE_LOC_RECT);
+	g.setColour(Colours::blue);
+	g.drawRect(DEBUG_MOUSE_LOC_RECT);
+	g.drawFittedText(str, DEBUG_MOUSE_LOC_RECT, Justification::centred, 7);
+	#endif
+
 	return;
 }
 
@@ -151,6 +199,10 @@ void dm::CrosshairComponent::mouseMove(const MouseEvent & event)
 
 		repaint(mouse_current_loc.x, 0, 1, h);
 		repaint(0, mouse_current_loc.y, w, 1);
+
+		#if INCLUDE_DEBUG_MOUSE_LOC
+		repaint(DEBUG_MOUSE_LOC_RECT);
+		#endif
 	}
 
 	return;

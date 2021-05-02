@@ -35,7 +35,10 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	scale_factor(1.0),
 	most_recent_class_idx(0),
 	image_filename_index(0),
-	project_info(cfg_prefix)
+	project_info(cfg_prefix),
+	user_specified_zoom_factor(-1.0),
+	previous_zoom_factor(2.5),
+	current_zoom_factor(1.0)
 {
 	addAndMakeVisible(canvas);
 	addAndMakeVisible(scrollfield);
@@ -158,16 +161,35 @@ void dm::DMContent::resized()
 	const double min_horizontal_spacer_height	= (scrollfield_width > 0 ? 2.0 : 0.0);
 	const double width_ratio					= (window_width - min_horizontal_spacer_height - scrollfield_width) / image_width;
 	const double height_ratio					= window_height / image_height;
-	const double ratio							= std::min(width_ratio, height_ratio);
-	const double new_image_width				= std::round(ratio * image_width);
-	const double new_image_height				= std::round(ratio * image_height);
+	double ratio								= std::min(width_ratio, height_ratio);
 
-	canvas.setBounds(0, 0, new_image_width, new_image_height);
+	double new_image_width	= std::round(ratio * image_width);
+	double new_image_height	= std::round(ratio * image_height);
+
+	int canvas_width = new_image_width;
+	int canvas_height = new_image_height;
+
+	// ...but if we're zooming by a user-defined amount, then we need to alter a few of these values
+	if (user_specified_zoom_factor > 0.0)
+	{
+		ratio = user_specified_zoom_factor;
+		new_image_width		= std::round(ratio * image_width);
+		new_image_height	= std::round(ratio * image_height);
+
+		canvas_width = window_width - min_horizontal_spacer_height - scrollfield_width;
+		canvas_height = window_height;
+
+		if (new_image_width		< canvas_width	) canvas_width	= new_image_width;
+		if (new_image_height	< canvas_height	) canvas_height	= new_image_height;
+	}
+
+	canvas.setBounds(0, 0, canvas_width, canvas_height);
 	scrollfield.setBounds(window_width - scrollfield_width, 0, scrollfield_width, window_height);
 
 	// remember some of the important numbers so we don't have to re-calculate them later
-	scaled_image_size = cv::Size(new_image_width, new_image_height);
-	scale_factor = ratio;
+	scaled_image_size		= cv::Size(new_image_width, new_image_height);
+	current_zoom_factor		= ratio;
+	scale_factor			= ratio;
 
 	// update the window title to show the scale factor
 	if (dmapp().wnd)
@@ -182,7 +204,15 @@ void dm::DMContent::resized()
 			" - "	+ short_filename +
 			" - "	+ std::to_string(original_image.cols) +
 			"x"		+ std::to_string(original_image.rows) +
-			" - "	+ std::to_string(static_cast<int>(std::round(scale_factor * 100.0))) + "%";
+			" @ "	+ std::to_string(static_cast<int>(std::round(scale_factor * 100.0))) + "%";
+
+		if (ratio > 0.0 and ratio != 1.0)
+		{
+			title += " = " +
+				std::to_string(static_cast<int>(std::round(new_image_width))) +
+				"x" +
+				std::to_string(static_cast<int>(std::round(new_image_height)));
+		}
 
 		dmapp().wnd->setName(title);
 	}
@@ -266,7 +296,7 @@ void dm::DMContent::start_darknet()
 	annotation_colours = DarkHelp::get_default_annotation_colours();
 	if (annotation_colours.empty() == false)
 	{
-		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
+		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx % annotation_colours.size());
 		crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 	}
 
@@ -383,7 +413,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 			most_recent_class_idx = m.class_idx;
 			most_recent_size = m.get_normalized_bounding_rect().size();
 
-			const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
+			const auto & opencv_colour = annotation_colours.at(most_recent_class_idx % annotation_colours.size());
 			crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 		}
 
@@ -407,16 +437,31 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keycode == KeyPress::homeKey)
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		load_image(0);
 		return true;
 	}
 	else if (keycode == KeyPress::endKey)
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		load_image(image_filenames.size() - 1);
 		return true;
 	}
 	else if (keycode == KeyPress::rightKey)
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		if (image_filename_index < image_filenames.size() - 1)
 		{
 			load_image(image_filename_index + 1);
@@ -425,6 +470,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keycode == KeyPress::leftKey)
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		if (image_filename_index > 0)
 		{
 			load_image(image_filename_index - 1);
@@ -433,6 +483,12 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keycode == KeyPress::pageUpKey)
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
+
 		// go to the previous available image with no marks
 		auto idx = image_filename_index;
 		while (idx > 0)
@@ -452,6 +508,12 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keycode == KeyPress::pageDownKey)
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
+
 		// go to the next available image with no marks
 		auto idx = image_filename_index;
 		while (idx < image_filenames.size() - 1)
@@ -488,6 +550,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keycode == KeyPress::deleteKey and key.getModifiers().isShiftDown())
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		delete_current_image();
 		return true;
 	}
@@ -505,7 +572,14 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keycode == KeyPress::escapeKey)
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// get out of zoom mode instead of quitting from the application
+			return keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
+
 		dmapp().wnd->closeButtonPressed();
+		return true;
 	}
 	else if (keycode == KeyPress::F1Key)
 	{
@@ -516,25 +590,118 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		dmapp().about_wnd->toFront(true);
 		return true;
 	}
+	else if (keychar == '-') // why is the value for KeyPress::numberPadSubtract unusable!?
+	{
+		if (user_specified_zoom_factor <= 0.0)
+		{
+			user_specified_zoom_factor = std::ceil(current_zoom_factor * 10.0) / 10.0;
+		}
+		user_specified_zoom_factor -= 0.1;
+
+		// use rounded zoom numbers -- so 0.19999 gets rounded to 0.2
+		user_specified_zoom_factor = std::round(user_specified_zoom_factor * 10.0) / 10.0;
+
+		if (user_specified_zoom_factor < 0.01)
+		{
+			user_specified_zoom_factor = 0.01;
+		}
+
+		resized();
+		rebuild_image_and_repaint();
+		show_message("zoom: " + std::to_string(static_cast<int>(user_specified_zoom_factor * 100.0)) + "%");
+		return true;
+	}
+	else if (keychar == '+') // why is the value for KeyPress::numberPadAdd unusable!?
+	{
+		if (user_specified_zoom_factor <= 0.0)
+		{
+			Log("zoom offset was x=" + std::to_string(zoom_offset.x) + " y=" + std::to_string(zoom_offset.y));
+			const auto point = canvas.getLocalPoint(nullptr, Desktop::getMousePosition());
+			zoom_offset.x = current_zoom_factor * std::max(0, point.x);
+			zoom_offset.y = current_zoom_factor * std::max(0, point.y);
+			Log("zoom offset now x=" + std::to_string(zoom_offset.x) + " y=" + std::to_string(zoom_offset.y));
+			user_specified_zoom_factor = std::floor(current_zoom_factor * 10.0) / 10.0;
+		}
+		user_specified_zoom_factor += 0.1;
+
+		// use rounded zoom numbers -- so 0.19999 gets rounded to 0.2
+		user_specified_zoom_factor = std::round(user_specified_zoom_factor * 10.0) / 10.0;
+
+		if (user_specified_zoom_factor > 4.0)
+		{
+			user_specified_zoom_factor = 4.0;
+		}
+
+		resized();
+		rebuild_image_and_repaint();
+		show_message("zoom: " + std::to_string(static_cast<int>(user_specified_zoom_factor * 100.0)) + "%");
+		return true;
+	}
+	else if (keycode == KeyPress::spaceKey)
+	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// go back to "auto" zoom
+			zoom_offset = cv::Size(0, 0);
+			previous_zoom_factor = user_specified_zoom_factor;
+			user_specified_zoom_factor = -1.0;
+			show_message("zoom: auto");
+		}
+		else
+		{
+			// restore the previous zoom factor around the current mouse position
+
+			const auto point = canvas.getLocalPoint(nullptr, Desktop::getMousePosition());
+			zoom_offset.x = current_zoom_factor * std::max(0, point.x);
+			zoom_offset.y = current_zoom_factor * std::max(0, point.y);
+			Log("zoom offset now x=" + std::to_string(zoom_offset.x) + " y=" + std::to_string(zoom_offset.y));
+			user_specified_zoom_factor = previous_zoom_factor;
+			show_message("zoom: " + std::to_string(static_cast<int>(user_specified_zoom_factor * 100.0)) + "%");
+		}
+
+		resized();
+		rebuild_image_and_repaint();
+		return true;
+	}
 	else if (keychar == 'r')
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		set_sort_order(ESort::kRandom);
 		show_message("re-shuffle random sort");
 		return true;
 	}
 	else if (keychar == 'R')
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		set_sort_order(ESort::kAlphabetical);
 		show_message("alphabetical sort");
 		return true;
 	}
 	else if (keychar == 'a')
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		accept_all_marks();
 		return true; // event has been handled
 	}
 	else if (keychar == 'A')
 	{
+		if (user_specified_zoom_factor > 0.0)
+		{
+			// jump out of "zoom" mode before we do anything else
+			keyPressed(KeyPress::createFromDescription("spacebar"));
+		}
 		accept_current_mark();
 		return true; // event has been handled
 	}
@@ -594,6 +761,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	{
 		if (number_of_marks == 0)
 		{
+			if (user_specified_zoom_factor > 0.0)
+			{
+				// jump out of "zoom" mode before we do anything else
+				keyPressed(KeyPress::createFromDescription("spacebar"));
+			}
 			image_is_completely_empty = true;
 			need_to_save = true;
 
@@ -674,7 +846,7 @@ dm::DMContent & dm::DMContent::set_class(const size_t class_idx)
 	if (class_idx < names.size() - 1)
 	{
 		most_recent_class_idx = class_idx;
-		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx);
+		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx % annotation_colours.size());
 		crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 		rebuild_image_and_repaint();
 	}
@@ -1757,6 +1929,7 @@ dm::DMContent & dm::DMContent::show_message(const std::string & msg)
 
 		const Rectangle<int> r(getWidth()/2, 1, 1, 1);
 		bubble_message.showAt(r, str, 4000, true, false);
+		Log("bubble message: " + msg);
 	}
 
 	return *this;

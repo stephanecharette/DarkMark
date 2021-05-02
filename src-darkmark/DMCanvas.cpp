@@ -38,7 +38,14 @@ void dm::DMCanvas::rebuild_cache_image()
 		return;
 	}
 
-	content.scaled_image = resize_keeping_aspect_ratio(content.original_image, content.scaled_image_size);
+	if (content.original_image.size() != content.scaled_image_size)
+	{
+		content.scaled_image = resize_keeping_aspect_ratio(content.original_image, content.scaled_image_size);
+	}
+	else
+	{
+		content.scaled_image = content.original_image.clone();
+	}
 
 	const auto fontface			= cv::FONT_HERSHEY_PLAIN;
 	const auto fontscale		= 1.0;
@@ -78,7 +85,7 @@ void dm::DMCanvas::rebuild_cache_image()
 	if (mouse_drag_rectangle != invalid_rectangle)
 	{
 		// user is dragging the mouse to create a point, so hide predictions
-		Log("dragging detected, turning off predictons in image cache");
+//		Log("dragging detected, turning off predictons in image cache");
 		content.predictions_are_shown = false;
 	}
 
@@ -87,18 +94,7 @@ void dm::DMCanvas::rebuild_cache_image()
 		content.marks_are_shown = false;
 	}
 
-	if (content.predictions_are_shown and content.show_processing_time and content.darknet_image_processing_time.empty() == false)
-	{
-		cv::putText(content.scaled_image, content.darknet_image_processing_time, cv::Point(10, 25), fontface, fontscale, white, fontthickness, cv::LINE_AA);
-		cv::putText(content.scaled_image, "predictions: " + std::to_string(content.number_of_predictions), cv::Point(10, 40), fontface, fontscale, white, fontthickness, cv::LINE_AA);
-		if (number_of_hidden_marks)
-		{
-			cv::putText(content.scaled_image, "user marks: " + std::to_string(number_of_hidden_marks), cv::Point(10, 55), fontface, fontscale, white, fontthickness, cv::LINE_AA);
-		}
-	}
-
 	bool must_exit_loop = false;
-
 	for (size_t idx = 0; must_exit_loop == false and (content.image_is_completely_empty or idx < content.marks.size()); idx ++)
 	{
 		Mark m;
@@ -231,6 +227,122 @@ void dm::DMCanvas::rebuild_cache_image()
 		}
 	}
 
+	if (content.user_specified_zoom_factor <= 0.0)
+	{
+		zoom_image_offset = cv::Point(0, 0);
+	}
+	else
+	{
+		// figure out what zoom offset we need to apply to the image
+
+		const int h = content.canvas.getHeight();
+		const int w = content.canvas.getWidth();
+
+#if 0
+		Log(std::string(__PRETTY_FUNCTION__) + ": need to find a RoI because we're zooming " + std::to_string(content.user_specified_zoom_factor) +
+			", original image measures " +
+			std::to_string(content.original_image.cols) +
+			" x " +
+			std::to_string(content.original_image.rows) +
+			", scaled image measures " +
+			std::to_string(content.scaled_image.cols) +
+			" x " +
+			std::to_string(content.scaled_image.rows) +
+			" canvas measures"
+			" w=" + std::to_string(w) +
+			" h=" + std::to_string(h)
+			);
+#endif
+
+		cv::Rect r(
+			content.user_specified_zoom_factor * content.zoom_offset.x,
+			content.user_specified_zoom_factor * content.zoom_offset.y,
+			 w, h);
+
+		if (r.width < std::min(content.scaled_image.cols, w))
+		{
+			// our rectangle can be made wider to include more of the image
+			const double delta = (std::min(content.scaled_image.cols, w) - r.width) / 2.0;
+			r.x -= delta;
+			r.width += std::round(delta * 2.0);
+		}
+		if (r.height < std::min(content.scaled_image.rows, h))
+		{
+			const double delta = (std::min(content.scaled_image.rows, h) - r.height) / 2.0;
+			r.y -= delta;
+			r.height += std::round(delta * 2.0);
+		}
+		if (r.x > 0 and r.x < 100)
+		{
+			// near the left border...we may as well stick to the border
+			r.x = 0;
+		}
+		if (r.y > 0 and r.y < 100)
+		{
+			// near the top border...we may as well stick to the border
+			r.y = 0;
+		}
+		if (r.x < 0)
+		{
+			r.width -= r.x;
+			r.x = 0;
+		}
+		if (r.y < 0)
+		{
+			r.height -= r.y;
+			r.y = 0;
+		}
+
+		// we now have a rectangle that would fit the canvas -- but is the image large enough to accomodate this rectangle?
+
+		if (r.x + r.width > content.scaled_image.cols)
+		{
+			r.x = std::max(0, content.scaled_image.cols - r.width);
+			r.width = content.scaled_image.cols - r.x;
+		}
+		if (r.y + r.height > content.scaled_image.rows)
+		{
+			r.y = std::max(0, content.scaled_image.rows - r.height);
+			r.height = content.scaled_image.rows - r.y;
+		}
+
+#if 0
+		Log(std::string(__PRETTY_FUNCTION__) + ": zoom=" + std::to_string(content.user_specified_zoom_factor) +
+			" r.x=" + std::to_string(r.x) +
+			" r.y=" + std::to_string(r.y) +
+			" r.w=" + std::to_string(r.width) +
+			" r.h=" + std::to_string(r.height) +
+			" canvas.width=" + std::to_string(w) +
+			" canvas.height=" + std::to_string(h));
+#endif
+
+		// this next line is what tells the crosshair component what portion of the image we want to show on the screen
+		zoom_image_offset = r.tl();
+	}
+
+//	Log(std::string(__PRETTY_FUNCTION__) + ": zoom image offset: x=" + std::to_string(zoom_image_offset.x) + " y=" + std::to_string(zoom_image_offset.y));
+
+	int next_text_row = 25;
+	if (content.predictions_are_shown and content.show_processing_time and content.darknet_image_processing_time.empty() == false)
+	{
+		cv::putText(content.scaled_image, content.darknet_image_processing_time, zoom_image_offset + cv::Point(10, next_text_row), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+		next_text_row += 15;
+		cv::putText(content.scaled_image, "predictions: " + std::to_string(content.number_of_predictions), zoom_image_offset + cv::Point(10, next_text_row), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+		next_text_row += 15;
+		if (number_of_hidden_marks)
+		{
+			cv::putText(content.scaled_image, "user marks: " + std::to_string(number_of_hidden_marks), zoom_image_offset + cv::Point(10, next_text_row), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+			next_text_row += 15;
+		}
+	}
+
+	if (content.user_specified_zoom_factor > 0.0)
+	{
+		const int percentage = std::round(content.user_specified_zoom_factor * 100.0);
+		cv::putText(content.scaled_image, "zoom: " + std::to_string(percentage) + "%", zoom_image_offset + cv::Point(10, next_text_row), fontface, fontscale, white, fontthickness, cv::LINE_AA);
+		next_text_row += 15;
+	}
+
 	cached_image = convert_opencv_mat_to_juce_image(content.scaled_image);
 	need_to_rebuild_cache_image = false;
 
@@ -242,14 +354,17 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 {
 	CrosshairComponent::mouseDown(event);
 
+	const cv::Point p(
+		mouse_current_loc.x + zoom_image_offset.x,
+		mouse_current_loc.y + zoom_image_offset.y);
+
+	Log(std::string(__PRETTY_FUNCTION__) + ": p.x=" + std::to_string(p.x) + " p.y=" + std::to_string(p.y));
+
 	const auto previous_selected_mark = content.selected_mark;
 
 //	const auto shift_mod	= event.mods.isShiftDown();
-	const auto pos			= event.getPosition();
 	content.selected_mark	= -1;
-	const cv::Point p(pos.x, pos.y);
-
-	int index_to_delete = -1;
+	int index_to_delete		= -1;
 
 	// find all of the marks beneath the mouse location, and remember the one with the *smallest* area so
 	// that if we have a tiny mark within a larger mark, this will select the smaller (harder to click) mark
@@ -257,7 +372,15 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 	for (size_t idx = 0; index_to_delete == -1 and idx < content.marks.size(); idx ++)
 	{
 		Mark & m = content.marks.at(idx);
-		const cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
+		cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
+#if 0
+		Log(std::string(__PRETTY_FUNCTION__) + ": rect #" + std::to_string(idx) + ":" +
+				" x=" + std::to_string(r.x) +
+				" y=" + std::to_string(r.y) +
+				" w=" + std::to_string(r.width) +
+				" h=" + std::to_string(r.height));
+#endif
+
 		if (r.contains(p))
 		{
 			// corner dragging should only be done on "real" marks, not predictions
@@ -266,15 +389,27 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 				// check to see if this mouse click is within 10 pixels from the corner
 				for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
 				{
-					cv::Point corner_point = m.get_corner(type);
+					const cv::Point corner_point = m.get_corner(type);
+//					Log("[mousedown 3] corner.x=" + std::to_string(corner_point.x) + " corner.y=" + std::to_string(corner_point.y));
+
 					const double len = std::round(std::hypot(corner_point.x - p.x, corner_point.y - p.y));
 					if (len < 10)
 					{
 						// we've clicked on a corner!
+//						Log("[mousedown 4] corner click detected, len=" + std::to_string(len));
 
 						const auto opposite_corner = static_cast<ECorner>((static_cast<int>(type) + 2) % 4);
-						const cv::Point opposite_point = m.get_corner(opposite_corner);
+						const cv::Point opposite_point = m.get_corner(opposite_corner) - zoom_image_offset;
+
 						mouse_drag_rectangle.setPosition(opposite_point.x, opposite_point.y);
+
+#if 0
+						Log("[mousedown 5] mouse_drag_rect:"
+							" x=" + std::to_string(mouse_drag_rectangle.getX()) +
+							" y=" + std::to_string(mouse_drag_rectangle.getY()) +
+							" w=" + std::to_string(mouse_drag_rectangle.getWidth()) +
+							" h=" + std::to_string(mouse_drag_rectangle.getHeight()));
+#endif
 						index_to_delete = static_cast<int>(idx);
 
 						// remember the offset between where we clicked, and where the actual corner is located -- this will need to be applied to each mouse event
@@ -315,7 +450,7 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 
 	if (previous_selected_mark != content.selected_mark)
 	{
-		const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx);
+		const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx % content.annotation_colours.size());
 		content.crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 		content.rebuild_image_and_repaint();
 	}
@@ -336,12 +471,10 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 		content.most_recent_size = cv::Size2d(0.02, 0.02);
 	}
 
-	const double image_width	= cached_image.getWidth();
-	const double image_height	= cached_image.getHeight();
-	const double x = double(event.x) / image_width;
-	const double y = double(event.y) / image_height;
-	Mark m(	cv::Point2d(x, y), content.most_recent_size, content.original_image.size(), content.most_recent_class_idx);
+	double x = double(event.x + zoom_image_offset.x) / cached_image.getWidth();
+	double y = double(event.y + zoom_image_offset.y) / cached_image.getHeight();
 
+	Mark m(	cv::Point2d(x, y), content.most_recent_size, content.original_image.size(), content.most_recent_class_idx);
 	m.name			= content.names.at(content.most_recent_class_idx);
 	m.description	= m.name;
 
@@ -357,12 +490,12 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 
 void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 {
-	const double midx			= drag_rect.getCentreX();
-	const double midy			= drag_rect.getCentreY();
-	const double width			= drag_rect.getWidth();
-	const double height			= drag_rect.getHeight();
-	const double image_width	= cached_image.getWidth();
-	const double image_height	= cached_image.getHeight();
+	double midx			= drag_rect.getCentreX() + zoom_image_offset.x;
+	double midy			= drag_rect.getCentreY() + zoom_image_offset.y;
+	double width		= drag_rect.getWidth();
+	double height		= drag_rect.getHeight();
+	double image_width	= cached_image.getWidth();
+	double image_height	= cached_image.getHeight();
 
 #if 0
 	Log("mouse drag rectangle:"

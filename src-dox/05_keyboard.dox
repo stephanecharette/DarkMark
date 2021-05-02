@@ -20,6 +20,9 @@ Key							| Saves Modified Marks First	| Description
 @p F1						|								| About DarkMark.
 @p TAB						|								| Move focus to the next marking.
 @p SHIFT + @p TAB			|								| Move focus to the previous marking.
+@p +						|								| Zoom image +10%.  Can be pressed repeatedly.
+@p -						|								| Zoom image -10%.  Can be pressed repeatedly.
+@p SPACE					|								| Toggle between automatic zoom and manual zoom (see @p '-' and @p '+' keys).
 @p a (lowercase)			|								| Accept all Darknet predictions (if any) for the current image as actual markings.
 @p A (uppercase)			|								| Accept only the currently-selected prediction and discard all other predictions.  If none are selected, then this behaves like @p 'a' where all predictions are accepted.
 @p b (lowercase)			|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.

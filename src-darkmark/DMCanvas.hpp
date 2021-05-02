@@ -23,11 +23,9 @@ namespace dm
 
 			virtual void rebuild_cache_image();
 
-			virtual void mouseDown(const MouseEvent & event);
-
-			virtual void mouseDoubleClick(const MouseEvent & event);
-
-			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect);
+			virtual void mouseDown(const MouseEvent & event) override;
+			virtual void mouseDoubleClick(const MouseEvent & event) override;
+			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect) override;
 
 			/// Link to the parent which manages the content, including all the marks.
 			DMContent & content;

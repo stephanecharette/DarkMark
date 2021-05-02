@@ -12,6 +12,12 @@ void dm::Log(const std::string & str)
 		std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S ", std::localtime(&tt));
 
 		std::cout << buffer << str << std::endl;
+
+		static std::ofstream ofs("/tmp/darkmark.log", std::ofstream::trunc);
+		if (ofs.is_open())
+		{
+			ofs << buffer << str << std::endl;
+		}
 	}
 
 	return;

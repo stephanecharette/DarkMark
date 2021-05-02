@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.5.0-1		| 2021-05-02	| Added new zoom features (@p space, @p +, and @p -)
 1.4.15-1	| 2021-04-24	| Removed CSRT object tracking (it has always been commented out)
 1.4.12-1	| 2021-04-13	| Added @p SHIFT+DEL shortcut to delete the current image.
 1.4.11-1	| 2021-04-12	| Fix off-by-1 errors in drawing annotation, and remove mouse click/drag offsets.

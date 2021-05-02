@@ -194,7 +194,7 @@ namespace dm
 			cv::Mat scaled_image;
 
 			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
-			double scale_factor;
+			double scale_factor; ///< @todo can this be removed now? replaced by current_zoom_factor?
 
 			/// The final size to which the background image needs to be resized to fit perfectly into the canvas.  @see @ref resized()
 			cv::Size scaled_image_size;
@@ -213,5 +213,10 @@ namespace dm
 			ProjectInfo project_info;
 
 			BubbleMessageComponent bubble_message;
+
+			double user_specified_zoom_factor;	///< Manual zoom override.  Should be between 0.1 and about 2.0.  Set to -1 to use "automatic" zoom that fills the screen.
+			double previous_zoom_factor;		///< Previously-used zoom so we know what to restore when the user presses SPACEBAR,
+			double current_zoom_factor;			///< Actual zoom value used to resize the image. @todo is this the same as @ref scale_factor
+			cv::Point zoom_offset;				///< Top-left offset to apply when zooming in to the image.
 	};
 }
