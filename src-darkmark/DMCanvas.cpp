@@ -255,9 +255,9 @@ void dm::DMCanvas::rebuild_cache_image()
 #endif
 
 		cv::Rect r(
-			content.user_specified_zoom_factor * content.zoom_offset.x,
-			content.user_specified_zoom_factor * content.zoom_offset.y,
-			 w, h);
+			content.user_specified_zoom_factor * content.zoom_point_of_interest.x - w / 2,
+			content.user_specified_zoom_factor * content.zoom_point_of_interest.y - h / 2,
+			w, h);
 
 		if (r.width < std::min(content.scaled_image.cols, w))
 		{

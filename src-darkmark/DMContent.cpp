@@ -613,24 +613,20 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keychar == '+') // why is the value for KeyPress::numberPadAdd unusable!?
 	{
-		if (user_specified_zoom_factor <= 0.0)
-		{
-			Log("zoom offset was x=" + std::to_string(zoom_offset.x) + " y=" + std::to_string(zoom_offset.y));
-			const auto point = canvas.getLocalPoint(nullptr, Desktop::getMousePosition());
-			zoom_offset.x = current_zoom_factor * std::max(0, point.x);
-			zoom_offset.y = current_zoom_factor * std::max(0, point.y);
-			Log("zoom offset now x=" + std::to_string(zoom_offset.x) + " y=" + std::to_string(zoom_offset.y));
-			user_specified_zoom_factor = std::floor(current_zoom_factor * 10.0) / 10.0;
-		}
-		user_specified_zoom_factor += 0.1;
+		Log("zoom factor was: " + std::to_string(current_zoom_factor));
+		Log("zoom point of interest was: x=" + std::to_string(zoom_point_of_interest.x) + " y=" + std::to_string(zoom_point_of_interest.y));
+		const auto point = canvas.getLocalPoint(nullptr, Desktop::getMousePosition());
+		Log("zoom mouse location now is: x=" + std::to_string(point.x) + " y=" + std::to_string(point.y));
+		zoom_point_of_interest.x = std::round((point.x + canvas.zoom_image_offset.x) / current_zoom_factor);
+		zoom_point_of_interest.y = std::round((point.y + canvas.zoom_image_offset.y) / current_zoom_factor);
+		Log("zoom point of interest now: x=" + std::to_string(zoom_point_of_interest.x) + " y=" + std::to_string(zoom_point_of_interest.y));
 
-		// use rounded zoom numbers -- so 0.19999 gets rounded to 0.2
-		user_specified_zoom_factor = std::round(user_specified_zoom_factor * 10.0) / 10.0;
-
+		user_specified_zoom_factor = std::round(current_zoom_factor * 10.0 + 1.0) / 10.0;
 		if (user_specified_zoom_factor > 4.0)
 		{
 			user_specified_zoom_factor = 4.0;
 		}
+		Log("zoom factor now: " + std::to_string(user_specified_zoom_factor));
 
 		resized();
 		rebuild_image_and_repaint();
@@ -642,7 +638,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		if (user_specified_zoom_factor > 0.0)
 		{
 			// go back to "auto" zoom
-			zoom_offset = cv::Size(0, 0);
+			zoom_point_of_interest = cv::Size(0, 0);
 			previous_zoom_factor = user_specified_zoom_factor;
 			user_specified_zoom_factor = -1.0;
 			show_message("zoom: auto");
@@ -652,9 +648,10 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 			// restore the previous zoom factor around the current mouse position
 
 			const auto point = canvas.getLocalPoint(nullptr, Desktop::getMousePosition());
-			zoom_offset.x = current_zoom_factor * std::max(0, point.x);
-			zoom_offset.y = current_zoom_factor * std::max(0, point.y);
-			Log("zoom offset now x=" + std::to_string(zoom_offset.x) + " y=" + std::to_string(zoom_offset.y));
+			Log("zoom point of interest was: x=" + std::to_string(point.x) + " y=" + std::to_string(point.y));
+			zoom_point_of_interest.x = std::max(0, point.x) / current_zoom_factor;
+			zoom_point_of_interest.y = std::max(0, point.y) / current_zoom_factor;
+			Log("zoom point of interest now: x=" + std::to_string(zoom_point_of_interest.x) + " y=" + std::to_string(zoom_point_of_interest.y));
 			user_specified_zoom_factor = previous_zoom_factor;
 			show_message("zoom: " + std::to_string(static_cast<int>(user_specified_zoom_factor * 100.0)) + "%");
 		}

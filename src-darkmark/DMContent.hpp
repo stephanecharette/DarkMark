@@ -217,6 +217,6 @@ namespace dm
 			double user_specified_zoom_factor;	///< Manual zoom override.  Should be between 0.1 and about 2.0.  Set to -1 to use "automatic" zoom that fills the screen.
 			double previous_zoom_factor;		///< Previously-used zoom so we know what to restore when the user presses SPACEBAR,
 			double current_zoom_factor;			///< Actual zoom value used to resize the image. @todo is this the same as @ref scale_factor
-			cv::Point zoom_offset;				///< Top-left offset to apply when zooming in to the image.
+			cv::Point zoom_point_of_interest;	///< Coordinate of interest when zooming into or out of an image.
 	};
 }
