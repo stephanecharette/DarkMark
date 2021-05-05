@@ -89,11 +89,17 @@ class SaveTask : public ThreadWithProgressWindow
 
 				ss << "Run " << wnd.info.command_filename << " to start the training.";
 
+				dm::Log(ss.str());
 				AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
 			}
 			catch (const std::exception & e)
 			{
-				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Exception caught while creating the darknet/YOLO files:\n\n" + std::string(e.what()));
+				std::stringstream ss;
+				ss	<< "Exception caught while creating the darknet/YOLO files:" << std::endl
+					<< std::endl
+					<< e.what();
+				dm::Log(ss.str());
+				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", ss.str());
 			}
 		}
 
@@ -793,21 +799,31 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	find_all_annotated_images(progress_window, annotated_images, skipped_images, number_of_marks);
 	number_of_skipped_files = skipped_images.size();
 
+	Log("total number of annotated input images: " + std::to_string(annotated_images.size()));
+	Log("total number of skipped input images: " + std::to_string(skipped_images.size()));
+
 	if (info.do_not_resize_images)
 	{
+		Log("not resizing any images");
 		all_output_images = annotated_images;
 	}
 	if (info.resize_images)
 	{
+		Log("resizing all images");
 		resize_images(progress_window, annotated_images, all_output_images, number_of_resized_images);
+		Log("number of images resized: " + std::to_string(number_of_resized_images));
 	}
 	if (info.tile_images)
 	{
+		Log("tiling all images");
 		tile_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_tiles_created);
+		Log("number of tiles created: " + std::to_string(number_of_tiles_created));
 	}
 	if (info.zoom_images)
 	{
+		Log("crop+zoom all images");
 		random_zoom_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_zooms_created);
+		Log("number of crop+zoom images created: " + std::to_string(number_of_zooms_created));
 	}
 
 	// now that we know the exact set of images (including resized and tiled images)
@@ -817,6 +833,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	double work_to_do = all_output_images.size() + 1.0;
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage("Writing training and validation files...");
+	Log("total number of output images: " + std::to_string(all_output_images.size()));
 
 	std::random_shuffle(all_output_images.begin(), all_output_images.end());
 	const bool use_all_images = info.train_with_all_images;
@@ -828,6 +845,9 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		number_of_files_train = all_output_images.size();
 		number_of_files_valid = all_output_images.size();
 	}
+
+	Log("total number of training images: " + std::to_string(number_of_files_train) + " (" + info.train_filename + ")");
+	Log("total number of validation images: " + std::to_string(number_of_files_valid) + " (" + info.valid_filename + ")");
 
 	std::ofstream fs_train(info.train_filename);
 	std::ofstream fs_valid(info.valid_filename);
@@ -847,6 +867,8 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 			fs_valid << all_output_images[idx] << std::endl;
 		}
 	}
+
+	Log("training and validation files have been saved to disk");
 
 	return;
 }

@@ -812,6 +812,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		}
 		dmapp().settings_wnd->toFront(true);
 	}
+	else if (keychar == 'z')
+	{
+		zoom_and_review();
+		return true;
+	}
 	else
 	{
 		show_message("ignoring unknown key '" + key.getTextDescription().toStdString() + "'");
@@ -1003,6 +1008,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 		save_text();
 	}
 
+	zoom_review_marks_remaining.clear();
 	darknet_image_processing_time = "";
 	selected_mark	= -1;
 	original_image	= cv::Mat();
@@ -1293,6 +1299,7 @@ size_t dm::DMContent::count_marks_in_json(File & f)
 		}
 		catch (const std::exception & e)
 		{
+			Log("Error parsing " + f.getFullPathName().toStdString() + ": " + e.what());
 			AlertWindow::showMessageBox(
 				AlertWindow::AlertIconType::WarningIcon,
 				"DarkMark",
@@ -1431,6 +1438,7 @@ bool dm::DMContent::copy_marks_from_given_image(const std::string & fn)
 	catch (const std::exception & e)
 	{
 		// ignore the error, nothing we can do about broken .json files
+		Log("Error while parsing " + fn + ": " + e.what());
 	}
 
 	if (root["mark"].empty())
@@ -1788,15 +1796,20 @@ PopupMenu dm::DMContent::create_popup_menu()
 	help.addItem("darknet faq..."		, std::function<void()>( [&]{ juce::URL("https://www.ccoderun.ca/programming/2020-09-25_Darknet_FAQ/"	).launchInDefaultBrowser(); } ));
 	help.addItem("discord..."			, std::function<void()>( [&]{ juce::URL("https://discord.gg/zSq8rtW"									).launchInDefaultBrowser(); } ));
 
+	PopupMenu review;
+	review.addItem("zoom-and-review"	, std::function<void()>( [&]{ zoom_and_review();	} ));
+	review.addItem("review marks..."	, std::function<void()>( [&]{ review_marks();		} ));
+
 	PopupMenu m;
 	m.addSubMenu("class", classMenu, classMenu.containsAnyActiveItems());
 	m.addSubMenu("labels", labels);
 	m.addSubMenu("sort", sort);
 	m.addSubMenu("view", view);
 	m.addSubMenu("image", image);
+	m.addSubMenu("review", review);
 	m.addSubMenu("help", help);
+
 	m.addSeparator();
-	m.addItem("review marks..."			, std::function<void()>( [&]{ review_marks();			} ));
 	m.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();		} ));
 	m.addItem("create darknet files..."	, std::function<void()>( [&]{ show_darknet_window();	} ));
 	m.addItem("other settings..."		, std::function<void()>( [&]
@@ -1837,6 +1850,127 @@ dm::DMContent & dm::DMContent::review_marks()
 
 	DMContentReview helper(*this);
 	helper.runThread();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::zoom_and_review()
+{
+	bool use_current_image = false;
+
+	if (user_specified_zoom_factor <= 0.0)
+	{
+		// we're turning on the "zoom review" feature
+		keyPressed(KeyPress::createFromDescription("spacebar"));
+		Thread::yield();
+		use_current_image = true;
+		zoom_review_marks_remaining.clear();
+		Log("starting zoom review");
+	}
+	else
+	{
+		// see if we can eliminate any of the existing marks and see what remains
+		std::set<size_t> indexes_to_remove;
+
+		const cv::Rect r = cv::Rect(
+			canvas.zoom_image_offset.x,
+			canvas.zoom_image_offset.y,
+			canvas.getWidth(),
+			canvas.getHeight());
+
+		for (const auto i : zoom_review_marks_remaining)
+		{
+			if (i >= marks.size())
+			{
+				// mark must have been removed!?
+				indexes_to_remove.insert(i);
+				continue;
+			}
+
+			auto & mark = marks.at(i);
+			const auto bounding_rect = mark.get_bounding_rect(scaled_image_size);
+			if ((r & bounding_rect) == bounding_rect)
+			{
+				indexes_to_remove.insert(i);
+			}
+		}
+		for (const auto i : indexes_to_remove)
+		{
+			zoom_review_marks_remaining.erase(i);
+		}
+		for (const auto i : zoom_review_marks_remaining)
+		{
+			Log("zoom review: mark remaining to be shown in this image: " + marks.at(i).name);
+		}
+	}
+
+	while (zoom_review_marks_remaining.empty())
+	{
+		// something needs to happen because we don't have anything to show!
+
+		bool image_found = false;
+		if (use_current_image == false)
+		{
+			// we know for certain we need to find a new image to display
+			Log("zoom review: looking for a new image to use, current image index is " + std::to_string(image_filename_index));
+			for (size_t idx = image_filename_index + 1; idx < image_filenames.size(); idx ++)
+			{
+				File f = File(image_filenames[idx]).withFileExtension(".txt");
+				if (f.existsAsFile() and f.getSize() > 10)
+				{
+					load_image(idx);
+					image_found = true;
+					break;
+				}
+			}
+		}
+
+		// remember all of the marks that we need to display to the user
+		if (image_is_completely_empty == false)
+		{
+			for (size_t idx = 0; idx < marks.size(); idx ++)
+			{
+				const auto & m = marks.at(idx);
+				if (m.is_prediction)
+				{
+					continue;
+				}
+
+				Log("zoom review: from image #" + std::to_string(image_filename_index) + ": remembering mark #" + std::to_string(idx) + ": " + m.name);
+				zoom_review_marks_remaining.insert(idx);
+			}
+
+			if (use_current_image == false and image_found == false)
+			{
+				// we've reached the end of the list of images, no use in trying to loop more
+				break;
+			}
+		}
+
+		use_current_image = false;
+	}
+
+	if (zoom_review_marks_remaining.empty() == false)
+	{
+		Log("zoom_review_marks_remaining contains " + std::to_string(zoom_review_marks_remaining.size()) + " items");
+
+		size_t idx = *zoom_review_marks_remaining.begin();
+		zoom_review_marks_remaining.erase(idx);
+
+		selected_mark = idx;
+		auto & m = marks.at(idx);
+		const cv::Rect r = m.get_bounding_rect(scaled_image_size);
+
+		Log("extracted mark idx #" + std::to_string(idx) + " from zoom_review_marks_remaining: " + m.name);
+
+		zoom_point_of_interest.x = (r.x + r.width	/ 2) / current_zoom_factor;
+		zoom_point_of_interest.y = (r.y + r.height	/ 2) / current_zoom_factor;
+
+		Log("showing idx #" + std::to_string(idx) + " (" + m.name + ") at x=" + std::to_string(zoom_point_of_interest.x) + " y=" + std::to_string(zoom_point_of_interest.y));
+
+		rebuild_image_and_repaint();
+	}
 
 	return *this;
 }

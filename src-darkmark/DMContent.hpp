@@ -103,6 +103,8 @@ namespace dm
 
 			DMContent & review_marks();
 
+			DMContent & zoom_and_review();
+
 			DMContent & rotate_every_image();
 
 			DMContent & move_empty_images();
@@ -218,5 +220,7 @@ namespace dm
 			double previous_zoom_factor;		///< Previously-used zoom so we know what to restore when the user presses SPACEBAR,
 			double current_zoom_factor;			///< Actual zoom value used to resize the image. @todo is this the same as @ref scale_factor
 			cv::Point zoom_point_of_interest;	///< Coordinate of interest when zooming into or out of an image.
+
+			std::set<size_t> zoom_review_marks_remaining;
 	};
 }

@@ -194,7 +194,9 @@ void dm::DMContentRotateImages::run()
 	}
 	catch (const std::exception & e)
 	{
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "Error during rotation of \"" + new_fn + "\": " + e.what());
+		const String msg = "Error during rotation of \"" + new_fn + "\": " + e.what();
+		Log(msg.toStdString());
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", msg);
 	}
 
 	content.scrollfield_width = previous_scrollfield_width;

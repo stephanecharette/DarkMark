@@ -605,13 +605,20 @@ void dm::VideoImportWindow::run()
 	}
 	catch (const std::exception & e)
 	{
+		std::stringstream ss;
+		ss	<< "An error was detected while processing the video file \"" + current_filename + "\":" << std::endl
+			<< std::endl
+			<< e.what();
+		dm::Log(ss.str());
 		error_shown = true;
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark - Error!", "An error was detected while processing the video file \"" + current_filename + "\":\n\n" + e.what());
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark - Error!", ss.str());
 	}
 	catch (...)
 	{
+		const std::string msg = "An unknown error was encountered while processing the video file \"" + current_filename + "\".";
+		dm::Log(msg);
 		error_shown = true;
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark - Error!", "An unknown error was encountered while processing the video file \"" + current_filename + "\".");
+		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark - Error!", msg);
 	}
 
 	File dir(base_directory);

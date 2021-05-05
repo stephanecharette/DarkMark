@@ -42,6 +42,7 @@ Key							| Saves Modified Marks First	| Description
 @p t						| yes							| Toggle image tiling.  See @ref ImageSize.
 @p y (lowercase)			|								| Copy marks from previous (alphabetical) marked up image.
 @p Y (uppercase)			|								| Copy marks from next (alphabetical) marked up image.
+@p z						| yes							| This zooms into the image to review all the annotations.  Use @p 'z' again to move to the next annotation or file.
 @p 0-9						|								| Set the class ID of the currently selected mark to the specified value zero through nine.
 @p CTRL + @p 0-9			|								| Set the class ID of the currently selected mark to the value 10-19 (specified key + 10).
 @p ALT + @p 0-9				|								| Set the class ID of the currently selected mark to the value 20-29 (specified key + 20).
