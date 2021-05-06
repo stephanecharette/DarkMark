@@ -1929,6 +1929,21 @@ dm::DMContent & dm::DMContent::zoom_and_review()
 		// remember all of the marks that we need to display to the user
 		if (image_is_completely_empty == false)
 		{
+			/* Cheat!  We want to review the marks from largest down to smallest.  This way, if the largest marks include a bunch
+			 * of embedded markes, by viewing the large ones first we can remove the small ones from the list to be reviewed.
+			 * For example:  license plates, where we have a large "plate" mark around the other annotations.
+			 *
+			 * So to make this happen easily, we'll temporarily modify the sort order of the marks, and order them from largest
+			 * down to smallest.
+			 */
+			std::sort(marks.begin(), marks.end(),
+					[](auto & lhs, auto & rhs)
+					{
+						const auto lhs_area = lhs.get_normalized_bounding_rect().area();
+						const auto rhs_area = rhs.get_normalized_bounding_rect().area();
+						return lhs_area > rhs_area;
+					} );
+
 			for (size_t idx = 0; idx < marks.size(); idx ++)
 			{
 				const auto & m = marks.at(idx);
