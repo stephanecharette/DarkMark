@@ -321,6 +321,13 @@ void dm::CrosshairComponent::mouseWheelMove(const MouseEvent & event, const Mous
 		", smooth="		+ std::to_string(wheel.isSmooth)	);
 	#endif
 
+	if (content.user_specified_zoom_factor > 0.0)
+	{
+		// cancel the zoom instead of changing the image index
+		content.keyPressed(KeyPress::createFromDescription("spacebar"));
+		return;
+	}
+
 	const int idx = content.image_filename_index;
 
 	// Not obvious:
