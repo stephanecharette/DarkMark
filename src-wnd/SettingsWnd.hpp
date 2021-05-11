@@ -29,6 +29,7 @@ namespace dm
 			Value v_scrollfield_marker_size;
 			Value v_show_mouse_pointer;
 			Value v_image_tiling;
+			Value v_corner_size;
 
 			DMContent & content;
 			Component canvas;

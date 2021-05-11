@@ -31,6 +31,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	show_processing_time(cfg().get_bool("show_processing_time")),
 	need_to_save(false),
 	show_mouse_pointer(cfg().get_bool("show_mouse_pointer")),
+	corner_size(cfg().get_int("corner_size")),
 	selected_mark(-1),
 	scale_factor(1.0),
 	most_recent_class_idx(0),

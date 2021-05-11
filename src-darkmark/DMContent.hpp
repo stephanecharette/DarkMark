@@ -183,6 +183,7 @@ namespace dm
 			bool show_processing_time;
 			bool need_to_save;
 			bool show_mouse_pointer;
+			int corner_size;
 			int selected_mark;
 
 			std::string darknet_image_processing_time;	///< How long it took darknet to make predictions for the current image.

@@ -152,14 +152,14 @@ void dm::DMCanvas::rebuild_cache_image()
 		const double beta = 1.0 - alpha;
 		cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
-		// draw the drag corners
-		if (is_selected and tmp.cols >= 30 and tmp.rows >= 30)
+		// draw the drag corners (only if the annotation is large enough to accomodate them)
+		if (is_selected and tmp.cols > content.corner_size * 2 and tmp.rows > content.corner_size * 2)
 		{
 			tmp = content.scaled_image(r);
-			cv::circle(tmp, cv::Point(0				, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
-			cv::circle(tmp, cv::Point(tmp.cols - 1	, 0				), 10, colour, CV_FILLED, cv::LINE_AA);
-			cv::circle(tmp, cv::Point(tmp.cols - 1	, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
-			cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), 10, colour, CV_FILLED, cv::LINE_AA);
+			cv::circle(tmp, cv::Point(0				, 0				), content.corner_size, colour, CV_FILLED, cv::LINE_AA);
+			cv::circle(tmp, cv::Point(tmp.cols - 1	, 0				), content.corner_size, colour, CV_FILLED, cv::LINE_AA);
+			cv::circle(tmp, cv::Point(tmp.cols - 1	, tmp.rows - 1	), content.corner_size, colour, CV_FILLED, cv::LINE_AA);
+			cv::circle(tmp, cv::Point(0				, tmp.rows - 1	), content.corner_size, colour, CV_FILLED, cv::LINE_AA);
 		}
 
 		// We calculate the width and height of the text compared to the mark rectangle to determine if the label
@@ -393,7 +393,7 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 //					Log("[mousedown 3] corner.x=" + std::to_string(corner_point.x) + " corner.y=" + std::to_string(corner_point.y));
 
 					const double len = std::round(std::hypot(corner_point.x - p.x, corner_point.y - p.y));
-					if (len < 10)
+					if (len < content.corner_size)
 					{
 						// we've clicked on a corner!
 //						Log("[mousedown 4] corner click detected, len=" + std::to_string(len));
