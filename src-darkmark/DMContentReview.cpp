@@ -66,6 +66,7 @@ void dm::DMContentReview::run()
 			Log("failed to read image " + fn + " or parse json " + f.getFullPathName().toStdString() + ": " + e.what());
 			const auto class_idx = error_index;
 			ReviewInfo review_info;
+			review_info.aspect_ratio= 0.0;
 			review_info.overlap_sum	= 0.0;
 			review_info.class_idx	= class_idx;
 			review_info.filename	= fn;
@@ -89,6 +90,7 @@ void dm::DMContentReview::run()
 			Log("failed to load image " + fn);
 			const auto class_idx = error_index;
 			ReviewInfo review_info;
+			review_info.aspect_ratio = 0.0;
 			review_info.overlap_sum	= 0.0;
 			review_info.class_idx	= class_idx;
 			review_info.filename	= fn;
@@ -103,6 +105,7 @@ void dm::DMContentReview::run()
 		{
 			const auto class_idx = content.empty_image_name_index;
 			ReviewInfo review_info;
+			review_info.aspect_ratio = 0.0;
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
@@ -119,6 +122,7 @@ void dm::DMContentReview::run()
 			Log("no marks defined, yet image is not marked as empty: " + fn);
 			const auto class_idx = error_index;
 			ReviewInfo review_info;
+			review_info.aspect_ratio = 0.0;
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
@@ -173,6 +177,7 @@ void dm::DMContentReview::run()
 
 			ReviewInfo review_info;
 			review_info.r = r1;
+			review_info.aspect_ratio = static_cast<double>(w) / static_cast<double>(h);
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
@@ -234,7 +239,7 @@ void dm::DMContentReview::run()
 				if (review_info.overlap_sum >= 0.1) // meaning >= 10%
 				{
 					review_info.warnings.push_back("overlap (intersection over union) seems high");
-					Log(fn + ": overlap (intersection over union) is " + std::to_string(review_info.overlap_sum));
+//					Log(fn + ": overlap (intersection over union) is " + std::to_string(review_info.overlap_sum));
 				}
 			}
 
@@ -243,7 +248,7 @@ void dm::DMContentReview::run()
 			if (scaled_width < 16.0 or scaled_height < 16.0)
 			{
 				review_info.warnings.push_back("scaled mark measuring " + std::to_string((int)scaled_width) + "x" + std::to_string((int)scaled_height) + " may be too small to detect");
-				Log(fn + ": scaled mark measures " + std::to_string((int)scaled_width) + "x" + std::to_string((int)scaled_height));
+//				Log(fn + ": scaled mark measures " + std::to_string((int)scaled_width) + "x" + std::to_string((int)scaled_height));
 			}
 
 			const size_t idx = m[class_idx].size();
@@ -268,6 +273,7 @@ void dm::DMContentReview::run()
 	if (not dmapp().review_wnd)
 	{
 		dmapp().review_wnd.reset(new DMReviewWnd(content));
+		dmapp().review_wnd->setAlwaysOnTop(true);
 	}
 	dmapp().review_wnd->m.swap(m);
 	dmapp().review_wnd->rebuild_notebook();

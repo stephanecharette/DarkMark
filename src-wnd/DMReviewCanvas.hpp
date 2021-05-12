@@ -7,6 +7,9 @@
 
 namespace dm
 {
+	/** There is one of these for every tab in the notebook.
+	 * Also see @ref dm::DMReviewWnd which contains the window as well as the notebook itself.
+	 */
 	class DMReviewCanvas : public TableListBox, public TableListBoxModel
 	{
 		public:
@@ -22,7 +25,14 @@ namespace dm
 			virtual String getCellTooltip(int rowNumber, int columnId);
 			virtual void paintRowBackground(Graphics & g, int rowNumber, int width, int height, bool rowIsSelected);
 			virtual void paintCell(Graphics & g, int rowNumber, int columnId, int width, int height, bool rowIsSelected);
+			virtual void sortOrderChanged(int newSortColumnId, bool isForwards) override;
 
+			/** This determines the order in which rows will appear.
+			 * E.g., sort_idx[0] is the map index of the review info that must appear as the first row in the table.
+			 */
+			std::vector<size_t> sort_idx;
+
+			/// Map of review info, where each map record has everything needed to represent a single row in the table.
 			const MReviewInfo & mri;
 	};
 }
