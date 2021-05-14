@@ -89,6 +89,19 @@ void dm::DMReviewCanvas::cellDoubleClicked(int rowNumber, int columnId, const Mo
 
 //		dmapp().review_wnd->setMinimised(true);
 		dmapp().wnd->content.load_image(idx);
+#if 0
+		// see if the review window is hiding the rectangle we want to highlight
+		auto r1 = localAreaToGlobal(Rectangle<int>(0, 0, getWidth(), getHeight()));
+		auto r2 = dmapp().wnd->content.localAreaToGlobal(Rectangle<int>(review_info.r.x, review_info.r.y, review_info.r.width, review_info.r.height));
+
+		Log("r1: x=" + std::to_string(r1.getX()) + " y=" + std::to_string(r1.getY()) + " w=" + std::to_string(r1.getWidth()) + " h=" + std::to_string(r1.getHeight()));
+		Log("r2: x=" + std::to_string(r2.getX()) + " y=" + std::to_string(r2.getY()) + " w=" + std::to_string(r2.getWidth()) + " h=" + std::to_string(r2.getHeight()));
+
+		if (r1.intersectRectangle(r2))
+		{
+			dmapp().review_wnd->setMinimised(true);
+		}
+#endif
 		dmapp().wnd->content.highlight_rectangle(review_info.r);
 	}
 
@@ -191,7 +204,6 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 		if (columnId == 1)	str = std::to_string(sort_idx[rowNumber] + 1);
 		if (columnId == 3)	str = std::to_string(review_info.mat.cols) + " x " + std::to_string(review_info.mat.rows);
 		if (columnId == 4)	str = std::to_string(review_info.aspect_ratio);
-		if (columnId == 7)	str = review_info.filename;
 		if (columnId == 8)	str = review_info.mime_type;
 
 		if (columnId == 5)
@@ -215,6 +227,39 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 				{
 					colour = Colours::darkred;
 				}
+			}
+		}
+
+		if (columnId == 7)
+		{
+			str = review_info.filename;
+
+			// see if this string will fit in the cell, and if not attempt to shorten it
+			const int max_len = 1.05 * width;
+			auto font = g.getCurrentFont();
+			String fn = review_info.filename;
+			while (true)
+			{
+				const auto len = font.getStringWidth(fn);
+				if (len < max_len)
+				{
+					// we found a string to use
+					break;
+				}
+
+				// string is too long -- see if we can remove a directory
+				int pos = fn.indexOfChar(1, '/');
+				if (pos < 1)
+				{
+					// the string cannot be simplified any further
+					break;
+				}
+				fn = fn.substring(pos);
+			}
+
+			if (fn.toStdString() != review_info.filename)
+			{
+				str = "..." + fn.toStdString();
 			}
 		}
 
