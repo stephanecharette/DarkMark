@@ -685,21 +685,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keychar == 'a')
 	{
-		if (user_specified_zoom_factor > 0.0)
-		{
-			// jump out of "zoom" mode before we do anything else
-			keyPressed(KeyPress::createFromDescription("spacebar"));
-		}
 		accept_all_marks();
 		return true; // event has been handled
 	}
 	else if (keychar == 'A')
 	{
-		if (user_specified_zoom_factor > 0.0)
-		{
-			// jump out of "zoom" mode before we do anything else
-			keyPressed(KeyPress::createFromDescription("spacebar"));
-		}
 		accept_current_mark();
 		return true; // event has been handled
 	}
