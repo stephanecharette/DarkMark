@@ -63,6 +63,7 @@ namespace dm
 		std::string cfg_key;
 
 		PropertyPanel pp;
+		Value tab_name;
 		Value project_directory;	///< full path where this project is located
 		Value size_of_directory;
 		Value last_used;

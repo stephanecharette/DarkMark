@@ -103,8 +103,10 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	table.getHeader().setPopupMenuActive(false);
 	table.setModel(this);
 
-	project_directory	= dir.c_str();
+	tab_name = cfg().getValue("project_" + key + "_name", File(dir).getFileNameWithoutExtension());
+	project_directory = dir.c_str();
 
+	tab_name						.addListener(this);
 	exclusion_regex					.addListener(this);
 	darknet_configuration_template	.addListener(this);
 	darknet_configuration_filename	.addListener(this);
@@ -113,6 +115,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 
 	Array<PropertyComponent *> properties;
 
+	properties.add(new TextPropertyComponent(tab_name						, "name"					, 1000, false, true));
 	properties.add(new TextPropertyComponent(project_directory				, "project directory"		, 1000, false, false));
 	properties.add(new TextPropertyComponent(size_of_directory				, "size of directory"		, 1000, false, false));
 	properties.add(new TextPropertyComponent(last_used						, "last opened"				, 1000, false, false));
@@ -162,7 +165,7 @@ dm::StartupCanvas::~StartupCanvas()
 void dm::StartupCanvas::resized()
 {
 	const int margin_size		= 5;
-	const int number_of_lines	= 15;
+	const int number_of_lines	= 16;
 	const int height_per_line	= 25;
 	const int total_pp_height	= number_of_lines * height_per_line;
 
@@ -643,7 +646,24 @@ void dm::StartupCanvas::delete_extra_weights_files()
 
 void dm::StartupCanvas::valueChanged(Value & value)
 {
-	table.repaint();
+	if (value.refersToSameSourceAs(tab_name))
+	{
+		// this is called once the user moves focus away from the editable field, or when they press ENTER
+		auto & nb = dmapp().startup_wnd->notebook;
+		auto name = value.toString().trim();
+		if (name.isEmpty())
+		{
+			name = File(project_directory.toString()).getFileNameWithoutExtension();
+		}
+
+		nb.setTabName(nb.getCurrentTabIndex(), name);
+		cfg().setValue("project_" + cfg_key + "_name", name);
+		value = name;
+	}
+	else
+	{
+		table.repaint();
+	}
 
 	return;
 }
