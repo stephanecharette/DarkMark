@@ -12,7 +12,8 @@
 
 /** Only define this if you need to re-create the doxygen table.  It will
  * rebuild .dox file used on the web site.  This has no impact or purpose
- * normal users of DarkMark, and should be left undefined.
+ * normal users of DarkMark, and should be left undefined.  Look for files
+ * named *_cfg_table.txt after this window is brought up.
  */
 #if 0
 #define OUTPUT_DOX_TABLES
