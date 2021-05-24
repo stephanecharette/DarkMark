@@ -47,7 +47,7 @@ void dm::DMContentImageFilenameSort::run()
 		File file = File(fn).withFileExtension(".json");
 		if (content.sort_order == dm::ESort::kCountMarks)
 		{
-			m[fn] = content.count_marks_in_json(file);
+			m[fn] = content.count_marks_in_json(file, true);
 		}
 		else
 		{

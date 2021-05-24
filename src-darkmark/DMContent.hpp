@@ -69,7 +69,7 @@ namespace dm
 
 			DMContent & import_text_annotations(const VStr & image_filenames);
 
-			size_t count_marks_in_json(File & f);
+			size_t count_marks_in_json(File & f, const bool for_sorting_purposes=false);
 
 			bool load_text();
 

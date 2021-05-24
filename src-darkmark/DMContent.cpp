@@ -1270,7 +1270,7 @@ dm::DMContent & dm::DMContent::import_text_annotations(const VStr & images_fn)
 }
 
 
-size_t dm::DMContent::count_marks_in_json(File & f)
+size_t dm::DMContent::count_marks_in_json(File & f, const bool for_sorting_purposes)
 {
 	size_t result = 0;
 
@@ -1280,6 +1280,13 @@ size_t dm::DMContent::count_marks_in_json(File & f)
 		{
 			json root = json::parse(f.loadFileAsString().toStdString());
 			result = root["mark"].size();
+
+			if (result > 0 and for_sorting_purposes)
+			{
+				// add 1 when we're counting for sorting purposes, that way
+				// empty images wont be mixed up with images that have 1 mark
+				result ++;
+			}
 
 			if (result == 0 and root.value("completely_empty", false))
 			{
