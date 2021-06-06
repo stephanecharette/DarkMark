@@ -1,9 +1,15 @@
 # DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 
-FIND_LIBRARY	( RT		rt			)
-FIND_LIBRARY	( DL		dl			)
-FIND_PACKAGE	( X11		REQUIRED	)
+IF (WIN32)
+	SET (RT "")
+	SET (DL "")
+	SET (X11 "")
+ELSE ()
+	FIND_LIBRARY	( RT		rt			)
+	FIND_LIBRARY	( DL		dl			)
+	FIND_PACKAGE	( X11		REQUIRED	)
+ENDIF ()
 FIND_PACKAGE	( Threads	REQUIRED	)
 FIND_PACKAGE	( Freetype	REQUIRED	)
 INCLUDE_DIRECTORIES ( AFTER ${FREETYPE_INCLUDE_DIRS} )
