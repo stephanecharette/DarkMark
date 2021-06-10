@@ -113,14 +113,14 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		std::vector<File> dirs_to_search = {File(home)};
 		const std::time_t start_time = std::time(nullptr);
 		const std::time_t end_time = start_time + 4;
-		while (found == false and time(nullptr) < end_time and not dirs_to_search.empty())
+		while (found == false and dirs_to_search.empty() == false and time(nullptr) < end_time)
 		{
-			auto dir = dirs_to_search.back();
+			f = dirs_to_search.back();
 			dirs_to_search.pop_back();
-			dm::Log("looking for \"darknet\" in " + dir.getFullPathName().toStdString());
+			dm::Log("looking for \"darknet\" in " + f.getFullPathName().toStdString());
 
-			// get the next set of subdirectories
-			auto dirs = dir.findChildFiles(File::TypesOfFileToFind::findDirectories + File::TypesOfFileToFind::ignoreHiddenFiles, false);
+			// get the next level of subdirectories
+			auto dirs = f.findChildFiles(File::TypesOfFileToFind::findDirectories + File::TypesOfFileToFind::ignoreHiddenFiles, false);
 			for (const auto & child : dirs)
 			{
 				if (child.getFileName() == "darknet")
@@ -134,6 +134,10 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 						set_str("darknet_dir", darknet_dir);
 						found = true;
 						break;
+					}
+					else
+					{
+						dm::Log("found \"darknet\" but it doesn't have a \"cfg\" subdirectory: " + child.getFullPathName().toStdString());
 					}
 				}
 				dirs_to_search.push_back(child);

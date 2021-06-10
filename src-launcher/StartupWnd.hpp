@@ -24,6 +24,8 @@ namespace dm
 
 			virtual bool keyPressed(const KeyPress & key);
 
+			virtual void updateButtons();
+
 			Component canvas;
 			Notebook notebook;
 			TextButton add_button;
