@@ -103,6 +103,44 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		setValue("darknet_nms_threshold"		, "45");
 	}
 
+	// see if the darknet directory exists, and if not, see if we can quickly find it
+	auto darknet_dir = get_str("darknet_dir");
+	File f(darknet_dir);
+	if (f.exists() == false or f.isDirectory() == false)
+	{
+		// spend a few seconds looking through the "home" to see if we can find a subdirectory called "darknet"
+		bool found = false;
+		std::vector<File> dirs_to_search = {File(home)};
+		const std::time_t start_time = std::time(nullptr);
+		const std::time_t end_time = start_time + 4;
+		while (found == false and time(nullptr) < end_time and not dirs_to_search.empty())
+		{
+			auto dir = dirs_to_search.back();
+			dirs_to_search.pop_back();
+			dm::Log("looking for \"darknet\" in " + dir.getFullPathName().toStdString());
+
+			// get the next set of subdirectories
+			auto dirs = dir.findChildFiles(File::TypesOfFileToFind::findDirectories + File::TypesOfFileToFind::ignoreHiddenFiles, false);
+			for (const auto & child : dirs)
+			{
+				if (child.getFileName() == "darknet")
+				{
+					// if this really is darknet, then it will have a subdirectory called "cfg"
+					File darknet_cfg = child.getChildFile("cfg");
+					if (darknet_cfg.isDirectory())
+					{
+						darknet_dir = child.getFullPathName().toStdString();
+						dm::Log("found \"darknet\": " + darknet_dir);
+						set_str("darknet_dir", darknet_dir);
+						found = true;
+						break;
+					}
+				}
+				dirs_to_search.push_back(child);
+			}
+		}
+	}
+
 	saveIfNeeded();
 
 	return *this;
