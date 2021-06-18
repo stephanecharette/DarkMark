@@ -59,6 +59,8 @@ dm::StartupWnd::StartupWnd() :
 	}
 	notebook.setCurrentTabIndex(0);
 
+	updateButtons();
+
 	add_button			.addListener(this);
 	delete_button		.addListener(this);
 	import_video_button	.addListener(this);
@@ -311,6 +313,8 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				}
 			}
 		}
+
+		updateButtons();
 	}
 	else if (button == &delete_button)
 	{
@@ -371,6 +375,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				}
 			}
 		}
+		updateButtons();
 	}
 	else if (button == &ok_button)
 	{
@@ -510,4 +515,18 @@ bool dm::StartupWnd::keyPressed(const KeyPress & key)
 	}
 
 	return false; // false == keystroke not handled
+}
+
+
+void dm::StartupWnd::updateButtons()
+{
+	const bool enabled = (notebook.getNumTabs() > 0);
+
+	delete_button		.setEnabled(enabled);
+	import_video_button	.setEnabled(enabled);
+	open_folder_button	.setEnabled(enabled);
+	refresh_button		.setEnabled(enabled);
+	ok_button			.setEnabled(enabled);
+
+	return;
 }

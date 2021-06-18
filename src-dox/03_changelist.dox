@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.5.12-1	| 2021-06-10	| Look for darknet and darknet/cfg on startup.
 1.5.6-1		| 2021-05-12	| Review table columns can be sorted.
 1.5.2-1		| 2021-05-05	| Added @p z to do zoom-and-review of annotations. Additional debug logging added to other parts of the code.
 1.5.0-1		| 2021-05-02	| Added new zoom features (@p space, @p +, and @p -)
