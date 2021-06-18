@@ -6,7 +6,7 @@
 using json = nlohmann::json;
 
 
-void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks)
+void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks, size_t & number_of_empty_images)
 {
 	double work_done = 0.0;
 	double work_to_do = content.image_filenames.size() + 1.0;
@@ -22,10 +22,19 @@ void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progre
 		progress_window.setProgress(work_done / work_to_do);
 
 		File f = File(filename).withFileExtension(".json");
-		const size_t count = content.count_marks_in_json(f);
+
+		// note how count_marks_in_json() lies about negative samples and returns "1" for empty images
+		size_t count = content.count_marks_in_json(f);
 		if (count)
 		{
 			annotated_images.push_back(filename);
+
+			// cheat -- we'd like to know if this is actually a negative samples
+			if (File(f).withFileExtension(".txt").getSize() == 0)
+			{
+				number_of_empty_images ++;
+				count = 0;
+			}
 		}
 		else
 		{
@@ -54,7 +63,7 @@ void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progre
 }
 
 
-void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images)
+void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images, size_t & number_of_images_not_resized, size_t & number_of_marks, size_t & number_of_empty_images)
 {
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
@@ -89,7 +98,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 		cv::Mat mat = cv::imread(original_image);
 
 		cv::Mat dst;
-		if (mat.cols != desired_image_size.width and mat.rows != desired_image_size.height)
+		if (mat.cols != desired_image_size.width or mat.rows != desired_image_size.height)
 		{
 			cv::resize(mat, dst, desired_image_size, cv::INTER_AREA);
 			number_of_resized_images ++;
@@ -97,6 +106,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 		else
 		{
 			dst = mat;
+			number_of_images_not_resized ++;
 		}
 
 		resized_txt
@@ -115,13 +125,23 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 		{
 			throw std::runtime_error("Failed to copy " + txt.getFullPathName().toStdString() + ".");
 		}
+
+		if (txt.getSize() == 0)
+		{
+			number_of_empty_images ++;
+		}
+		else
+		{
+			json root = json::parse(txt.withFileExtension(".json").loadFileAsString().toStdString());
+			number_of_marks += root["mark"].size();
+		}
 	}
 
 	return;
 }
 
 
-void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created)
+void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created, size_t & number_of_empty_images)
 {
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
@@ -297,6 +317,10 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 					}
 				}
 
+				if (number_of_annotations == 0)
+				{
+					number_of_empty_images ++;
+				}
 				number_of_marks += number_of_annotations;
 				number_of_tiles_created ++;
 
@@ -313,7 +337,7 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 }
 
 
-void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_zooms_created)
+void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_zooms_created, size_t & number_of_empty_images)
 {
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
@@ -551,6 +575,10 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 				number_of_annotations ++;
 			}
 
+			if (number_of_annotations == 0)
+			{
+				number_of_empty_images ++;
+			}
 			number_of_marks += number_of_annotations;
 			number_of_zooms_created ++;
 

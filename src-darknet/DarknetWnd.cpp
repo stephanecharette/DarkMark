@@ -21,22 +21,28 @@ class SaveTask : public ThreadWithProgressWindow
 			{
 				wnd.info.rebuild();
 
-				size_t number_of_files_train	= 0;
-				size_t number_of_files_valid	= 0;
-				size_t number_of_skipped_files	= 0;
-				size_t number_of_marks			= 0;
-				size_t number_of_images_resized	= 0;
-				size_t number_of_tiles_created	= 0;
-				size_t number_of_zooms_created	= 0;
+				size_t number_of_files_train		= 0;
+				size_t number_of_files_valid		= 0;
+				size_t number_of_annotated_images	= 0;
+				size_t number_of_skipped_files		= 0;
+				size_t number_of_marks				= 0;
+				size_t number_of_empty_images		= 0;
+				size_t number_of_images_resized		= 0;
+				size_t number_of_images_not_resized	= 0;
+				size_t number_of_tiles_created		= 0;
+				size_t number_of_zooms_created		= 0;
 
 				setStatusMessage("Creating training and validation files...");
 				wnd.create_Darknet_training_and_validation_files(
 					*this,
 					number_of_files_train,
 					number_of_files_valid,
+					number_of_annotated_images,
 					number_of_skipped_files,
 					number_of_marks,
+					number_of_empty_images,
 					number_of_images_resized,
+					number_of_images_not_resized,
 					number_of_tiles_created,
 					number_of_zooms_created);
 
@@ -49,8 +55,6 @@ class SaveTask : public ThreadWithProgressWindow
 				setStatusMessage("Done!");
 				setProgress(1.0);
 
-				const size_t number_of_images = (wnd.info.train_with_all_images ? number_of_files_train : (number_of_files_train + number_of_files_valid));
-
 				const bool singular = (wnd.content.names.size() == 2); // two because the "empty" class is appended to the names, but it does not get output
 
 				std::stringstream ss;
@@ -59,14 +63,24 @@ class SaveTask : public ThreadWithProgressWindow
 					<< "There " << (singular ? "is " : "are ") << (wnd.content.names.size() - 1) << " class" << (singular ? "" : "es") << " with a total of "
 					<< number_of_files_train << " training images and "
 					<< number_of_files_valid << " validation images. The average is "
-					<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_images)
-					<< " marks per image." << std::endl
+					<< std::fixed << std::setprecision(2) << double(number_of_marks) / double(number_of_annotated_images)
+					<< " marks per image across a total of " << number_of_annotated_images << " annotated images." << std::endl
 					<< std::endl;
+
+				if (number_of_empty_images)
+				{
+					ss	<< "The number of negative samples (empty images): " << number_of_empty_images << "." << std::endl
+						<< std::endl;
+				}
 
 				if (number_of_images_resized)
 				{
-					ss	<< "The number of images resized to " << wnd.info.image_width << "x" << wnd.info.image_height << ": " << number_of_images_resized << "." << std::endl
-						<< std::endl;
+					ss	<< "The number of images resized to " << wnd.info.image_width << "x" << wnd.info.image_height << ": " << number_of_images_resized << "." << std::endl;
+					if (number_of_images_not_resized)
+					{
+						ss << "The number of images already at " << wnd.info.image_width << "x" << wnd.info.image_height << ": " << number_of_images_not_resized << "." << std::endl;
+					}
+					ss << std::endl;
 				}
 
 				if (number_of_tiles_created)
@@ -84,6 +98,18 @@ class SaveTask : public ThreadWithProgressWindow
 				if (number_of_skipped_files)
 				{
 					ss	<< "IMPORTANT: " << number_of_skipped_files << " images were skipped because they have not yet been annotated." << std::endl
+						<< std::endl;
+				}
+
+				const double percentage = double(number_of_empty_images) / double(number_of_annotated_images + number_of_empty_images);
+				if (percentage < 0.2)
+				{
+					ss	<< "WARNING: The number of negative samples (empty images) seems unusually low: " << (int)std::round(100.0 * percentage) << "%." << std::endl
+						<< std::endl;
+				}
+				if (percentage > 0.7)
+				{
+					ss	<< "NOTE: The number of negative samples (empty images) seems unusually high: " << (int)std::round(100.0 * percentage) << "%." << std::endl
 						<< std::endl;
 				}
 
@@ -765,9 +791,12 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		ThreadWithProgressWindow & progress_window,
 		size_t & number_of_files_train		,
 		size_t & number_of_files_valid		,
+		size_t & number_of_annotated_images	,
 		size_t & number_of_skipped_files	,
 		size_t & number_of_marks			,
+		size_t & number_of_empty_images		,
 		size_t & number_of_resized_images	,
+		size_t & number_of_images_not_resized,
 		size_t & number_of_tiles_created	,
 		size_t & number_of_zooms_created	)
 {
@@ -783,9 +812,12 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 
 	number_of_files_train		= 0;
 	number_of_files_valid		= 0;
+	number_of_annotated_images	= 0;
 	number_of_skipped_files		= 0;
 	number_of_marks				= 0;
+	number_of_empty_images		= 0;
 	number_of_resized_images	= 0;
+	number_of_images_not_resized= 0;
 	number_of_tiles_created		= 0;
 	number_of_zooms_created		= 0;
 
@@ -796,34 +828,45 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	VStr annotated_images;
 	VStr skipped_images;
 	VStr all_output_images;
-	find_all_annotated_images(progress_window, annotated_images, skipped_images, number_of_marks);
+	find_all_annotated_images(progress_window, annotated_images, skipped_images, number_of_marks, number_of_empty_images);
+	number_of_annotated_images = annotated_images.size();
 	number_of_skipped_files = skipped_images.size();
 
-	Log("total number of annotated input images: " + std::to_string(annotated_images.size()));
-	Log("total number of skipped input images: " + std::to_string(skipped_images.size()));
+	Log("total number of skipped input images ..... " + std::to_string(number_of_skipped_files		));
+	Log("original number of annotated images ...... " + std::to_string(number_of_annotated_images	));
+	Log("original number of marks ................. " + std::to_string(number_of_marks				));
+	Log("original number of empty images .......... " + std::to_string(number_of_empty_images		));
 
 	if (info.do_not_resize_images)
 	{
 		Log("not resizing any images");
 		all_output_images = annotated_images;
 	}
+	else
+	{
+		// reset these counters and let the resize/tile/zoom+crop functions set these values
+		number_of_marks = 0;
+		number_of_empty_images = 0;
+	}
+
 	if (info.resize_images)
 	{
 		Log("resizing all images");
-		resize_images(progress_window, annotated_images, all_output_images, number_of_resized_images);
-		Log("number of images resized: " + std::to_string(number_of_resized_images));
+		resize_images(progress_window, annotated_images, all_output_images, number_of_resized_images, number_of_images_not_resized, number_of_marks, number_of_empty_images);
+		Log("number of images resized ................. " + std::to_string(number_of_resized_images		));
+		Log("number of images not resized ............. " + std::to_string(number_of_images_not_resized	));
 	}
 	if (info.tile_images)
 	{
 		Log("tiling all images");
-		tile_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_tiles_created);
-		Log("number of tiles created: " + std::to_string(number_of_tiles_created));
+		tile_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_tiles_created, number_of_empty_images);
+		Log("number of tiles created .................. " + std::to_string(number_of_tiles_created));
 	}
 	if (info.zoom_images)
 	{
 		Log("crop+zoom all images");
-		random_zoom_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_zooms_created);
-		Log("number of crop+zoom images created: " + std::to_string(number_of_zooms_created));
+		random_zoom_images(progress_window, annotated_images, all_output_images, number_of_marks, number_of_zooms_created, number_of_empty_images);
+		Log("number of crop+zoom images created ....... " + std::to_string(number_of_zooms_created));
 	}
 
 	// now that we know the exact set of images (including resized and tiled images)
@@ -833,7 +876,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	double work_to_do = all_output_images.size() + 1.0;
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage("Writing training and validation files...");
-	Log("total number of output images: " + std::to_string(all_output_images.size()));
+	Log("total number of output images ............ " + std::to_string(all_output_images.size()));
 
 	std::random_shuffle(all_output_images.begin(), all_output_images.end());
 	const bool use_all_images = info.train_with_all_images;
@@ -846,8 +889,12 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		number_of_files_valid = all_output_images.size();
 	}
 
-	Log("total number of training images: " + std::to_string(number_of_files_train) + " (" + info.train_filename + ")");
-	Log("total number of validation images: " + std::to_string(number_of_files_valid) + " (" + info.valid_filename + ")");
+	number_of_annotated_images = all_output_images.size() - number_of_empty_images;
+	Log("total number of annotated images ......... " + std::to_string(number_of_annotated_images	));
+	Log("total number of marks .................... " + std::to_string(number_of_marks				));
+	Log("total number of empty images ............. " + std::to_string(number_of_empty_images		));
+	Log("total number of training images .......... " + std::to_string(number_of_files_train) + " (" + info.train_filename + ")");
+	Log("total number of validation images ........ " + std::to_string(number_of_files_valid) + " (" + info.valid_filename + ")");
 
 	std::ofstream fs_train(info.train_filename);
 	std::ofstream fs_valid(info.valid_filename);

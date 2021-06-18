@@ -28,19 +28,22 @@ namespace dm
 					ThreadWithProgressWindow & progress_window,
 					size_t & number_of_files_train		,
 					size_t & number_of_files_valid		,
+					size_t & number_of_annotated_images	,
 					size_t & number_of_skipped_files	,
 					size_t & number_of_marks			,
+					size_t & number_of_empty_images		,
 					size_t & number_of_resized_images	,
+					size_t & number_of_images_not_resized,
 					size_t & number_of_tiles_created	,
 					size_t & number_of_zooms_created	);
 
-			void find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks);
+			void find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks, size_t & number_of_empty_images);
 
-			void resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images);
+			void resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images, size_t & number_of_images_not_resized, size_t & number_of_marks, size_t & number_of_empty_images);
 
-			void tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created);
+			void tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created, size_t & number_of_empty_images);
 
-			void random_zoom_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_zooms_created);
+			void random_zoom_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_zooms_created, size_t & number_of_empty_images);
 
 			void create_Darknet_configuration_file();
 			void create_Darknet_shell_scripts();
