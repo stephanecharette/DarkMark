@@ -232,6 +232,7 @@ void dm::StartupCanvas::initialize_on_thread()
 	try
 	{
 		// look for newest and oldest timestamp
+		std::size_t empty_images = 0;
 		std::time_t oldest = 0;
 		std::time_t newest = 0;
 		std::size_t count = 0;
@@ -245,6 +246,11 @@ void dm::StartupCanvas::initialize_on_thread()
 
 			json j = json::parse(File(filename).loadFileAsString().toStdString());
 			count += j["mark"].size();
+			if (j.value("completely_empty", false) == true)
+			{
+				// count empty images as well...but not the same way as marks
+				empty_images ++;
+			}
 			std::time_t timestamp = j["timestamp"].get<std::time_t>();
 			if (oldest == 0 || timestamp < oldest)
 			{
@@ -256,6 +262,15 @@ void dm::StartupCanvas::initialize_on_thread()
 			}
 		}
 
+		if (empty_images)
+		{
+			// since we have some empty images, update the text counter to include those stats as well
+			const int percentage = std::round(100.0 * empty_images / json_filenames.size());
+			auto str = number_of_json.toString();
+			str += " of which " + String(empty_images) + " (" + String(percentage) + "%) are negative samples";
+			number_of_json = str;
+		}
+
 		oldest_markup = format_timestamp(oldest).c_str();
 		newest_markup = format_timestamp(newest).c_str();
 
@@ -263,14 +278,15 @@ void dm::StartupCanvas::initialize_on_thread()
 		std::stringstream ss;
 		ss << std::fixed << std::setprecision(1);
 		ss << count;
-		if (classes > 0 and count > 0)
+		if (classes > 0 and count > 0 and json_filenames.size() > empty_images)
 		{
 			const double average_marks_per_class = static_cast<double>(count) / static_cast<double>(classes);
-			const double average_marks_per_image = static_cast<double>(count) / static_cast<double>(json_filenames.size());
+			const double average_marks_per_image = static_cast<double>(count) / static_cast<double>(json_filenames.size() - empty_images);
 
-			ss	<< " (average of "
-				<< average_marks_per_class << " mark" << (average_marks_per_class == 1.0 ? "" : "s") << " per class or "
-				<< average_marks_per_image << " mark" << (average_marks_per_image == 1.0 ? "" : "s") << " per image)";
+			ss	<< " ("
+				<< average_marks_per_class << " mark" << (average_marks_per_class == 1.0 ? "" : "s") << " per class, "
+				<< average_marks_per_image << " mark" << (average_marks_per_image == 1.0 ? "" : "s") << " per image, "
+				<< empty_images << " negative sample" << (empty_images == 1.0 ? "" : "s") << ")";
 		}
 		number_of_marks = ss.str().c_str();
 	}
