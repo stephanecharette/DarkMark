@@ -163,7 +163,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 	if (rowNumber < 0					or
 		rowNumber >= (int)mri.size()	or
 		columnId < 1					or
-		columnId > 9					)
+		columnId > 10					)
 	{
 		// rows are 0-based, columns are 1-based
 		return;
