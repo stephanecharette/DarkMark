@@ -13,7 +13,6 @@ namespace dm
 		std::string filename;
 		size_t class_idx;
 		cv::Rect r;
-		double aspect_ratio;
 		double overlap_sum; // the total amount of overlap between this mark and all other marks in this image
 		std::string mime_type;
 		VStr warnings;

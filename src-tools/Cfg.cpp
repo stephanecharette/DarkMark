@@ -62,6 +62,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("scrollfield_marker_size"		, 7													);
 	insert_if_not_exist("show_mouse_pointer"			, false												);
 	insert_if_not_exist("corner_size"					, 10												);
+	insert_if_not_exist("review_resize_thumbnails"		, true												);
 
 	removeValue("darknet_enable_hue");	// this was changed to the float value darknet_hue
 	removeValue("darknet_trailing_percentage");	// typo:  "trailing" -> "training"

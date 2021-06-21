@@ -14,13 +14,14 @@ dm::DMReviewCanvas::DMReviewCanvas(const MReviewInfo & m) :
 
 	getHeader().addColumn("#"			, 1, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	getHeader().addColumn("mark"		, 2, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("size"		, 3, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("aspect ratio", 4, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("rectangle"	, 5, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("overlap"		, 6, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("filename"	, 7, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("type"		, 8, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("message"		, 9, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("zoom"		, 3, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("size"		, 4, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("aspect ratio", 5, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("rectangle"	, 6, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("overlap"		, 7, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("filename"	, 8, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("type"		, 9, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("message"		, 10, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	// if changing columns, also update paintCell() below
 
 	if (cfg().containsKey("review_columns"))
@@ -177,13 +178,14 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 	/* columns:
 	 *		1: row number
 	 *		2: mark (image)
-	 *		3: size
-	 *		4: aspect ratio
-	 *		5: rectangle
-	 *		6: overlap
-	 *		7: filename
-	 *		8: mime type
-	 *		9: warning + error messages
+	 *		3: zoom
+	 *		4: size
+	 *		5: aspect ratio
+	 *		6: rectangle
+	 *		7: overlap
+	 *		8: filename
+	 *		9: mime type
+	 *		10: warning + error messages
 	 */
 
 	if (columnId == 2)
@@ -202,11 +204,12 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 	{
 		std::string str;
 		if (columnId == 1)	str = std::to_string(sort_idx[rowNumber] + 1);
-		if (columnId == 3)	str = std::to_string(review_info.mat.cols) + " x " + std::to_string(review_info.mat.rows);
-		if (columnId == 4)	str = std::to_string(review_info.aspect_ratio);
-		if (columnId == 8)	str = review_info.mime_type;
+		if (columnId == 3)	str = std::to_string((int)std::round(100.0 * static_cast<double>(review_info.mat.cols) / std::max(1.0, static_cast<double>(review_info.r.width)))) + "%";
+		if (columnId == 4)	str = std::to_string(review_info.r.width) + " x " + std::to_string(review_info.r.height);
+		if (columnId == 5)	str = std::to_string(static_cast<double>(review_info.r.width) / static_cast<double>(review_info.r.height));
+		if (columnId == 9)	str = review_info.mime_type;
 
-		if (columnId == 5)
+		if (columnId == 6)
 		{
 			if (review_info.r.area() > 0)
 			{
@@ -217,7 +220,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 			}
 		}
 
-		if (columnId == 6)
+		if (columnId == 7)
 		{
 			const int percentage = std::round(review_info.overlap_sum * 100.0);
 			if (percentage > 0)
@@ -230,7 +233,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 			}
 		}
 
-		if (columnId == 7)
+		if (columnId == 8)
 		{
 			str = review_info.filename;
 
@@ -263,7 +266,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 			}
 		}
 
-		if (columnId == 9)
+		if (columnId == 10)
 		{
 			for (const auto & msg : review_info.warnings)
 			{
@@ -308,16 +311,17 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 	/* note the sort column is 1-based:
 	 *		1: row number
 	 *		2: mark (image)
-	 *		3: size
-	 *		4: aspect ratio
-	 *		5: rectangle
-	 *		6: overlap
-	 *		7: filename
-	 *		8: mime type
-	 *		9: warning + error messages
+	 *		3: zoom
+	 *		4: size
+	 *		5: aspect ratio
+	 *		6: rectangle
+	 *		7: overlap
+	 *		8: filename
+	 *		9: mime type
+	 *		10: warning + error messages
 	 */
 
-	if (newSortColumnId < 1 or newSortColumnId > 9)
+	if (newSortColumnId < 1 or newSortColumnId > 10)
 	{
 		Log("cannot sort table on invalid column=" + std::to_string(newSortColumnId));
 		return;
@@ -346,11 +350,24 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 
 				switch (newSortColumnId)
 				{
-					case 2:
 					case 3:
 					{
-						const auto lhs_area = lhs_info.mat.cols * lhs_info.mat.rows;
-						const auto rhs_area = rhs_info.mat.cols * rhs_info.mat.rows;
+						const auto lhs_zoom = static_cast<double>(lhs_info.mat.cols) / std::max(1.0, static_cast<double>(lhs_info.r.width));
+						const auto rhs_zoom = static_cast<double>(rhs_info.mat.cols) / std::max(1.0, static_cast<double>(rhs_info.r.width));
+
+						if (lhs_zoom != rhs_zoom)
+						{
+							return lhs_zoom < rhs_zoom;
+						}
+
+						// if the zoom is the same, then sort by index
+						return lhs_idx < rhs_idx;
+					}
+					case 2:
+					case 4:
+					{
+						const auto lhs_area = lhs_info.r.width * lhs_info.r.height;
+						const auto rhs_area = rhs_info.r.width * rhs_info.r.height;
 
 						if (lhs_area != rhs_area)
 						{
@@ -359,17 +376,20 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 						// if the area is the same, then sort by index
 						return lhs_idx < rhs_idx;
 					}
-					case 4:
 					case 5:
+					case 6:
 					{
-						if (lhs_info.aspect_ratio != rhs_info.aspect_ratio)
+						const auto lhs_aspect_ratio = static_cast<double>(lhs_info.r.width) / static_cast<double>(lhs_info.r.height);
+						const auto rhs_aspect_ratio = static_cast<double>(rhs_info.r.width) / static_cast<double>(rhs_info.r.height);
+
+						if (lhs_aspect_ratio != rhs_aspect_ratio)
 						{
-							return lhs_info.aspect_ratio < rhs_info.aspect_ratio;
+							return lhs_aspect_ratio < rhs_aspect_ratio;
 						}
 						// if the aspect ratio is the same, then sort by index
 						return lhs_idx < rhs_idx;
 					}
-					case 6:
+					case 7:
 					{
 						if (lhs_info.overlap_sum != rhs_info.overlap_sum)
 						{
@@ -378,7 +398,7 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 						// if the overlap is the same, then sort by index
 						return lhs_idx < rhs_idx;
 					}
-					case 7:
+					case 8:
 					{
 						if (lhs_info.filename != rhs_info.filename)
 						{
@@ -387,7 +407,7 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 						// if the mime-type is the same, then sort by index
 						return lhs_idx < rhs_idx;
 					}
-					case 8:
+					case 9:
 					{
 						if (lhs_info.mime_type != rhs_info.mime_type)
 						{
@@ -396,7 +416,7 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 						// if the mime-type is the same, then sort by index
 						return lhs_idx < rhs_idx;
 					}
-					case 9:
+					case 10:
 					{
 						if (lhs_info.errors.size()		!= rhs_info.errors.size())		return lhs_info.errors.size()	< rhs_info.errors.size();
 						if (lhs_info.warnings.size()	!= rhs_info.warnings.size())	return lhs_info.warnings.size()	< rhs_info.warnings.size();

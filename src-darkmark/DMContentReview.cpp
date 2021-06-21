@@ -26,6 +26,10 @@ void dm::DMContentReview::run()
 {
 	DarkMarkApplication::setup_signal_handling();
 
+	const bool resize_thumbnails = cfg().get_bool("review_resize_thumbnails");
+	const int row_height = cfg().get_int("review_table_row_height");
+	const cv::Size desired_size(9999, row_height);
+
 	const double max_work = content.image_filenames.size();
 	double work_completed = 0.0;
 
@@ -66,7 +70,6 @@ void dm::DMContentReview::run()
 			Log("failed to read image " + fn + " or parse json " + f.getFullPathName().toStdString() + ": " + e.what());
 			const auto class_idx = error_index;
 			ReviewInfo review_info;
-			review_info.aspect_ratio= 0.0;
 			review_info.overlap_sum	= 0.0;
 			review_info.class_idx	= class_idx;
 			review_info.filename	= fn;
@@ -90,7 +93,6 @@ void dm::DMContentReview::run()
 			Log("failed to load image " + fn);
 			const auto class_idx = error_index;
 			ReviewInfo review_info;
-			review_info.aspect_ratio = 0.0;
 			review_info.overlap_sum	= 0.0;
 			review_info.class_idx	= class_idx;
 			review_info.filename	= fn;
@@ -105,12 +107,15 @@ void dm::DMContentReview::run()
 		{
 			const auto class_idx = content.empty_image_name_index;
 			ReviewInfo review_info;
-			review_info.aspect_ratio = 0.0;
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
-			review_info.mat = mat.clone();
 			review_info.mime_type = magic_file(magic_cookie, fn.c_str());
+			review_info.r = cv::Rect(0, 0, mat.cols, mat.rows);
+
+			// full-size images are always resized
+			review_info.mat = resize_keeping_aspect_ratio(mat, desired_size);
+
 			const size_t idx = m[class_idx].size();
 			m[class_idx][idx] = review_info;
 			continue;
@@ -122,7 +127,6 @@ void dm::DMContentReview::run()
 			Log("no marks defined, yet image is not marked as empty: " + fn);
 			const auto class_idx = error_index;
 			ReviewInfo review_info;
-			review_info.aspect_ratio = 0.0;
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
@@ -177,7 +181,6 @@ void dm::DMContentReview::run()
 
 			ReviewInfo review_info;
 			review_info.r = r1;
-			review_info.aspect_ratio = static_cast<double>(w) / static_cast<double>(h);
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
@@ -201,7 +204,15 @@ void dm::DMContentReview::run()
 
 			try
 			{
-				review_info.mat = mat(r1).clone();
+				cv::Mat roi = mat(r1);
+				if (resize_thumbnails or roi.rows > row_height)
+				{
+					review_info.mat = resize_keeping_aspect_ratio(roi, desired_size).clone();
+				}
+				else
+				{
+					review_info.mat = roi.clone();
+				}
 			}
 			catch (...)
 			{

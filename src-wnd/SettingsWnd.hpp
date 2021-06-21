@@ -30,6 +30,8 @@ namespace dm
 			Value v_show_mouse_pointer;
 			Value v_image_tiling;
 			Value v_corner_size;
+			Value v_review_resize_thumbnails;
+			Value v_review_table_row_height;
 
 			DMContent & content;
 			Component canvas;

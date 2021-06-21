@@ -87,6 +87,8 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_scrollfield_marker_size	= content.scrollfield.triangle_size;
 	v_show_mouse_pointer		= content.show_mouse_pointer;
 	v_corner_size				= content.corner_size;
+	v_review_resize_thumbnails	= cfg().get_bool("review_resize_thumbnails");
+	v_review_table_row_height	= cfg().get_int("review_table_row_height");
 
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
@@ -96,6 +98,8 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_show_mouse_pointer						.addListener(this);
 	v_image_tiling								.addListener(this);
 	v_corner_size								.addListener(this);
+	v_review_resize_thumbnails					.addListener(this);
+	v_review_table_row_height					.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
@@ -104,19 +108,19 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 //	ButtonPropertyComponent		* b = nullptr;
 
 	s = new SliderPropertyComponent(v_darkhelp_threshold, "detection threshold", 0, 100, 1);
-	s->setTooltip("Detection threshold is used to determine whether or not there is an object in the predicted bounding box.");
+	s->setTooltip("Detection threshold is used to determine whether or not there is an object in the predicted bounding box. Default value is 50%.");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_darkhelp_hierchy_threshold, "hierarchy threshold", 0, 100, 1);
-	s->setTooltip("The hierarchical threshold is used to decide whether following the tree to a more specific class is the right action to take. When this threshold is 0, the tree will basically follow the highest probability branch all the way to a leaf node.");
+	s->setTooltip("The hierarchical threshold is used to decide whether following the tree to a more specific class is the right action to take. When this threshold is 0, the tree will basically follow the highest probability branch all the way to a leaf node. Default value is 50%.");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_darkhelp_non_maximal_suppression_threshold, "nms threshold", 0, 100, 1);
-	s->setTooltip("Non-Maximal Suppression (NMS) suppresses overlapping bounding boxes and only retains the bounding box that has the maximum probability of object detection associated with it. It examines all bounding boxes and removes the least confident of the boxes that overlap with each other.");
+	s->setTooltip("Non-Maximal Suppression (NMS) suppresses overlapping bounding boxes and only retains the bounding box that has the maximum probability of object detection associated with it. It examines all bounding boxes and removes the least confident of the boxes that overlap with each other. Default value is 45%.");
 	properties.add(s);
 
 	b = new BooleanPropertyComponent(v_image_tiling, "enable image tiling", "enable image tiling");
-	b->setTooltip("Determines if images will be tiled when showing predictions.");
+	b->setTooltip("Determines if images will be tiled when sent to darknet for processing. The default value is \"off\".");
 	properties.add(b);
 
 	pp.addSection("darknet", properties);
@@ -127,25 +131,34 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 //	properties.add(b);
 
 	s = new SliderPropertyComponent(v_scrollfield_width, "scrollfield width", 0.0, 200.0, 10.0);
+	s->setTooltip("The size of the scroll window on the right side of the annotation window. The default value is 100.");
 	properties.add(s);
 
 	s = new SliderPropertyComponent(v_scrollfield_marker_size, "scrollfield marker size", 0.0, 9.0, 1.0);
-	s->setTooltip("Markers will only be shown when the image sort order is set to 'alphabetical'.");
+	s->setTooltip("Markers will only be shown when the image sort order is set to 'alphabetical'. The default value is 7.");
 	properties.add(s);
 
 	b = new BooleanPropertyComponent(v_show_mouse_pointer, "show mouse pointer", "show mouse pointer");
-	b->setTooltip("Determines if the mouse pointer is shown in addition to the crosshairs.");
+	b->setTooltip("Determines if the mouse pointer is shown in addition to the crosshairs. The default value is \"off\".");
 	properties.add(b);
 
 	s = new SliderPropertyComponent(v_corner_size, "corner size", 0.0, 30.0, 1.0);
-	s->setTooltip("In pixels, size of the corners used to modify annotations.");
+	s->setTooltip("In pixels, the size of the corners used to modify annotations. The default value is 10.");
+	properties.add(s);
+
+	b = new BooleanPropertyComponent(v_review_resize_thumbnails, "resize review thumbnails", "resize review thumbnails");
+	b->setTooltip("Determines if small review thumbnails will be resized to fill the height of the row. The default value is \"on\".");
+	properties.add(b);
+
+	s = new SliderPropertyComponent(v_review_table_row_height, "height of review thumbnails", 25.0, 250.0, 1.0);
+	s->setTooltip("In pixels, the height of the rows and the height of each annotation thumbnail. The default value is 75.");
 	properties.add(s);
 
 	pp.addSection("drawing", properties);
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 300);
+	r = r.withSizeKeepingCentre(400, 400);
 	setBounds(r);
 
 	setVisible(true);
@@ -173,6 +186,8 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("show_mouse_pointer"			, v_show_mouse_pointer							.getValue());
 	cfg().setValue("darknet_image_tiling"		, v_image_tiling								.getValue());
 	cfg().setValue("corner_size"				, v_corner_size									.getValue());
+	cfg().setValue("review_resize_thumbnails"	, v_review_resize_thumbnails					.getValue());
+	cfg().setValue("review_table_row_height"	, v_review_table_row_height						.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
