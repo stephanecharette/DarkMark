@@ -23,6 +23,12 @@
   ==============================================================================
 */
 
+#if defined (__IPHONE_13_0)
+ #define JUCE_HAS_IOS_POINTER_SUPPORT 1
+#else
+ #define JUCE_HAS_IOS_POINTER_SUPPORT 0
+#endif
+
 namespace juce
 {
 
@@ -33,7 +39,11 @@ static UIInterfaceOrientation getWindowOrientation()
     UIApplication* sharedApplication = [UIApplication sharedApplication];
 
    #if (defined (__IPHONE_13_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_13_0)
-    return [[[[sharedApplication windows] firstObject] windowScene] interfaceOrientation];
+    for (UIScene* scene in [sharedApplication connectedScenes])
+        if ([scene isKindOfClass: [UIWindowScene class]])
+            return [(UIWindowScene*) scene interfaceOrientation];
+
+    return UIInterfaceOrientationPortrait;
    #else
     return [sharedApplication statusBarOrientation];
    #endif
@@ -86,11 +96,18 @@ namespace Orientations
     }
 }
 
+enum class MouseEventFlags
+{
+    none,
+    down,
+    up,
+    upAndCancel,
+};
+
 //==============================================================================
 } // namespace juce
 
 using namespace juce;
-
 
 @interface JuceUIView : UIView <UITextViewDelegate>
 {
@@ -108,6 +125,11 @@ using namespace juce;
 - (void) touchesMoved:     (NSSet*) touches  withEvent: (UIEvent*) event;
 - (void) touchesEnded:     (NSSet*) touches  withEvent: (UIEvent*) event;
 - (void) touchesCancelled: (NSSet*) touches  withEvent: (UIEvent*) event;
+
+#if JUCE_HAS_IOS_POINTER_SUPPORT
+- (void) onHover: (UIHoverGestureRecognizer*) gesture API_AVAILABLE (ios (13.0));
+- (void) onScroll: (UIPanGestureRecognizer*) gesture;
+#endif
 
 - (BOOL) becomeFirstResponder;
 - (BOOL) resignFirstResponder;
@@ -215,7 +237,12 @@ public:
 
     void updateScreenBounds();
 
-    void handleTouches (UIEvent*, bool isDown, bool isUp, bool isCancel);
+    void handleTouches (UIEvent*, MouseEventFlags);
+
+   #if JUCE_HAS_IOS_POINTER_SUPPORT
+    API_AVAILABLE (ios (13.0)) void onHover (UIHoverGestureRecognizer*);
+    void onScroll (UIPanGestureRecognizer*);
+   #endif
 
     //==============================================================================
     void repaint (const Rectangle<int>& area) override;
@@ -228,10 +255,15 @@ public:
     const bool isSharedWindow, isAppex;
     bool fullScreen = false, insideDrawRect = false;
 
-    static int64 getMouseTime (UIEvent* e) noexcept
+    static int64 getMouseTime (NSTimeInterval timestamp) noexcept
     {
         return (Time::currentTimeMillis() - Time::getMillisecondCounter())
-                + (int64) ([e timestamp] * 1000.0);
+             + (int64) (timestamp * 1000.0);
+    }
+
+    static int64 getMouseTime (UIEvent* e) noexcept
+    {
+        return getMouseTime ([e timestamp]);
     }
 
     static MultiTouchMapper<UITouch*> currentTouches;
@@ -397,6 +429,23 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     hiddenTextView.inputAssistantItem.leadingBarButtonGroups = @[];
     hiddenTextView.inputAssistantItem.trailingBarButtonGroups = @[];
 
+   #if JUCE_HAS_IOS_POINTER_SUPPORT
+    if (@available (iOS 13.4, *))
+    {
+        auto hoverRecognizer = [[[UIHoverGestureRecognizer alloc] initWithTarget: self action: @selector (onHover:)] autorelease];
+        [hoverRecognizer setCancelsTouchesInView: NO];
+        [hoverRecognizer setRequiresExclusiveTouchType: YES];
+        [self addGestureRecognizer: hoverRecognizer];
+
+        auto panRecognizer = [[[UIPanGestureRecognizer alloc] initWithTarget: self action: @selector (onScroll:)] autorelease];
+        [panRecognizer setCancelsTouchesInView: NO];
+        [panRecognizer setRequiresExclusiveTouchType: YES];
+        [panRecognizer setAllowedScrollTypesMask: UIScrollTypeMaskAll];
+        [panRecognizer setMaximumNumberOfTouches: 0];
+        [self addGestureRecognizer: panRecognizer];
+    }
+   #endif
+
     return self;
 }
 
@@ -421,7 +470,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     ignoreUnused (touches);
 
     if (owner != nullptr)
-        owner->handleTouches (event, true, false, false);
+        owner->handleTouches (event, MouseEventFlags::down);
 }
 
 - (void) touchesMoved: (NSSet*) touches withEvent: (UIEvent*) event
@@ -429,7 +478,7 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     ignoreUnused (touches);
 
     if (owner != nullptr)
-        owner->handleTouches (event, false, false, false);
+        owner->handleTouches (event, MouseEventFlags::none);
 }
 
 - (void) touchesEnded: (NSSet*) touches withEvent: (UIEvent*) event
@@ -437,16 +486,30 @@ MultiTouchMapper<UITouch*> UIViewComponentPeer::currentTouches;
     ignoreUnused (touches);
 
     if (owner != nullptr)
-        owner->handleTouches (event, false, true, false);
+        owner->handleTouches (event, MouseEventFlags::up);
 }
 
 - (void) touchesCancelled: (NSSet*) touches withEvent: (UIEvent*) event
 {
     if (owner != nullptr)
-        owner->handleTouches (event, false, true, true);
+        owner->handleTouches (event, MouseEventFlags::upAndCancel);
 
     [self touchesEnded: touches withEvent: event];
 }
+
+#if JUCE_HAS_IOS_POINTER_SUPPORT
+- (void) onHover: (UIHoverGestureRecognizer*) gesture
+{
+    if (owner != nullptr)
+        owner->onHover (gesture);
+}
+
+- (void) onScroll: (UIPanGestureRecognizer*) gesture
+{
+    if (owner != nullptr)
+        owner->onScroll (gesture);
+}
+#endif
 
 //==============================================================================
 - (BOOL) becomeFirstResponder
@@ -523,6 +586,13 @@ UIViewComponentPeer::UIViewComponentPeer (Component& comp, int windowStyleFlags,
     view.hidden = true;
     view.opaque = component.isOpaque();
     view.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent: 0];
+
+   #if JUCE_COREGRAPHICS_DRAW_ASYNC
+    if (! getComponentAsyncLayerBackedViewDisabled (component))
+    {
+        [[view layer] setDrawsAsynchronously: YES];
+    }
+   #endif
 
     if (isSharedWindow)
     {
@@ -771,7 +841,7 @@ static float getTouchForce (UITouch* touch) noexcept
     return 0.0f;
 }
 
-void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, const bool isUp, bool isCancel)
+void UIViewComponentPeer::handleTouches (UIEvent* event, MouseEventFlags mouseEventFlags)
 {
     NSArray* touches = [[event touchesForView: view] allObjects];
 
@@ -783,8 +853,7 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
         if ([touch phase] == UITouchPhaseStationary && maximumForce <= 0)
             continue;
 
-        CGPoint p = [touch locationInView: view];
-        Point<float> pos ((float) p.x, (float) p.y);
+        auto pos = convertToPointFloat ([touch locationInView: view]);
         juce_lastMousePos = pos + getBounds (true).getPosition().toFloat();
 
         auto time = getMouseTime (event);
@@ -792,7 +861,12 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
 
         auto modsToSend = ModifierKeys::currentModifiers;
 
-        if (isDown)
+        auto isUp = [] (MouseEventFlags m)
+        {
+            return m == MouseEventFlags::up || m == MouseEventFlags::upAndCancel;
+        };
+
+        if (mouseEventFlags == MouseEventFlags::down)
         {
             if ([touch phase] != UITouchPhaseBegan)
                 continue;
@@ -807,7 +881,7 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
             if (! isValidPeer (this)) // (in case this component was deleted by the event)
                 return;
         }
-        else if (isUp)
+        else if (isUp (mouseEventFlags))
         {
             if (! ([touch phase] == UITouchPhaseEnded || [touch phase] == UITouchPhaseCancelled))
                 continue;
@@ -816,10 +890,10 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
             currentTouches.clearTouch (touchIndex);
 
             if (! currentTouches.areAnyTouchesActive())
-                isCancel = true;
+                mouseEventFlags = MouseEventFlags::upAndCancel;
         }
 
-        if (isCancel)
+        if (mouseEventFlags == MouseEventFlags::upAndCancel)
         {
             currentTouches.clearTouch (touchIndex);
             modsToSend = ModifierKeys::currentModifiers = ModifierKeys::currentModifiers.withoutMouseButtons();
@@ -829,13 +903,13 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
         auto pressure = maximumForce > 0 ? jlimit (0.0001f, 0.9999f, getTouchForce (touch) / maximumForce)
                                          : MouseInputSource::invalidPressure;
 
-        handleMouseEvent (MouseInputSource::InputSourceType::touch, pos, modsToSend, pressure,
-                          MouseInputSource::invalidOrientation, time, { }, touchIndex);
+        handleMouseEvent (MouseInputSource::InputSourceType::touch,
+                          pos, modsToSend, pressure, MouseInputSource::invalidOrientation, time, { }, touchIndex);
 
         if (! isValidPeer (this)) // (in case this component was deleted by the event)
             return;
 
-        if (isUp || isCancel)
+        if (isUp (mouseEventFlags))
         {
             handleMouseEvent (MouseInputSource::InputSourceType::touch, MouseInputSource::offscreenMousePos, modsToSend,
                               MouseInputSource::invalidPressure, MouseInputSource::invalidOrientation, time, {}, touchIndex);
@@ -845,6 +919,39 @@ void UIViewComponentPeer::handleTouches (UIEvent* event, const bool isDown, cons
         }
     }
 }
+
+#if JUCE_HAS_IOS_POINTER_SUPPORT
+void UIViewComponentPeer::onHover (UIHoverGestureRecognizer* gesture)
+{
+    auto pos = convertToPointFloat ([gesture locationInView: view]);
+    juce_lastMousePos = pos + getBounds (true).getPosition().toFloat();
+
+    handleMouseEvent (MouseInputSource::InputSourceType::touch,
+                      pos,
+                      ModifierKeys::currentModifiers,
+                      MouseInputSource::invalidPressure, MouseInputSource::invalidOrientation,
+                      UIViewComponentPeer::getMouseTime ([[NSProcessInfo processInfo] systemUptime]),
+                      {});
+}
+
+void UIViewComponentPeer::onScroll (UIPanGestureRecognizer* gesture)
+{
+    const auto offset = [gesture translationInView: view];
+    const auto scale = 0.5f / 256.0f;
+
+    MouseWheelDetails details;
+    details.deltaX = scale * (float) offset.x;
+    details.deltaY = scale * (float) offset.y;
+    details.isReversed = false;
+    details.isSmooth = true;
+    details.isInertial = false;
+
+    handleMouseWheel (MouseInputSource::InputSourceType::touch,
+                      convertToPointFloat ([gesture locationInView: view]),
+                      UIViewComponentPeer::getMouseTime ([[NSProcessInfo processInfo] systemUptime]),
+                      details);
+}
+#endif
 
 //==============================================================================
 static UIViewComponentPeer* currentlyFocusedPeer = nullptr;
@@ -926,12 +1033,15 @@ BOOL UIViewComponentPeer::textViewReplaceCharacters (Range<int> range, const Str
             if (currentSelection.isEmpty())
                 target->setHighlightedRegion (currentSelection.withStart (currentSelection.getStart() - 1));
 
+        WeakReference<Component> deletionChecker (dynamic_cast<Component*> (target));
+
         if (text == "\r" || text == "\n" || text == "\r\n")
             handleKeyPress (KeyPress::returnKey, text[0]);
         else
             target->insertTextAtCaret (text);
 
-        updateHiddenTextContent (target);
+        if (deletionChecker != nullptr)
+            updateHiddenTextContent (target);
     }
 
     return NO;

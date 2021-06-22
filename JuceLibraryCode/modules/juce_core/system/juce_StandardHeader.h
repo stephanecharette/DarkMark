@@ -60,6 +60,7 @@
 #include <numeric>
 #include <queue>
 #include <sstream>
+#include <typeindex>
 #include <unordered_set>
 #include <vector>
 
@@ -83,7 +84,7 @@ JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4514 4245 4100)
  #include <signal.h>
 #endif
 
-#if JUCE_LINUX
+#if JUCE_LINUX || JUCE_BSD
  #include <cstring>
  #include <signal.h>
 

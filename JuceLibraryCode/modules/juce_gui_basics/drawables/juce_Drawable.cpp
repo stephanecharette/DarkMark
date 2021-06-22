@@ -167,23 +167,15 @@ void Drawable::setTransformToFit (const Rectangle<float>& area, RectanglePlaceme
 //==============================================================================
 std::unique_ptr<Drawable> Drawable::createFromImageData (const void* data, const size_t numBytes)
 {
-    std::unique_ptr<Drawable> result;
-
     auto image = ImageFileFormat::loadFrom (data, numBytes);
 
     if (image.isValid())
-    {
-        auto* di = new DrawableImage();
-        di->setImage (image);
-        result.reset (di);
-    }
-    else
-    {
-        if (auto svg = parseXMLIfTagMatches (String::createStringFromData (data, (int) numBytes), "svg"))
-            result = Drawable::createFromSVG (*svg);
-    }
+        return std::make_unique<DrawableImage> (image);
 
-    return result;
+    if (auto svg = parseXMLIfTagMatches (String::createStringFromData (data, (int) numBytes), "svg"))
+        return Drawable::createFromSVG (*svg);
+
+    return {};
 }
 
 std::unique_ptr<Drawable> Drawable::createFromImageDataStream (InputStream& dataSource)
@@ -202,6 +194,12 @@ std::unique_ptr<Drawable> Drawable::createFromImageFile (const File& file)
         return createFromImageDataStream (fin);
 
     return {};
+}
+
+//==============================================================================
+std::unique_ptr<AccessibilityHandler> Drawable::createAccessibilityHandler()
+{
+    return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::ignored);
 }
 
 } // namespace juce

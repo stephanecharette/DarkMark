@@ -128,6 +128,13 @@ public:
        #endif
     };
 
+    //==============================================================================
+    /** @internal */
+    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
+
+    /** @internal */
+    float getDesktopScaleFactor() const override;
+
 private:
     //==============================================================================
     Point<float> lastMousePos;
