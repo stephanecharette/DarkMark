@@ -42,6 +42,8 @@ name | lines | layers | yolo layers | network size | weights size | related | la
 @p resnet152_trident.cfg | 2178 | 291 | 3 | 608x608 |  |  | 2020-01-22 | AlexeyAB | "models are experimental" | <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5092#issuecomment-602553795">5092</a>
 @p yolov4-csp.cfg | 1280 | 175 | 3 | 512x512 | 202.1 MiB | @p yolov4.cfg | 2020-12-15 | AlexeyAB | cross-stage-partial; more accurate and faster than YOLOv4 | <a target="_blank" href="https://alexeyab84.medium.com/scaled-yolo-v4-is-the-best-neural-network-for-object-detection-on-ms-coco-dataset-39dfa22fa982">Scaled YOLO v4</a>, <a target="_blank" href="https://arxiv.org/pdf/2011.08036.pdf">YOLOv4-CSP whitepaper</a>
 @p yolov4-custom.cfg | 1161 | 162 | 3 | 608x608 | 245.7 MiB | @p yolov4.cfg | 2020-05-01 | AlexeyAB | nearly identical; lower learning rate; one additional change to a convolutional layer | <a target="_blank" href="https://arxiv.org/pdf/2004.10934.pdf">YOLOv4 whitepaper</a>
+@p yolov4-p5.cfg | 1837 | 244 | 3 | 896x896 |  |  | 2021-06-27 | AlexeyAB |  | &nbsp;
+@p yolov4-p6.cfg | 2298 | 305 | 4 | 1280x1280 |  |  | 2021-06-27 | AlexeyAB |  | &nbsp;
 @p yolov4-sam-mish-csp-reorg-bfm.cfg | 1430 | 216 | 3 | 512x512 |  |  | 2021-05-11 | AlexeyAB |  | &nbsp;
 @p yolov4-tiny-3l.cfg | 333 | 45 | 3 | 608x608 | 23.3 MiB | @p yolov4-tiny.cfg | 2020-07-11 | AlexeyAB | better at finding small objects; "3l" refers to 3 YOLO layers vs the usual 2 in "tiny" | &nbsp;
 @p yolov4-tiny-custom.cfg | 282 | 38 | 2 | 416x416 | 23.1 MiB | @p yolov4-tiny.cfg | 2020-07-11 | AlexeyAB | similar to yolov4-tiny.cfg, but contains 1 minor change to the first YOLO layer | <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/5346#issuecomment-649566598">5346</a>
