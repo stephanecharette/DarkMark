@@ -13,7 +13,8 @@
 /** Only define this if you need to re-create the doxygen table.  It will
  * rebuild .dox file used on the web site.  This has no impact or purpose
  * normal users of DarkMark, and should be left undefined.  Look for files
- * named *_cfg_table.txt after this window is brought up.
+ * named *_cfg_table.txt after this window is brought up, and update the
+ * Doxygen tables in 09_configuration.dox.
  */
 #if 0
 #define OUTPUT_DOX_TABLES
@@ -567,7 +568,7 @@ void dm::WndCfgTemplates::run()
 		}
 		else if (short_name == "yolov4-csp.cfg")
 		{
-			row.field[Fields::kNotes		] = "cross-stage-partial; more accurate and faster than YOLOv4";
+			row.field[Fields::kNotes		] = "cross-stage-partial; more accurate and faster than YOLOv4, but decreased detection for small objects";
 			row.field[Fields::kRelated		] = "yolov4.cfg";
 			row.field[Fields::kWeightsSize	] = "202.1 MiB";
 			row.field[Fields::kLink1		] = "Scaled YOLO v4";
@@ -582,6 +583,16 @@ void dm::WndCfgTemplates::run()
 			row.field[Fields::kWeightsSize	] = "380.9 MiB";
 			row.field[Fields::kLink1		] = "7131";
 			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/7131";
+		}
+		else if (
+			short_name == "yolov4-p5.cfg"	or
+			short_name == "yolov4-p6.cfg"	)
+		{
+			row.field[Fields::kRelated		] = "yolov4.cfg";
+			row.field[Fields::kLink1		] = "7414";
+			row.field[Fields::kUrl1			] = "https://github.com/AlexeyAB/darknet/issues/7414";
+			row.field[Fields::kLink2		] = "7087";
+			row.field[Fields::kUrl2			] = "https://github.com/AlexeyAB/darknet/issues/7087";
 		}
 		else if (
 			short_name == "cifar.cfg"				or
