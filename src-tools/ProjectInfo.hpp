@@ -41,6 +41,7 @@ namespace dm
 			bool		zoom_images;				///< Zoom images.
 			/// @}
 
+			bool		limit_negative_samples;		///< whether negative samples will be limited to 50% of the training images
 			bool		recalculate_anchors;		///< whether darknet will be called to recalculate anchors
 			int			anchor_clusters;			///< number of anchor clusters to use (default is 9)
 			bool		class_imbalance;			///< whether counters_per_class will be added to each yolo section

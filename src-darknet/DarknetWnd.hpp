@@ -26,16 +26,17 @@ namespace dm
 
 			void create_Darknet_training_and_validation_files(
 					ThreadWithProgressWindow & progress_window,
-					size_t & number_of_files_train		,
-					size_t & number_of_files_valid		,
-					size_t & number_of_annotated_images	,
-					size_t & number_of_skipped_files	,
-					size_t & number_of_marks			,
-					size_t & number_of_empty_images		,
-					size_t & number_of_resized_images	,
-					size_t & number_of_images_not_resized,
-					size_t & number_of_tiles_created	,
-					size_t & number_of_zooms_created	);
+					size_t & number_of_files_train			,
+					size_t & number_of_files_valid			,
+					size_t & number_of_annotated_images		,
+					size_t & number_of_skipped_files		,
+					size_t & number_of_marks				,
+					size_t & number_of_empty_images			,
+					size_t & number_of_dropped_empty_images	,
+					size_t & number_of_resized_images		,
+					size_t & number_of_images_not_resized	,
+					size_t & number_of_tiles_created		,
+					size_t & number_of_zooms_created		);
 
 			void find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks, size_t & number_of_empty_images);
 
@@ -65,6 +66,7 @@ namespace dm
 			Value v_resize_images;
 			Value v_tile_images;
 			Value v_zoom_images;
+			Value v_limit_negative_samples;
 			Value v_recalculate_anchors;
 			Value v_anchor_clusters;
 			Value v_class_imbalance;

@@ -358,7 +358,7 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 		mouse_current_loc.x + zoom_image_offset.x,
 		mouse_current_loc.y + zoom_image_offset.y);
 
-	Log(std::string(__PRETTY_FUNCTION__) + ": p.x=" + std::to_string(p.x) + " p.y=" + std::to_string(p.y));
+//	Log(std::string(__PRETTY_FUNCTION__) + ": p.x=" + std::to_string(p.x) + " p.y=" + std::to_string(p.y));
 
 	const auto previous_selected_mark = content.selected_mark;
 

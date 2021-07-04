@@ -21,9 +21,10 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	learning_rate				= cfg().get_double	(cfg_prefix + "darknet_learning_rate"			, 0.00261);
 	max_chart_loss				= cfg().get_double	(cfg_prefix + "darknet_max_chart_loss"			, 4.0	);
 	do_not_resize_images		= cfg().get_bool	(cfg_prefix + "darknet_do_not_resize_images"	, false	);
-	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, true	);
-	tile_images					= cfg().get_bool	(cfg_prefix + "darknet_tile_images"				, false	);
+	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, false	);
+	tile_images					= cfg().get_bool	(cfg_prefix + "darknet_tile_images"				, true	);
 	zoom_images					= cfg().get_bool	(cfg_prefix + "darknet_zoom_images"				, true	);
+	limit_negative_samples		= cfg().get_bool	(cfg_prefix + "darknet_limit_negative_samples"	, true	);
 	recalculate_anchors			= cfg().get_bool	(cfg_prefix + "darknet_recalculate_anchors"		, false	);
 	anchor_clusters				= cfg().get_int		(cfg_prefix + "darknet_anchor_clusters"			, 9		);
 	class_imbalance				= cfg().get_bool	(cfg_prefix + "darknet_class_imbalance"			, false	);

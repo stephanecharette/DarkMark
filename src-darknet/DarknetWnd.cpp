@@ -21,16 +21,17 @@ class SaveTask : public ThreadWithProgressWindow
 			{
 				wnd.info.rebuild();
 
-				size_t number_of_files_train		= 0;
-				size_t number_of_files_valid		= 0;
-				size_t number_of_annotated_images	= 0;
-				size_t number_of_skipped_files		= 0;
-				size_t number_of_marks				= 0;
-				size_t number_of_empty_images		= 0;
-				size_t number_of_images_resized		= 0;
-				size_t number_of_images_not_resized	= 0;
-				size_t number_of_tiles_created		= 0;
-				size_t number_of_zooms_created		= 0;
+				size_t number_of_files_train			= 0;
+				size_t number_of_files_valid			= 0;
+				size_t number_of_annotated_images		= 0;
+				size_t number_of_skipped_files			= 0;
+				size_t number_of_marks					= 0;
+				size_t number_of_empty_images			= 0;
+				size_t number_of_dropped_empty_images	= 0;
+				size_t number_of_images_resized			= 0;
+				size_t number_of_images_not_resized		= 0;
+				size_t number_of_tiles_created			= 0;
+				size_t number_of_zooms_created			= 0;
 
 				setStatusMessage("Creating training and validation files...");
 				wnd.create_Darknet_training_and_validation_files(
@@ -41,6 +42,7 @@ class SaveTask : public ThreadWithProgressWindow
 					number_of_skipped_files,
 					number_of_marks,
 					number_of_empty_images,
+					number_of_dropped_empty_images,
 					number_of_images_resized,
 					number_of_images_not_resized,
 					number_of_tiles_created,
@@ -69,8 +71,12 @@ class SaveTask : public ThreadWithProgressWindow
 
 				if (number_of_empty_images)
 				{
-					ss	<< "The number of negative samples (empty images): " << number_of_empty_images << "." << std::endl
-						<< std::endl;
+					ss	<< "The number of negative samples (empty images): " << number_of_empty_images << "." << std::endl;
+					if (number_of_dropped_empty_images)
+					{
+						ss << "Additional negative samples dropped/ignored: " << number_of_dropped_empty_images << "." << std::endl;
+					}
+					ss << std::endl;
 				}
 
 				if (number_of_images_resized)
@@ -216,6 +222,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_resize_images					= info.resize_images;
 	v_tile_images					= info.tile_images;
 	v_zoom_images					= info.zoom_images;
+	v_limit_negative_samples		= info.limit_negative_samples;
 	v_recalculate_anchors			= info.recalculate_anchors;
 	v_anchor_clusters				= info.anchor_clusters;
 	v_class_imbalance				= info.class_imbalance;
@@ -280,7 +287,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s->setTooltip("The number of images processed in parallel by the GPU is the batch size divided by subdivisions. Default is 8.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_iterations, "max_batches", 1000.0, 100000.0, 1.0, 0.5, false);
+	s = new SliderPropertyComponent(v_iterations, "max_batches", 1000.0, 1000000.0, 1.0, 0.5, false);
 	s->setTooltip("The total number of iterations to run. As a general rule of thumb, at the very least this should be 2000x more than the number of classes defined.");
 	properties.add(s);
 
@@ -309,6 +316,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	b = new BooleanPropertyComponent(v_zoom_images, "crop & zoom images", "random crop and zoom images");
 	b->setTooltip("DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
+	properties.add(b);
+
+	b = new BooleanPropertyComponent(v_limit_negative_samples, "limit negative samples", "limit negative samples");
+	b->setTooltip("Limit the number of negative samples included in the training and validation sets to 50% of the images. This should be enabled.");
 	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
@@ -431,7 +442,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(550, 600);
+	r = r.withSizeKeepingCentre(550, 650);
 	setBounds(r);
 
 	// force some of the handlers to run on the initial config
@@ -578,6 +589,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_resize_images"			, v_resize_images				);
 	cfg().setValue(content.cfg_prefix + "darknet_tile_images"			, v_tile_images					);
 	cfg().setValue(content.cfg_prefix + "darknet_zoom_images"			, v_zoom_images					);
+	cfg().setValue(content.cfg_prefix + "darknet_limit_negative_samples", v_limit_negative_samples		);
 	cfg().setValue(content.cfg_prefix + "darknet_recalculate_anchors"	, v_recalculate_anchors			);
 	cfg().setValue(content.cfg_prefix + "darknet_anchor_clusters"		, v_anchor_clusters				);
 	cfg().setValue(content.cfg_prefix + "darknet_class_imbalance"		, v_class_imbalance				);
@@ -607,6 +619,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.resize_images				= v_resize_images			.getValue();
 	info.tile_images				= v_tile_images				.getValue();
 	info.zoom_images				= v_zoom_images				.getValue();
+	info.limit_negative_samples		= v_limit_negative_samples	.getValue();
 	info.recalculate_anchors		= v_recalculate_anchors		.getValue();
 	info.anchor_clusters			= v_anchor_clusters			.getValue();
 	info.class_imbalance			= v_class_imbalance			.getValue();
@@ -789,16 +802,17 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 
 void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		ThreadWithProgressWindow & progress_window,
-		size_t & number_of_files_train		,
-		size_t & number_of_files_valid		,
-		size_t & number_of_annotated_images	,
-		size_t & number_of_skipped_files	,
-		size_t & number_of_marks			,
-		size_t & number_of_empty_images		,
-		size_t & number_of_resized_images	,
-		size_t & number_of_images_not_resized,
-		size_t & number_of_tiles_created	,
-		size_t & number_of_zooms_created	)
+		size_t & number_of_files_train			,
+		size_t & number_of_files_valid			,
+		size_t & number_of_annotated_images		,
+		size_t & number_of_skipped_files		,
+		size_t & number_of_marks				,
+		size_t & number_of_empty_images			,
+		size_t & number_of_dropped_empty_images	,
+		size_t & number_of_resized_images		,
+		size_t & number_of_images_not_resized	,
+		size_t & number_of_tiles_created		,
+		size_t & number_of_zooms_created		)
 {
 	if (true)
 	{
@@ -810,21 +824,23 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 			<< "backup = "	<< info.project_dir								<< std::endl;
 	}
 
-	number_of_files_train		= 0;
-	number_of_files_valid		= 0;
-	number_of_annotated_images	= 0;
-	number_of_skipped_files		= 0;
-	number_of_marks				= 0;
-	number_of_empty_images		= 0;
-	number_of_resized_images	= 0;
-	number_of_images_not_resized= 0;
-	number_of_tiles_created		= 0;
-	number_of_zooms_created		= 0;
+	number_of_files_train			= 0;
+	number_of_files_valid			= 0;
+	number_of_annotated_images		= 0;
+	number_of_skipped_files			= 0;
+	number_of_marks					= 0;
+	number_of_empty_images			= 0;
+	number_of_dropped_empty_images	= 0;
+	number_of_resized_images		= 0;
+	number_of_images_not_resized	= 0;
+	number_of_tiles_created			= 0;
+	number_of_zooms_created			= 0;
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache");
 	dir.deleteRecursively();
 
 	// these vectors will have the full path of the images we need to use (or which have been skipped)
+	VStr negative_samples;
 	VStr annotated_images;
 	VStr skipped_images;
 	VStr all_output_images;
@@ -869,6 +885,49 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		Log("number of crop+zoom images created ....... " + std::to_string(number_of_zooms_created));
 	}
 
+	std::random_shuffle(all_output_images.begin(), all_output_images.end());
+
+	if (info.limit_negative_samples)
+	{
+		// see if we need to limit the negative samples (especially useful when using tiling with large images)
+		negative_samples.clear();
+		annotated_images.clear();
+		double work_done = 0.0;
+		double work_to_do = all_output_images.size() + 1.0;
+		progress_window.setProgress(0.0);
+		progress_window.setStatusMessage("Limit negative samples...");
+		for (size_t idx = 0; idx < all_output_images.size(); idx ++)
+		{
+			work_done ++;
+			progress_window.setProgress(work_done / work_to_do);
+
+			const auto fn = all_output_images[idx];
+			if (File(fn).withFileExtension(".txt").getSize() == 0)
+			{
+				negative_samples.push_back(fn);
+			}
+			else
+			{
+				annotated_images.push_back(fn);
+			}
+		}
+
+		Log("negative samples: " + std::to_string(negative_samples.size()));
+		Log("annotated images: " + std::to_string(annotated_images.size()));
+
+		if (negative_samples.size() > 1.2 * annotated_images.size())
+		{
+			number_of_dropped_empty_images = negative_samples.size() - annotated_images.size();
+			Log("number of dropped negative samples ....... " + std::to_string(number_of_dropped_empty_images));
+			negative_samples.resize(annotated_images.size());
+
+			number_of_empty_images = negative_samples.size();
+			all_output_images.swap(negative_samples);
+			all_output_images.insert(all_output_images.end(), annotated_images.begin(), annotated_images.end());
+			std::random_shuffle(all_output_images.begin(), all_output_images.end());
+		}
+	}
+
 	// now that we know the exact set of images (including resized and tiled images)
 	// we can create the training and validation .txt files
 
@@ -878,7 +937,6 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	progress_window.setStatusMessage("Writing training and validation files...");
 	Log("total number of output images ............ " + std::to_string(all_output_images.size()));
 
-	std::random_shuffle(all_output_images.begin(), all_output_images.end());
 	const bool use_all_images = info.train_with_all_images;
 	number_of_files_train = std::round(info.training_images_percentage * all_output_images.size());
 	number_of_files_valid = all_output_images.size() - number_of_files_train;

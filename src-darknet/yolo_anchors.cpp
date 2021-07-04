@@ -313,7 +313,7 @@ void calc_anchors(const std::string & train_images_filename, const size_t number
 		const float area			= w * h;
 		const size_t round_width	= std::round(w);
 		const size_t round_height	= std::round(h);
-		const std::string text	= std::to_string(round_width) + "," + std::to_string(round_height);
+		const std::string text	= std::to_string(round_width) + ", " + std::to_string(round_height);
 		mm.insert(std::make_pair(area, text));
 	}
 	for (auto [key, val] : mm)
