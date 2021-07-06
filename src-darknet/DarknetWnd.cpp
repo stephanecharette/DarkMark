@@ -788,6 +788,27 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 			}
 
 		}
+
+		/* In YOLOv3-tiny and YOLOv4-tiny, there is a typo in the masks.  It
+		 * should be 0,1,2 but instead appears as 1,2,3.  Fix this when the
+		 * user has chosen to re-calculate the anchors.
+		 *
+		 * https://github.com/AlexeyAB/darknet/issues/7856#issuecomment-874147909
+		 */
+		for (auto section_idx : cfg_handler.find_section("yolo"))
+		{
+			const auto idx = cfg_handler.find_key_in_section(section_idx, "mask");
+
+			if (idx != std::string::npos)
+			{
+				std::string & line = cfg_handler.cfg.at(idx);
+				if (line == "mask = 1,2,3")
+				{
+					Log("fixing YOLO masks at index " + std::to_string(idx) + ": " + line);
+					line = "mask = 0,1,2";
+				}
+			}
+		}
 	}
 
 	m["classes"] = std::to_string(number_of_classes);
