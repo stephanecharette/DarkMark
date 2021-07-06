@@ -50,8 +50,8 @@ class SaveTask : public ThreadWithProgressWindow
 
 				setStatusMessage("Creating configuration files and shell scripts...");
 				setProgress(0.333);
-				wnd.create_Darknet_configuration_file();
-				setProgress(0.667);
+				wnd.create_Darknet_configuration_file(*this);
+				setProgress(1.0);
 				wnd.create_Darknet_shell_scripts();
 
 				setStatusMessage("Done!");
@@ -713,7 +713,7 @@ void dm::DarknetWnd::valueChanged(Value & value)
 }
 
 
-void dm::DarknetWnd::create_Darknet_configuration_file()
+void dm::DarknetWnd::create_Darknet_configuration_file(ThreadWithProgressWindow & progress_window)
 {
 	const size_t number_of_classes		= content.names.size() - 1;
 	const bool enable_mosaic			= info.enable_mosaic;
@@ -769,24 +769,40 @@ void dm::DarknetWnd::create_Darknet_configuration_file()
 	m.clear();
 	if (recalculate_anchors)
 	{
-		std::string new_anchors;
-		std::string counters_per_class;
-		float avg_iou = 0.0f;
+		progress_window.setStatusMessage("Recalculating anchors...");
+		progress_window.setProgress(0.0);
 
-		calc_anchors(info.train_filename, anchor_clusters, info.image_width, info.image_height, number_of_classes, new_anchors, counters_per_class, avg_iou);
-		if (avg_iou > 0.0f)
+		/* Make many attempts at figuring out the best anchors.  In tests, I've seen the best anchors found as high
+		 * as the 98th attempt!  Also keep track of the time in case it is taking too long and we want to abort.
+		 */
+		std::time_t now = std::time(nullptr);
+		const std::time_t end_time = now + 30;
+		const size_t max_attempts = 100;
+		float best_avg_iou = 0.0f;
+
+		for (size_t attempt = 0; attempt < max_attempts and std::time(nullptr) < end_time; attempt ++)
 		{
-			dm::Log("avg IoU: " + std::to_string(avg_iou));
-			dm::Log("new anchors: " + new_anchors);
-			dm::Log("new counters: " + counters_per_class);
+			progress_window.setProgress(double(attempt) / double(max_attempts));
 
-			m["anchors"] = new_anchors;
+			std::string counters_per_class;
+			std::string anchors;
+			float avg_iou = 0.0f;
 
-			if (class_imbalance)
+			calc_anchors(info.train_filename, anchor_clusters, info.image_width, info.image_height, number_of_classes, anchors, counters_per_class, avg_iou);
+			if (avg_iou > best_avg_iou)
 			{
-				m["counters_per_class"] = counters_per_class;
-			}
+				dm::Log("attempt #" + std::to_string(attempt) + ": avg IoU ........ " + std::to_string(avg_iou));
+				dm::Log("attempt #" + std::to_string(attempt) + ": new anchors .... " + anchors);
+				dm::Log("attempt #" + std::to_string(attempt) + ": new counters ... " + counters_per_class);
 
+				best_avg_iou = avg_iou;
+				m["anchors"] = anchors;
+
+				if (class_imbalance)
+				{
+					m["counters_per_class"] = counters_per_class;
+				}
+			}
 		}
 
 		/* In YOLOv3-tiny and YOLOv4-tiny, there is a typo in the masks.  It
