@@ -82,6 +82,12 @@ Right-mouse-click in the DarkMark Editor window to easily review all the image m
 
 This will help ensure your network is trained correctly.  Quickly scroll through all of the similar images from the same class to ensure a mark hasn't been labelled incorrectly.  Double-click on that row to immediately open that image in the DarkMark Editor window.
 
+@section DarkMarkRotation DarkMark Image Rotation
+
+Easily rotate both images and annotations 90°, 180°, and 270°.
+
+@image html image_rotation.png
+
 @section DarkMarkStatistics DarkMark Statistics
 
 Right-mouse-click in the DarkMark Editor window to view statistics on all the marks:
