@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.5.22-1	| 2021-07-19	| Update JUCE to the latest version (6.0.8)
 1.5.21-1	| 2021-07-06	| Make multiple attempts at re-calculating the YOLO anchors.
 1.5.20-1	| 2021-07-05	| Fix "mask" in [yolo] section when re-calculating anchors.
 1.5.19-1	| 2021-07-04	| Added the ability to limit negative samples.

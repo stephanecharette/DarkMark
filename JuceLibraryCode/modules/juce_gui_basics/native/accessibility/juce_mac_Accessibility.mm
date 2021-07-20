@@ -31,6 +31,12 @@ namespace juce
  using NSAccessibilityNotificationName = NSString*;
 #endif
 
+#if (! defined MAC_OS_X_VERSION_10_9) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_9
+ const NSAccessibilityNotificationName NSAccessibilityLayoutChangedNotificationJuce = @"AXLayoutChanged";
+#else
+ const NSAccessibilityNotificationName NSAccessibilityLayoutChangedNotificationJuce = NSAccessibilityLayoutChangedNotification;
+#endif
+
 #if JUCE_OBJC_HAS_AVAILABLE_FEATURE || (defined (MAC_OS_X_VERSION_10_10) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10)
 
 #define JUCE_NATIVE_ACCESSIBILITY_INCLUDED 1
@@ -1030,8 +1036,10 @@ bool areAnyAccessibilityClientsActive()
     const String voiceOverKeyString ("voiceOverOnOffKey");
     const String applicationIDString ("com.apple.universalaccess");
 
-    CFUniquePtr<CFPropertyListRef> value (CFPreferencesCopyAppValue (voiceOverKeyString.toCFString(),
-                                                                     applicationIDString.toCFString()));
+    CFUniquePtr<CFStringRef> cfKey (voiceOverKeyString.toCFString());
+    CFUniquePtr<CFStringRef> cfID  (applicationIDString.toCFString());
+
+    CFUniquePtr<CFPropertyListRef> value (CFPreferencesCopyAppValue (cfKey.get(), cfID.get()));
 
     if (value != nullptr)
         return CFBooleanGetValue ((CFBooleanRef) value.get());
@@ -1071,7 +1079,7 @@ void notifyAccessibilityEventInternal (const AccessibilityHandler& handler, Inte
         {
             case InternalAccessibilityEvent::elementCreated:         return NSAccessibilityCreatedNotification;
             case InternalAccessibilityEvent::elementDestroyed:       return NSAccessibilityUIElementDestroyedNotification;
-            case InternalAccessibilityEvent::elementMovedOrResized:  return NSAccessibilityLayoutChangedNotification;
+            case InternalAccessibilityEvent::elementMovedOrResized:  return NSAccessibilityLayoutChangedNotificationJuce;
             case InternalAccessibilityEvent::focusChanged:           return NSAccessibilityFocusedUIElementChangedNotification;
             case InternalAccessibilityEvent::windowOpened:           return NSAccessibilityWindowCreatedNotification;
             case InternalAccessibilityEvent::windowClosed:           break;
@@ -1095,7 +1103,7 @@ void AccessibilityHandler::notifyAccessibilityEvent (AccessibilityEvent eventTyp
             case AccessibilityEvent::textChanged:
             case AccessibilityEvent::valueChanged:          return NSAccessibilityValueChangedNotification;
             case AccessibilityEvent::titleChanged:          return NSAccessibilityTitleChangedNotification;
-            case AccessibilityEvent::structureChanged:      return NSAccessibilityLayoutChangedNotification;
+            case AccessibilityEvent::structureChanged:      return NSAccessibilityLayoutChangedNotificationJuce;
         }
 
         return NSAccessibilityNotificationName{};

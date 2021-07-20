@@ -119,7 +119,7 @@ public:
     */
     bool cancelAllModalComponents();
 
-   #if JUCE_MODAL_LOOPS_PERMITTED || DOXYGEN
+   #if JUCE_MODAL_LOOPS_PERMITTED
     /** Runs the event loop until the currently topmost modal component is dismissed, and
         returns the exit code for that component.
     */
@@ -164,6 +164,7 @@ class JUCE_API ModalCallbackFunction
 public:
     /** This is a utility function to create a ModalComponentManager::Callback that will
         call a lambda function.
+
         The lambda that you supply must take an integer parameter, which is the result code that
         was returned when the modal component was dismissed.
 
@@ -197,7 +198,10 @@ public:
     static ModalComponentManager::Callback* create (void (*functionToCall) (int, ParamType),
                                                     ParamType parameterValue)
     {
-        return create ([=] (int r) { functionToCall (r, parameterValue); });
+        return create ([functionToCall, parameterValue] (int r)
+        {
+            functionToCall (r, parameterValue);
+        });
     }
 
     //==============================================================================
@@ -227,7 +231,10 @@ public:
                                                        ParamType1 parameterValue1,
                                                        ParamType2 parameterValue2)
     {
-        return create ([=] (int r) { functionToCall (r, parameterValue1, parameterValue2); });
+        return create ([functionToCall, parameterValue1, parameterValue2] (int r)
+        {
+            functionToCall (r, parameterValue1, parameterValue2);
+        });
     }
 
     //==============================================================================
@@ -257,8 +264,10 @@ public:
     static ModalComponentManager::Callback* forComponent (void (*functionToCall) (int, ComponentType*),
                                                           ComponentType* component)
     {
-        WeakReference<Component> comp (component);
-        return create ([=] (int r) { functionToCall (r, static_cast<ComponentType*> (comp.get())); });
+        return create ([functionToCall, comp = WeakReference<Component> { component }] (int r)
+        {
+            functionToCall (r, static_cast<ComponentType*> (comp.get()));
+        });
     }
 
     //==============================================================================
@@ -289,8 +298,10 @@ public:
                                                           ComponentType* component,
                                                           ParamType param)
     {
-        WeakReference<Component> comp (component);
-        return create ([=] (int r) { functionToCall (r, static_cast<ComponentType*> (comp.get()), param); });
+        return create ([functionToCall, param, comp = WeakReference<Component> { component }] (int r)
+        {
+            functionToCall (r, static_cast<ComponentType*> (comp.get()), param);
+        });
     }
 
 private:

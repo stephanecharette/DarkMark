@@ -1875,10 +1875,8 @@ void TextEditor::mouseDown (const MouseEvent& e)
 
             menuActive = true;
 
-            SafePointer<TextEditor> safeThis (this);
-
             m.showMenuAsync (PopupMenu::Options(),
-                             [safeThis] (int menuResult)
+                             [safeThis = SafePointer<TextEditor> { this }] (int menuResult)
                              {
                                  if (auto* editor = safeThis.getComponent())
                                  {
@@ -2700,9 +2698,12 @@ public:
         : AccessibilityHandler (textEditorToWrap,
                                 textEditorToWrap.isReadOnly() ? AccessibilityRole::staticText : AccessibilityRole::editableText,
                                 {},
-                                { std::make_unique<TextEditorTextInterface> (textEditorToWrap) })
+                                { std::make_unique<TextEditorTextInterface> (textEditorToWrap) }),
+          textEditor (textEditorToWrap)
     {
     }
+
+    String getHelp() const override  { return textEditor.getTooltip(); }
 
 private:
     class TextEditorTextInterface  : public AccessibilityTextInterface
@@ -2762,7 +2763,12 @@ private:
 
     private:
         TextEditor& textEditor;
+
+        //==============================================================================
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TextEditorTextInterface)
     };
+
+    TextEditor& textEditor;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TextEditorAccessibilityHandler)

@@ -636,6 +636,9 @@ public:
 
     void redirectMouseEnter (NSEvent* ev)
     {
+        if (shouldIgnoreMouseEnterExit (ev))
+            return;
+
         Desktop::getInstance().getMainMouseSource().forceMouseCursorUpdate();
         ModifierKeys::currentModifiers = ModifierKeys::currentModifiers.withoutMouseButtons();
         sendMouseEvent (ev);
@@ -643,6 +646,9 @@ public:
 
     void redirectMouseExit (NSEvent* ev)
     {
+        if (shouldIgnoreMouseEnterExit (ev))
+            return;
+
         ModifierKeys::currentModifiers = ModifierKeys::currentModifiers.withoutMouseButtons();
         sendMouseEvent (ev);
     }
@@ -1513,6 +1519,12 @@ private:
     static NSView* createViewInstance();
     static NSWindow* createWindowInstance();
 
+    bool shouldIgnoreMouseEnterExit (NSEvent* ev) const
+    {
+        auto* eventTrackingArea = [ev trackingArea];
+        return eventTrackingArea != nil && ! [[view trackingAreas] containsObject: eventTrackingArea];
+    }
+
     static void setOwner (id viewOrWindow, NSViewComponentPeer* newOwner)
     {
         object_setInstanceVariable (viewOrWindow, "owner", newOwner);
@@ -1782,6 +1794,8 @@ struct JuceNSViewClass   : public NSViewComponentPeerWrapper<ObjCClass<NSView>>
         addMethod (NSViewComponentPeer::asyncMouseUpSelector,   asyncMouseUp,             "v@:@");
         addMethod (NSViewComponentPeer::frameChangedSelector,   frameChanged,             "v@:@");
         addMethod (NSViewComponentPeer::becomeKeySelector,      becomeKey,                "v@:@");
+
+        addMethod (@selector (performKeyEquivalent:),           performKeyEquivalent,     "c@:@");
 
         addProtocol (@protocol (NSTextInput));
 
@@ -2144,6 +2158,34 @@ private:
 
         return sendSuperclassMessage<id> (self, @selector (accessibilityAttributeValue:), attribute);
     }
+
+    static bool tryPassingKeyEventToPeer (NSEvent* e)
+    {
+        if ([e type] != NSEventTypeKeyDown && [e type] != NSEventTypeKeyUp)
+            return false;
+
+        if (auto* focused = Component::getCurrentlyFocusedComponent())
+        {
+            if (auto* peer = dynamic_cast<NSViewComponentPeer*> (focused->getPeer()))
+            {
+                return [e type] == NSEventTypeKeyDown ? peer->redirectKeyDown (e)
+                                                      : peer->redirectKeyUp (e);
+            }
+        }
+
+        return false;
+    }
+
+    static BOOL performKeyEquivalent (id self, SEL s, NSEvent* event)
+    {
+        // We try passing shortcut keys to the currently focused component first.
+        // If the component doesn't want the event, we'll fall back to the superclass
+        // implementation, which will pass the event to the main menu.
+        if (tryPassingKeyEventToPeer (event))
+            return YES;
+
+        return sendSuperclassMessage<BOOL> (self, s, event);
+    }
 };
 
 //==============================================================================
@@ -2163,7 +2205,7 @@ struct JuceNSWindowClass   : public NSViewComponentPeerWrapper<ObjCClass<NSWindo
         addMethod (@selector (zoom:),                               zoom,                      "v@:@");
         addMethod (@selector (windowWillStartLiveResize:),          windowWillStartLiveResize, "v@:@");
         addMethod (@selector (windowDidEndLiveResize:),             windowDidEndLiveResize,    "v@:@");
-        addMethod (@selector (window:shouldPopUpDocumentPathMenu:), shouldPopUpPathMenu, "B@:@", @encode (NSMenu*));
+        addMethod (@selector (window:shouldPopUpDocumentPathMenu:), shouldPopUpPathMenu, "c@:@", @encode (NSMenu*));
         addMethod (@selector (isFlipped),                           isFlipped,                 "c@:");
 
         addMethod (@selector (accessibilityTitle),                  getAccessibilityTitle,     "@@:");
@@ -2174,7 +2216,7 @@ struct JuceNSWindowClass   : public NSViewComponentPeerWrapper<ObjCClass<NSWindo
         addMethod (@selector (accessibilitySubrole),                getAccessibilitySubrole,   "@@:");
 
         addMethod (@selector (window:shouldDragDocumentWithEvent:from:withPasteboard:),
-                   shouldAllowIconDrag, "B@:@", @encode (NSEvent*), @encode (NSPoint), @encode (NSPasteboard*));
+                   shouldAllowIconDrag, "c@:@", @encode (NSEvent*), @encode (NSPoint), @encode (NSPasteboard*));
 
         addProtocol (@protocol (NSWindowDelegate));
 
