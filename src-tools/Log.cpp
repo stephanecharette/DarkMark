@@ -16,7 +16,7 @@ void dm::Log(const std::string & str)
 		static std::ofstream ofs("/tmp/darkmark.log", std::ofstream::trunc);
 		if (ofs.is_open())
 		{
-			ofs << buffer << str << std::endl;
+			ofs << buffer << str << std::endl << std::flush;
 		}
 	}
 

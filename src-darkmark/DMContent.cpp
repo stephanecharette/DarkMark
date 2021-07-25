@@ -1991,29 +1991,8 @@ dm::DMContent & dm::DMContent::zoom_and_review()
 
 dm::DMContent & dm::DMContent::rotate_every_image()
 {
-	const int result = AlertWindow::showYesNoCancelBox(AlertWindow::QuestionIcon, "DarkMark",
-		"This will rotate images 90, 180, and 270 degrees, and will also rotate and copy all existing marks for each new image. "
-		"Only run this if the network you are training uses images that do not have an obvious top/bottom/left/right direction.\n"
-		"\n"
-		"Examples:\n"
-		"\n"
-		"- If you are training with dash cam images of vehicles on a road, having those images rotated sideways and upside down "
-		"doesn't make sense.\n"
-		"\n"
-		"- If you are training with images taken through a microscope, those images typically wouldn't have a fixed orientation, and the "
-		"network training would benefit from having additional marked up images.\n"
-		"\n"
-		"Proceed with the image rotations?",
-		"rotate all images",
-		"rotate marked up images",
-		"cancel"
-	);
-
-	if (result > 0)
-	{
-		DMContentRotateImages helper(*this, (result == 0));
-		helper.runThread();
-	}
+	DMContentRotateImages rotateImages(*this);
+	rotateImages.runModalLoop();
 
 	return *this;
 }

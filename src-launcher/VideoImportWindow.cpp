@@ -331,6 +331,7 @@ void dm::VideoImportWindow::buttonClicked(Button * button)
 	if (button == &cancel)
 	{
 		closeButtonPressed();
+		return;
 	}
 
 	bool b = tb_extract_maximum.getToggleState();
@@ -358,7 +359,7 @@ void dm::VideoImportWindow::buttonClicked(Button * button)
 
 	if (button == &ok)
 	{
-		// disable all of the controls and start the fame extraction
+		// disable all of the controls and start the frame extraction
 		canvas.setEnabled(false);
 		runThread(); // this waits for the thread to be done
 		closeButtonPressed();
