@@ -1785,6 +1785,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	image.addItem("jump..."																										, std::function<void()>( [&]{ show_jump_wnd();				} ));
 	image.addSeparator();
 	image.addItem("rotate images..."																							, std::function<void()>( [&]{ rotate_every_image();			} ));
+	image.addItem("flip images..."																								, std::function<void()>( [&]{ flip_images();				} ));
 	image.addItem("move empty images..."																						, std::function<void()>( [&]{ move_empty_images();			} ));
 	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
 
@@ -1993,6 +1994,15 @@ dm::DMContent & dm::DMContent::rotate_every_image()
 {
 	DMContentRotateImages rotateImages(*this);
 	rotateImages.runModalLoop();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::flip_images()
+{
+	DMContentFlipImages flipImages(*this);
+	flipImages.runModalLoop();
 
 	return *this;
 }

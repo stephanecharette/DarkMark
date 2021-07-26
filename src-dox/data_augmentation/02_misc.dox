@@ -34,6 +34,8 @@ To disable, add this line to the `[net]` section of your .cfg file:
 flip=0
 ~~~~
 
+@note Instead of using this option, see @ref rotate_and_flip.
+
 @section Mosaic Mosaic
 
 Data augmentation may combine multiple images into a single image ("mosaic").

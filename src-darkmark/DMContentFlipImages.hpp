@@ -7,13 +7,13 @@
 
 namespace dm
 {
-	class DMContentRotateImages : public DocumentWindow, public Button::Listener, public ThreadWithProgressWindow
+	class DMContentFlipImages : public DocumentWindow, public Button::Listener, public ThreadWithProgressWindow
 	{
 		public:
 
-			DMContentRotateImages(dm::DMContent & c);
+			DMContentFlipImages(dm::DMContent & c);
 
-			virtual ~DMContentRotateImages();
+			virtual ~DMContentFlipImages();
 
 			virtual void resized() override;
 			virtual void closeButtonPressed() override;
@@ -28,9 +28,8 @@ namespace dm
 
 			Label			header_message;
 
-			ToggleButton	tb_090_degrees;
-			ToggleButton	tb_180_degrees;
-			ToggleButton	tb_270_degrees;
+			ToggleButton	tb_flip_h;
+			ToggleButton	tb_flip_v;
 
 			ToggleButton	tb_save_as_png;
 			ToggleButton	tb_save_as_jpeg;

@@ -178,7 +178,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	DocumentWindow("DarkMark v" DARKMARK_VERSION " - Darknet Output", Colours::darkgrey, TitleBarButtons::closeButton),
 	content(c),
 	info(c.project_info),
-	help_button("Help"),
+	help_button("Read Me!"),
 	ok_button("OK"),
 	cancel_button("Cancel")
 {
@@ -514,10 +514,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 {
 	if (button == &help_button)
 	{
-		URL url("https://www.ccoderun.ca/DarkMark/darknet_output.html");
-
-		url.launchInDefaultBrowser();
-
+		URL("https://www.ccoderun.ca/DarkMark/darknet_output.html").launchInDefaultBrowser();
 		return;
 	}
 

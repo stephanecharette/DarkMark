@@ -88,6 +88,12 @@ Easily rotate both images and annotations 90°, 180°, and 270°.
 
 @image html image_rotation.png
 
+@section DarkMarkFlip DarkMark Image Flip
+
+Easily flip images horizontally or vertically.
+
+@image html image_flip.png
+
 @section DarkMarkStatistics DarkMark Statistics
 
 Right-mouse-click in the DarkMark Editor window to view statistics on all the marks:

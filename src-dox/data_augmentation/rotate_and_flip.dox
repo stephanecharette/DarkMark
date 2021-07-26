@@ -1,0 +1,33 @@
+/** @page rotate_and_flip Rotate and Flip
+
+DarkMark has options to both <a href="Summary.html#DarkMarkRotation">rotate</a> and <a href="Summary.html#DarkMarkFlip">flip</a> images.  DarkMark also ensures all the annotations are rotated and flipped.
+
+@section duplicates Duplicates
+
+It is important to remember that there is significant overlap between image rotation and image flip.  For example, if you perform a <b>horizontal flip + rotate 90°</b>, this is equivalent to a <b>vertical flip + rotate 270°</b>.  This image shows the various combinations of flips and rotations:
+
+@image html flip_and_rotate.png
+
+Note how every image in the last row matches an image in the middle row.  To prevent having duplicate images in your data set, you may want to ensure you include just horizontal flips, or vertical flips, but not both.
+
+@section filenames Filenames
+
+DarkMark doesn't have a database to store the origin of each image.  Instead, it uses simple text suffixes in the filenames to determine if an image is the result of a rotation or a flip.  Examples:
+
+image				| description
+--------------------|------------
+@p dog.jpg			| original image
+@p dog_r090.jpg		| 90° rotation
+@p dog_r180.jpg		| 180° rotation
+@p dog_fh.jpg		| horizontal flip
+@p dog_fv.jpg		| vertical flip
+@p dog_r270_fh.jpg	| 270° rotation and horizontal flip
+
+What this means is the order in which you apply flip + rotate or rotate + flip can result in duplicate images in your data set.  For example:
+
+@li @p dog_fh_r180.jpg
+@li @p dog_r180_fh.jpg
+
+To DarkMark, these two files appear to be different since the names don't match.
+
+*/

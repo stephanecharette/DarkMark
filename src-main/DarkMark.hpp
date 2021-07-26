@@ -61,6 +61,7 @@ namespace dm
 	class DMReviewCanvas;
 	class DMContentMoveEmptyImages;
 	class DMContentRotateImages;
+	class DMContentFlipImages;
 	class DMContentImportTxt;
 	class ScrollField;
 	class CrosshairComponent;
@@ -102,6 +103,7 @@ namespace dm
 #include "DMContentImportTxt.hpp"
 #include "DMContentReloadResave.hpp"
 #include "DMContentRotateImages.hpp"
+#include "DMContentFlipImages.hpp"
 #include "DMContentMoveEmptyImages.hpp"
 #include "DMContentImageFilenameSort.hpp"
 #include "DMContentStatistics.hpp"

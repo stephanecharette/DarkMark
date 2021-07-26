@@ -8,6 +8,7 @@ See the following pages for additional information:
 
 @li @subpage Configuration
 @li @subpage darknet_images
+@li @subpage rotate_and_flip
 @li @subpage DataAugmentation
 
 */

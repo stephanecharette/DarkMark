@@ -3,26 +3,24 @@
 #include "DarkMark.hpp"
 
 
-dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c) :
-	DocumentWindow("DarkMark - Rotate Images", Colours::darkgrey, TitleBarButtons::closeButton),
-	ThreadWithProgressWindow("DarkMark - Rotate Images", true, true),
+dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
+	DocumentWindow("DarkMark - Flip Images", Colours::darkgrey, TitleBarButtons::closeButton),
+	ThreadWithProgressWindow("DarkMark - Flip Images", true, true),
 	content(c),
-	tb_090_degrees		(juce::CharPointer_UTF8("rotate images 90\xc2\xb0")),
-	tb_180_degrees		(juce::CharPointer_UTF8("rotate images 180\xc2\xb0")),
-	tb_270_degrees		(juce::CharPointer_UTF8("rotate images 270\xc2\xb0")),
-
+	tb_flip_h			("flip horizontal (left <-> right)"),
+	tb_flip_v			("flip vertical (top <-> bottom)"),
 	tb_save_as_png		("save new images as PNG"		),
 	tb_save_as_jpeg		("save new images as JPEG"		),
 	txt_jpeg_quality	("", "image quality:"			),
 	sl_jpeg_quality		(Slider::SliderStyle::LinearHorizontal, Slider::TextEntryBoxPosition::TextBoxRight),
 
-	tb_annotated_images	("rotate images which contain 1 or more annotation"	),
-	tb_empty_images		("rotate empty images (negative samples)"			),
-	tb_other_images		("rotate non-annotated images"						),
+	tb_annotated_images	("flip images which contain 1 or more annotation"	),
+	tb_empty_images		("flip empty images (negative samples)"				),
+	tb_other_images		("flip non-annotated images"						),
 
 	help				("Read Me!"),
 	cancel				("Cancel"),
-	ok					("Rotate"),
+	ok					("Flip"),
 	images_created		(0),
 	images_skipped		(0),
 	images_already_exist(0),
@@ -34,9 +32,8 @@ dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c) :
 	setDropShadowEnabled	(true			);
 
 	canvas.addAndMakeVisible(header_message			);
-	canvas.addAndMakeVisible(tb_090_degrees			);
-	canvas.addAndMakeVisible(tb_180_degrees			);
-	canvas.addAndMakeVisible(tb_270_degrees			);
+	canvas.addAndMakeVisible(tb_flip_h				);
+	canvas.addAndMakeVisible(tb_flip_v				);
 
 	canvas.addAndMakeVisible(tb_save_as_png			);
 	canvas.addAndMakeVisible(tb_save_as_jpeg		);
@@ -58,9 +55,8 @@ dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c) :
 	sl_jpeg_quality			.setNumDecimalPlacesToDisplay(0);
 	sl_jpeg_quality			.setValue(75.0);
 
-	tb_090_degrees			.addListener(this);
-	tb_180_degrees			.addListener(this);
-	tb_270_degrees			.addListener(this);
+	tb_flip_h				.addListener(this);
+	tb_flip_v				.addListener(this);
 	tb_save_as_png			.addListener(this);
 	tb_save_as_jpeg			.addListener(this);
 	tb_annotated_images		.addListener(this);
@@ -70,20 +66,18 @@ dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c) :
 	cancel					.addListener(this);
 	ok						.addListener(this);
 
-	tb_090_degrees			.setToggleState(true, NotificationType::sendNotification);
-	tb_180_degrees			.setToggleState(true, NotificationType::sendNotification);
-	tb_270_degrees			.setToggleState(true, NotificationType::sendNotification);
+	tb_flip_h				.setToggleState(true, NotificationType::sendNotification);
 	tb_save_as_jpeg			.setToggleState(true, NotificationType::sendNotification);
 	tb_annotated_images		.setToggleState(true, NotificationType::sendNotification);
 	tb_empty_images			.setToggleState(true, NotificationType::sendNotification);
 	tb_annotated_images		.setToggleState(true, NotificationType::sendNotification);
 
 	header_message.setText(
-		"This will rotate images 90, 180, and 270 degrees, and will also copy and "
-		"rotate all existing annotations for each new image.\n"
+		"This will flip (mirror) images horizontally or vertically.\n"
 		"\n"
-		"Only run this if the network you are training uses images that do not have "
-		"an obvious up-down-left-right orientation. ",
+		"Do not run this if the network you are training needs to detect "
+		"objects such as left hand vs right hand, or 'b' vs 'd', where "
+		"the mirror image alters the class.",
 		NotificationType::sendNotification);
 
 	setIcon(DarkMarkLogo());
@@ -93,9 +87,9 @@ dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c) :
 		peer->setIcon(DarkMarkLogo());
 	}
 
-	if (cfg().containsKey("RotateImagesWnd"))
+	if (cfg().containsKey("FlipImagesWnd"))
 	{
-		restoreWindowStateFromString(cfg().getValue("RotateImagesWnd"));
+		restoreWindowStateFromString(cfg().getValue("FlipImagesWnd"));
 	}
 	else
 	{
@@ -108,16 +102,16 @@ dm::DMContentRotateImages::DMContentRotateImages(dm::DMContent & c) :
 }
 
 
-dm::DMContentRotateImages::~DMContentRotateImages()
+dm::DMContentFlipImages::~DMContentFlipImages()
 {
 	signalThreadShouldExit();
-	cfg().setValue("RotateImagesWnd", getWindowStateAsString());
+	cfg().setValue("FlipImagesWnd", getWindowStateAsString());
 
 	return;
 }
 
 
-void dm::DMContentRotateImages::closeButtonPressed()
+void dm::DMContentFlipImages::closeButtonPressed()
 {
 	// close button
 
@@ -128,7 +122,7 @@ void dm::DMContentRotateImages::closeButtonPressed()
 }
 
 
-void dm::DMContentRotateImages::userTriedToCloseWindow()
+void dm::DMContentFlipImages::userTriedToCloseWindow()
 {
 	// ALT+F4
 
@@ -138,7 +132,7 @@ void dm::DMContentRotateImages::userTriedToCloseWindow()
 }
 
 
-void dm::DMContentRotateImages::resized()
+void dm::DMContentFlipImages::resized()
 {
 	// get the document window to resize the canvas, then we'll deal with the rest of the components
 	DocumentWindow::resized();
@@ -155,9 +149,8 @@ void dm::DMContentRotateImages::resized()
 	fb_rows.items.add(FlexItem(header_message			).withHeight(height * 5));
 
 	fb_rows.items.add(FlexItem(							).withHeight(height).withFlex(1.0));
-	fb_rows.items.add(FlexItem(tb_090_degrees			).withHeight(height));
-	fb_rows.items.add(FlexItem(tb_180_degrees			).withHeight(height));
-	fb_rows.items.add(FlexItem(tb_270_degrees			).withHeight(height));
+	fb_rows.items.add(FlexItem(tb_flip_h				).withHeight(height));
+	fb_rows.items.add(FlexItem(tb_flip_v				).withHeight(height));
 
 	fb_rows.items.add(FlexItem(							).withHeight(height).withFlex(1.0));
 	fb_rows.items.add(FlexItem(tb_save_as_png			).withHeight(height));
@@ -193,7 +186,7 @@ void dm::DMContentRotateImages::resized()
 }
 
 
-void dm::DMContentRotateImages::buttonClicked(Button * button)
+void dm::DMContentFlipImages::buttonClicked(Button * button)
 {
 	if (button == &help)
 	{
@@ -207,15 +200,14 @@ void dm::DMContentRotateImages::buttonClicked(Button * button)
 		return;
 	}
 
-	const bool r090 = tb_090_degrees.getToggleState();
-	const bool r180 = tb_180_degrees.getToggleState();
-	const bool r270 = tb_270_degrees.getToggleState();
+	const bool flip_h = tb_flip_h.getToggleState();
+	const bool flip_v = tb_flip_v.getToggleState();
 
 	const bool annotated = tb_annotated_images.getToggleState();
 	const bool empty = tb_empty_images.getToggleState();
 	const bool other = tb_other_images.getToggleState();
 
-	if	(	(r090 == false and r180 == false and r270 == false)
+	if	(	(flip_h == false and flip_v == false)
 			or
 			(annotated == false and empty == false and other == false)
 		)
@@ -243,23 +235,27 @@ void dm::DMContentRotateImages::buttonClicked(Button * button)
 }
 
 
-void dm::DMContentRotateImages::run()
+void dm::DMContentFlipImages::run()
 {
 	DarkMarkApplication::setup_signal_handling();
 
-	const bool r090 = tb_090_degrees.getToggleState();
-	const bool r180 = tb_180_degrees.getToggleState();
-	const bool r270 = tb_270_degrees.getToggleState();
+	const bool flip_h = tb_flip_h.getToggleState();
+	const bool flip_v = tb_flip_v.getToggleState();
 
-	std::map<cv::RotateFlags, std::string> rotations;
+	/* CV flip codes:
+	 *
+	 *		1 == horizontal flip (left <-> right)
+	 *		0 == vertical flip (top <-> bottom)
+	 *		-1 == horizontal + vertical, same as 180 degree rotation
+	 */
+	std::map<int, std::string> flips;
 
-	if (r090) rotations[cv::ROTATE_90_CLOCKWISE]		= "_r090";
-	if (r180) rotations[cv::ROTATE_180]					= "_r180";
-	if (r270) rotations[cv::ROTATE_90_COUNTERCLOCKWISE]	= "_r270";
+	if (flip_h) flips[1] = "_fh";
+	if (flip_v) flips[0] = "_fv";
 
-	const bool rotate_annotated_images	= tb_annotated_images.getToggleState();
-	const bool rotate_empty_images		= tb_empty_images.getToggleState();
-	const bool rotate_other_images		= tb_other_images.getToggleState();
+	const bool flip_annotated_images	= tb_annotated_images.getToggleState();
+	const bool flip_empty_images		= tb_empty_images.getToggleState();
+	const bool flip_other_images		= tb_other_images.getToggleState();
 
 	const bool use_png = tb_save_as_png.getToggleState();
 	const bool use_jpg = tb_save_as_jpeg.getToggleState();
@@ -321,7 +317,7 @@ void dm::DMContentRotateImages::run()
 				break;
 			}
 
-			Log("rotation: next image at idx=" + std::to_string(idx) + " is " + content.image_filenames[idx]);
+			Log("flip: next image at idx=" + std::to_string(idx) + " is " + content.image_filenames[idx]);
 
 			setProgress(work_completed / work_to_be_done);
 			work_completed ++;
@@ -329,9 +325,8 @@ void dm::DMContentRotateImages::run()
 			File original_file(content.image_filenames.at(idx));
 			remember_most_recent_filename = original_file.getFullPathName();
 			const String original_fn = original_file.getFileNameWithoutExtension();
-			if (original_fn.contains("_r090") or
-				original_fn.contains("_r180") or
-				original_fn.contains("_r270"))
+			if (original_fn.contains("_fh") or
+				original_fn.contains("_fv"))
 			{
 				// this file is the result of a previous rotation, so skip it
 				images_skipped ++;
@@ -339,54 +334,59 @@ void dm::DMContentRotateImages::run()
 			}
 
 			// load the given image so we can get access to the cv::Mat and annotations
-			Log("rotation: loading image #" + std::to_string(idx) + ": " + content.image_filenames[idx]);
+			Log("flip: loading image #" + std::to_string(idx) + ": " + content.image_filenames[idx]);
 			content.load_image(idx);
-			Log("rotation: done loading image");
+			Log("flip: done loading image");
 
 			if (content.original_image.empty() or
 				content.original_image.cols < 1 or
 				content.original_image.rows < 1)
 			{
 				// something is wrong with this image
-				Log("rotation is skipping a bad file: " + content.image_filenames[idx]);
+				Log("flip is skipping a bad file: " + content.image_filenames[idx]);
 				images_with_errors ++;
 				images_skipped ++;
 				continue;
 			}
 
-			if ((rotate_empty_images and content.image_is_completely_empty) or
-				(rotate_other_images and content.image_is_completely_empty == false and content.marks.empty()) or
-				(rotate_annotated_images and content.image_is_completely_empty == false and content.marks.size() > 0))
+			if ((flip_empty_images and content.image_is_completely_empty) or
+				(flip_other_images and content.image_is_completely_empty == false and content.marks.empty()) or
+				(flip_annotated_images and content.image_is_completely_empty == false and content.marks.size() > 0))
 			{
-				// if we get here then we have an image we want to rotate
+				// if we get here then we have an image we want to flip
 
 				// remember the image and the markup for this image, because we're going to have to rotate all the points
-				const auto original_marks = content.marks;
+				auto original_marks = content.marks;
 				cv::Mat original_mat = content.original_image;
 
-				for (const auto & [rotation_code, postfix] : rotations)
+				for (const auto & [flip_code, postfix] : flips)
 				{
 					if (threadShouldExit())
 					{
 						break;
 					}
 
+					//	0 == vertical flip (top <-> bottom)
+					//	1 == horizontal flip (left <-> right)
+					const bool is_ver = (flip_code == 0);
+					const bool is_hor = (flip_code == 1);
+
 					// see if this rotation already exists
 					std::string new_fn = original_file.getSiblingFile(original_fn).getFullPathName().toStdString() + postfix;
-					Log("rotation: looking for " + new_fn);
+					Log("flip: looking for " + new_fn);
 					if (filenames_without_extensions.count(new_fn))
 					{
-						Log("skip rotation (already exists): " + new_fn);
+						Log("skip flip (already exists): " + new_fn);
 						images_already_exist ++;
 						continue;
 					}
 
 					// once we get here we know we need to create a new image!
-					Log("rotate " + content.image_filenames[idx] + ": " + std::to_string(rotation_code) + ": " + postfix);
+					Log("flip " + content.image_filenames[idx] + ": " + std::to_string(flip_code) + ": " + postfix);
 
 					// rotate and save the image to disk
 					cv::Mat dst;
-					cv::rotate(original_mat, dst, rotation_code);
+					cv::flip(original_mat, dst, flip_code);
 					if (use_png)
 					{
 						new_fn += ".png";
@@ -407,54 +407,55 @@ void dm::DMContentRotateImages::run()
 
 						const auto txt_fn = File(new_fn).withFileExtension(".txt").getFullPathName().toStdString();
 
-						Log("rotation: creating annotations for " + txt_fn);
-
-						const double degrees	= (rotation_code == cv::ROTATE_90_CLOCKWISE ? 90.0 : rotation_code == cv::ROTATE_180 ? 180.0 : 270.0);
-						const double rads		= degrees * M_PI / 180.0;
-						const double s			= std::sin(rads);
-						const double c			= std::cos(rads);
+						Log("flip: creating annotations for " + txt_fn);
 
 						std::ofstream ofs(txt_fn);
 
-						for (const auto & m : original_marks)
+						const double rows = dst.rows;
+						const double cols = dst.cols;
+
+						for (auto & m : original_marks)
 						{
 							if (m.is_prediction)
 							{
 								continue;
 							}
 
-							const cv::Rect2d r	= m.get_normalized_bounding_rect();
+							const cv::Rect2d r	= m.get_bounding_rect(dst.size());
 							const double w		= r.width;
 							const double h		= r.height;
-							const double x		= r.x + r.width / 2.0 - 0.5; // -0.5 to bring it back to the origin
-							const double y		= r.y + r.height / 2.0 - 0.5; // -0.5 to bring it back to the origin
-
-							const double new_w		= (degrees == 180.0 ? w : h);
-							const double new_h		= (degrees == 180.0 ? h : w);
-							const double new_x		= x * c - y * s + 0.5;
-							const double new_y		= x * s + y * c + 0.5;
+							const double x		= r.x;
+							const double y		= r.y;
+							const double flip_x	= cols - x - w;
+							const double flip_y	= rows - y - h;
+							const double cx		= (is_hor ? flip_x : x) + w / 2.0;
+							const double cy		= (is_ver ? flip_y : y) + h / 2.0;
+							const double new_w	= w / cols;
+							const double new_h	= h / rows;
+							const double new_x	= cx / cols;
+							const double new_y	= cy / rows;
 
 							ofs << std::fixed << std::setprecision(10) << m.class_idx << " " << new_x << " " << new_y << " " << new_w << " " << new_h << std::endl;
 						}
 						ofs.close();
 
 						// load the new images to force DarkMark to create the .json file from the .txt file
-						Log("rotation: reloading " + new_fn);
+						Log("flip: reloading " + new_fn);
 						content.load_image(content.image_filenames.size() - 1);
-						Log("rotation: done loading " + new_fn);
+						Log("flip: done loading " + new_fn);
 					}
 				}
 			}
 			else
 			{
-				Log("rotation: skipping " + content.image_filenames[idx]);
+				Log("flip: skipping " + content.image_filenames[idx]);
 				images_skipped ++;
 			}
 		}
 	}
 	catch (const std::exception & e)
 	{
-		const String msg = "Error during rotation of \"" + remember_most_recent_filename + "\": " + e.what();
+		const String msg = "Error during flip of \"" + remember_most_recent_filename + "\": " + e.what();
 		Log(msg.toStdString());
 		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", msg);
 	}
@@ -470,7 +471,7 @@ void dm::DMContentRotateImages::run()
 	if (threadShouldExit() == false)
 	{
 		std::stringstream ss;
-		ss	<< "Summary of image rotation:" << std::endl
+		ss	<< "Summary of image flip:" << std::endl
 			<< std::endl;
 
 		ss << "- images processed: " << filenames_without_extensions.size() << std::endl;
@@ -484,7 +485,7 @@ void dm::DMContentRotateImages::run()
 		}
 		if (images_already_exist > 0)
 		{
-			ss << "- rotations already existed: " << images_already_exist << std::endl;
+			ss << "- images already existed: " << images_already_exist << std::endl;
 		}
 		ss << "- new images created: " << images_created << std::endl;
 

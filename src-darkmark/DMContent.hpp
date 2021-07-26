@@ -107,6 +107,8 @@ namespace dm
 
 			DMContent & rotate_every_image();
 
+			DMContent & flip_images();
+
 			DMContent & move_empty_images();
 
 			DMContent & reload_resave_every_image();
