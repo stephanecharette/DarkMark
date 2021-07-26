@@ -62,6 +62,7 @@ namespace dm
 	class DMContentMoveEmptyImages;
 	class DMContentRotateImages;
 	class DMContentFlipImages;
+	class DMContentDeleteRotateAndFlipImages;
 	class DMContentImportTxt;
 	class ScrollField;
 	class CrosshairComponent;
@@ -104,6 +105,7 @@ namespace dm
 #include "DMContentReloadResave.hpp"
 #include "DMContentRotateImages.hpp"
 #include "DMContentFlipImages.hpp"
+#include "DMContentDeleteRotateAndFlipImages.hpp"
 #include "DMContentMoveEmptyImages.hpp"
 #include "DMContentImageFilenameSort.hpp"
 #include "DMContentStatistics.hpp"

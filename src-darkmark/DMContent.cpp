@@ -1784,10 +1784,12 @@ PopupMenu dm::DMContent::create_popup_menu()
 	image.addSeparator();
 	image.addItem("jump..."																										, std::function<void()>( [&]{ show_jump_wnd();				} ));
 	image.addSeparator();
-	image.addItem("rotate images..."																							, std::function<void()>( [&]{ rotate_every_image();			} ));
-	image.addItem("flip images..."																								, std::function<void()>( [&]{ flip_images();				} ));
 	image.addItem("move empty images..."																						, std::function<void()>( [&]{ move_empty_images();			} ));
 	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
+	image.addSeparator();
+	image.addItem("flip images..."																								, std::function<void()>( [&]{ flip_images();				} ));
+	image.addItem("rotate images..."																							, std::function<void()>( [&]{ rotate_every_image();			} ));
+	image.addItem("delete rotate and flip images..."																			, std::function<void()>( [&]{ delete_rotate_and_flip_images(); }));
 
 	PopupMenu help;
 	help.addItem("about..."				, std::function<void()>( [&]{ dmapp().about_wnd.reset(new AboutWnd); } ));
@@ -2003,6 +2005,27 @@ dm::DMContent & dm::DMContent::flip_images()
 {
 	DMContentFlipImages flipImages(*this);
 	flipImages.runModalLoop();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::delete_rotate_and_flip_images()
+{
+	const int result = AlertWindow::showOkCancelBox(AlertWindow::QuestionIcon, "DarkMark",
+		"Filename of images rotated by DarkMark end in _r090, _r180, or _r270.\n"
+		"Filename of images flipped by DarkMark end in _fh or _fv.\n"
+		"\n"
+		"If you continue, this will delete these rotated and flipped images.  Additionally, "
+		"this will also delete the corresponding annotations such as .txt and .json files.\n"
+		"\n"
+		"Delete all rotated/flipped images and annotations?", "Delete Files");
+
+	if (result != 0)
+	{
+		DMContentDeleteRotateAndFlipImages helper(*this);
+		helper.runThread();
+	}
 
 	return *this;
 }
