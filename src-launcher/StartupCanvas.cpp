@@ -196,6 +196,13 @@ void dm::StartupCanvas::initialize_on_thread()
 {
 	DarkMarkApplication::setup_signal_handling();
 
+	bool initialize_everything = true;
+	if (dmapp().cli_options.count("project_key"))
+	{
+		// CLI option is used to bypass the launcher, so we can skip the long parts of the init
+		initialize_everything = false;
+	}
+
 	applying_filter = true;
 	v.clear();
 	table.updateContent();
@@ -209,7 +216,12 @@ void dm::StartupCanvas::initialize_on_thread()
 	VStr image_filenames;
 	VStr json_filenames;
 	VStr images_without_json;
-	find_files(dir, image_filenames, json_filenames, images_without_json, done);
+
+	if (initialize_everything)
+	{
+		find_files(dir, image_filenames, json_filenames, images_without_json, done);
+	}
+
 	if (not done)
 	{
 		const size_t image_counter	= image_filenames.size();
@@ -227,75 +239,78 @@ void dm::StartupCanvas::initialize_on_thread()
 
 	find_all_darknet_files();
 
-	calculate_size_of_directory();
-
-	try
+	if (initialize_everything)
 	{
-		// look for newest and oldest timestamp
-		std::size_t empty_images = 0;
-		std::time_t oldest = 0;
-		std::time_t newest = 0;
-		std::size_t count = 0;
+		calculate_size_of_directory();
 
-		for (const auto & filename : json_filenames)
+		try
 		{
-			if (done)
+			// look for newest and oldest timestamp
+			std::size_t empty_images = 0;
+			std::time_t oldest = 0;
+			std::time_t newest = 0;
+			std::size_t count = 0;
+
+			for (const auto & filename : json_filenames)
 			{
-				break;
+				if (done)
+				{
+					break;
+				}
+
+				json j = json::parse(File(filename).loadFileAsString().toStdString());
+				count += j["mark"].size();
+				if (j.value("completely_empty", false) == true)
+				{
+					// count empty images as well...but not the same way as marks
+					empty_images ++;
+				}
+				std::time_t timestamp = j["timestamp"].get<std::time_t>();
+				if (oldest == 0 || timestamp < oldest)
+				{
+					oldest = timestamp;
+				}
+				if (newest == 0 || timestamp > newest)
+				{
+					newest = timestamp;
+				}
 			}
 
-			json j = json::parse(File(filename).loadFileAsString().toStdString());
-			count += j["mark"].size();
-			if (j.value("completely_empty", false) == true)
+			if (empty_images)
 			{
-				// count empty images as well...but not the same way as marks
-				empty_images ++;
+				// since we have some empty images, update the text counter to include those stats as well
+				const int percentage = std::round(100.0 * empty_images / json_filenames.size());
+				auto str = number_of_json.toString();
+				str += " of which " + String(empty_images) + " (" + String(percentage) + "%) are negative samples";
+				number_of_json = str;
 			}
-			std::time_t timestamp = j["timestamp"].get<std::time_t>();
-			if (oldest == 0 || timestamp < oldest)
+
+			oldest_markup = format_timestamp(oldest).c_str();
+			newest_markup = format_timestamp(newest).c_str();
+
+			const int classes = number_of_classes.getValue();
+			std::stringstream ss;
+			ss << std::fixed << std::setprecision(1);
+			ss << count;
+			if (classes > 0 and count > 0 and json_filenames.size() > empty_images)
 			{
-				oldest = timestamp;
+				const double average_marks_per_class = static_cast<double>(count) / static_cast<double>(classes);
+				const double average_marks_per_image = static_cast<double>(count) / static_cast<double>(json_filenames.size() - empty_images);
+
+				ss	<< " ("
+					<< average_marks_per_class << " mark" << (average_marks_per_class == 1.0 ? "" : "s") << " per class, "
+					<< average_marks_per_image << " mark" << (average_marks_per_image == 1.0 ? "" : "s") << " per image, "
+					<< empty_images << " negative sample" << (empty_images == 1.0 ? "" : "s") << ")";
 			}
-			if (newest == 0 || timestamp > newest)
-			{
-				newest = timestamp;
-			}
+			number_of_marks = ss.str().c_str();
 		}
-
-		if (empty_images)
+		catch (const std::exception & e)
 		{
-			// since we have some empty images, update the text counter to include those stats as well
-			const int percentage = std::round(100.0 * empty_images / json_filenames.size());
-			auto str = number_of_json.toString();
-			str += " of which " + String(empty_images) + " (" + String(percentage) + "%) are negative samples";
-			number_of_json = str;
+			Log(dir.getFullPathName().toStdString() + ": error while reading JSON: " + e.what());
+			oldest_markup	= "(error reading markup .json file)";
+			newest_markup	= oldest_markup.toString();
+			number_of_marks	= oldest_markup.toString();
 		}
-
-		oldest_markup = format_timestamp(oldest).c_str();
-		newest_markup = format_timestamp(newest).c_str();
-
-		const int classes = number_of_classes.getValue();
-		std::stringstream ss;
-		ss << std::fixed << std::setprecision(1);
-		ss << count;
-		if (classes > 0 and count > 0 and json_filenames.size() > empty_images)
-		{
-			const double average_marks_per_class = static_cast<double>(count) / static_cast<double>(classes);
-			const double average_marks_per_image = static_cast<double>(count) / static_cast<double>(json_filenames.size() - empty_images);
-
-			ss	<< " ("
-				<< average_marks_per_class << " mark" << (average_marks_per_class == 1.0 ? "" : "s") << " per class, "
-				<< average_marks_per_image << " mark" << (average_marks_per_image == 1.0 ? "" : "s") << " per image, "
-				<< empty_images << " negative sample" << (empty_images == 1.0 ? "" : "s") << ")";
-		}
-		number_of_marks = ss.str().c_str();
-	}
-	catch (const std::exception & e)
-	{
-		Log(dir.getFullPathName().toStdString() + ": error while reading JSON: " + e.what());
-		oldest_markup	= "(error reading markup .json file)";
-		newest_markup	= oldest_markup.toString();
-		number_of_marks	= oldest_markup.toString();
 	}
 
 	return;

@@ -122,7 +122,11 @@ class SaveTask : public ThreadWithProgressWindow
 				ss << "Run " << wnd.info.command_filename << " to start the training.";
 
 				dm::Log(ss.str());
-				AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
+
+				if (dm::dmapp().cli_options["darknet"] != "run")
+				{
+					AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
+				}
 			}
 			catch (const std::exception & e)
 			{
@@ -441,7 +445,19 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("darknet debug", properties, false);
 	properties.clear();
 
-	auto r = dmapp().wnd->getBounds();
+	auto r = Rectangle<int>();
+	if (dmapp().wnd->show_window)
+	{
+		r = dmapp().wnd->getBounds();
+	}
+	else
+	{
+		auto * display = Desktop::getInstance().getDisplays().getPrimaryDisplay();
+		if (display)
+		{
+			r = display->userArea;
+		}
+	}
 	r = r.withSizeKeepingCentre(550, 650);
 	setBounds(r);
 
@@ -450,6 +466,11 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	setVisible(true);
 
+	if (dmapp().cli_options["darknet"] == "run")
+	{
+		ok_button.triggerClick();
+	}
+
 	return;
 }
 
@@ -457,6 +478,12 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 dm::DarknetWnd::~DarknetWnd()
 {
 	percentage_slider = nullptr;
+
+	if (dmapp().cli_options["editor"] == "gen-darknet")
+	{
+		// since our sole purpose was to run this window, we can completely exit from DarkMark
+		dmapp().systemRequestedQuit();
+	}
 
 	return;
 }

@@ -14,6 +14,7 @@ IF (WIN32)
 ELSE ()
 	# cannot add the other flags until JUCE has been built
 	ADD_DEFINITIONS ( "-Wall" ) # -Wextra -Werror -Wno-unused-parameter" )
+	SET ( CMAKE_ENABLE_EXPORTS TRUE )		# equivalent to -rdynamic (to get the backtrace when something goes wrong)
 ENDIF ()
 
 ADD_DEFINITIONS ( -DJUCE_USE_CURL=0 )

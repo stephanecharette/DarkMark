@@ -27,6 +27,8 @@ namespace dm
 
 			void unhandledException(const std::exception * e, const String &sourceFilename, int lineNumber) override;
 
+			MStr cli_options;
+
 			TooltipWindow tool_tip;
 
 			std::unique_ptr<Cfg>			cfg;

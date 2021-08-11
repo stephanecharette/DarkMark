@@ -20,6 +20,7 @@ namespace dm
 
 			virtual void timerCallback() override;
 
+			bool show_window;
 			DMContent content;
 	};
 }

@@ -8,6 +8,7 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 		String("DarkMark v" DARKMARK_VERSION),
 		Desktop::getInstance().getDefaultLookAndFeel().findColour(ResizableWindow::backgroundColourId),
 		DocumentWindow::TitleBarButtons::allButtons),
+	show_window(true),
 	content(prefix)
 {
 	setContentNonOwned(&content, false);
@@ -17,16 +18,26 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 	setResizable			(true, true	);
 	setDropShadowEnabled	(true		);
 
-	setIcon(DarkMarkLogo());
-	ComponentPeer *peer = getPeer();
-	if (peer)
+	if (dmapp().cli_options.count("editor") and dmapp().cli_options.at("editor") == "gen-darknet")
 	{
-		peer->setIcon(DarkMarkLogo());
+		show_window = false;
+		setVisible(false);
 	}
-
-	if (cfg().containsKey("DMWnd"))
+	else
 	{
-		restoreWindowStateFromString( cfg().getValue("DMWnd") );
+		setIcon(DarkMarkLogo());
+		ComponentPeer *peer = getPeer();
+		if (peer)
+		{
+			peer->setIcon(DarkMarkLogo());
+		}
+
+		if (cfg().containsKey("DMWnd"))
+		{
+			restoreWindowStateFromString( cfg().getValue("DMWnd") );
+		}
+
+		setVisible(true);
 	}
 
 	// This next line can take a while to run.  Loading the neural network is very slow.
@@ -34,8 +45,6 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 	content.start_darknet();
 
 	content.load_image(0, false);
-
-	setVisible(true);
 
 	// give the window some time to draw itself, and then we'll reload the first image including passing it through darkhelp
 	startTimer(50); // milliseconds
@@ -48,7 +57,10 @@ dm::DMWnd::~DMWnd(void)
 {
 	stopTimer();
 
-	cfg().setValue("DMWnd", getWindowStateAsString());
+	if (show_window)
+	{
+		cfg().setValue("DMWnd", getWindowStateAsString());
+	}
 
 	dmapp().jump_wnd	.reset(nullptr);
 	dmapp().review_wnd	.reset(nullptr);
@@ -64,8 +76,17 @@ dm::DMWnd::~DMWnd(void)
 void dm::DMWnd::closeButtonPressed(void)
 {
 	setVisible(false);
-	dmapp().startup_wnd.reset(new StartupWnd);
 	dmapp().wnd.reset(nullptr);
+
+	if (dmapp().cli_options.count("project_key"))
+	{
+		// if we were told to load a specific project, then don't restart the launcher
+		dmapp().systemRequestedQuit();
+	}
+	else
+	{
+		dmapp().startup_wnd.reset(new StartupWnd);
+	}
 
 	return;
 }
@@ -75,7 +96,19 @@ void dm::DMWnd::timerCallback()
 {
 	stopTimer();
 
-	content.load_image(0);
+	const auto & action = dmapp().cli_options["editor"];
+	if (action == "gen-darknet")
+	{
+		setVisible(false);
+		setBounds(0, 0, 0, 0);
+		setMinimised(true);
+		content.import_text_annotations(content.images_without_json);
+		content.show_darknet_window();
+	}
+	else
+	{
+		content.load_image(0);
+	}
 
 	return;
 }

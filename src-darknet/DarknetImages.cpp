@@ -431,7 +431,7 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 			// Now that we know the size, we can create the rectangle which is used to carve out the RoI.
 			cv::Rect roi(cv::Point(0, 0), size);
 
-			// Now figure out how much room remains outside of the RoI, and randomly choose some spacing to assing.
+			// Now figure out how much room remains outside of the RoI, and randomly choose some spacing to assign.
 			const int delta_h = original_mat.cols - roi.width;
 			const int delta_v = original_mat.rows - roi.height;
 			std::uniform_int_distribution<int> uni_h(0, delta_h);

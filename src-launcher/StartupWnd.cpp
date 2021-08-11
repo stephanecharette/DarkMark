@@ -57,9 +57,6 @@ dm::StartupWnd::StartupWnd() :
 		const std::string name	= cfg().getValue("project_" + key + "_name", File(dir).getFileNameWithoutExtension()).toStdString();
 		notebook.addTab(name, Colours::darkgrey, new StartupCanvas(key, dir), true, 0);
 	}
-	notebook.setCurrentTabIndex(0);
-
-	updateButtons();
 
 	add_button			.addListener(this);
 	delete_button		.addListener(this);
@@ -69,23 +66,50 @@ dm::StartupWnd::StartupWnd() :
 	ok_button			.addListener(this);
 	cancel_button		.addListener(this);
 
-	setIcon(DarkMarkLogo());
-	ComponentPeer *peer = getPeer();
-	if (peer)
+	bool found = false;
+	if (dmapp().cli_options.count("project_key"))
 	{
-		peer->setIcon(DarkMarkLogo());
+		setVisible(false);
+		for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
+		{
+			StartupCanvas * startup_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
+			if (startup_canvas)
+			{
+				const auto & key = startup_canvas->cfg_key;
+				if (key == dmapp().cli_options["project_key"])
+				{
+					notebook.setCurrentTabIndex(idx);
+					ok_button.triggerClick();
+					found = true;
+					break;
+				}
+			}
+		}
 	}
 
-	if (cfg().containsKey("StartupWnd"))
+	if (not found)
 	{
-		restoreWindowStateFromString(cfg().getValue("StartupWnd"));
-	}
-	else
-	{
-		centreWithSize(800, 600);
-	}
+		notebook.setCurrentTabIndex(0);
+		updateButtons();
 
-	setVisible(true);
+		setIcon(DarkMarkLogo());
+		ComponentPeer *peer = getPeer();
+		if (peer)
+		{
+			peer->setIcon(DarkMarkLogo());
+		}
+
+		if (cfg().containsKey("StartupWnd"))
+		{
+			restoreWindowStateFromString(cfg().getValue("StartupWnd"));
+		}
+		else
+		{
+			centreWithSize(800, 600);
+		}
+
+		setVisible(true);
+	}
 
 	return;
 }
@@ -102,7 +126,10 @@ dm::StartupWnd::~StartupWnd()
 		}
 	}
 
-	cfg().setValue("StartupWnd", getWindowStateAsString());
+	if (dmapp().cli_options.count("project_key") == 0)
+	{
+		cfg().setValue("StartupWnd", getWindowStateAsString());
+	}
 
 	return;
 }
@@ -132,32 +159,35 @@ void dm::StartupWnd::userTriedToCloseWindow()
 
 void dm::StartupWnd::resized()
 {
-	// get the document window to resize the canvas, then we'll deal with the rest of the components
-	DocumentWindow::resized();
+	if (dmapp().cli_options.count("project_key") == 0)
+	{
+		// get the document window to resize the canvas, then we'll deal with the rest of the components
+		DocumentWindow::resized();
 
-	const int margin_size = 5;
+		const int margin_size = 5;
 
-	FlexBox button_row;
-	button_row.flexDirection = FlexBox::Direction::row;
-	button_row.justifyContent = FlexBox::JustifyContent::flexEnd;
-	button_row.items.add(FlexItem(add_button)	.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-	button_row.items.add(FlexItem(delete_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-	button_row.items.add(FlexItem()				.withFlex(1.0));
-	button_row.items.add(FlexItem(import_video_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-	button_row.items.add(FlexItem(open_folder_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-	button_row.items.add(FlexItem()				.withFlex(1.0));
-	button_row.items.add(FlexItem(refresh_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-	button_row.items.add(FlexItem(ok_button		).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-	button_row.items.add(FlexItem(cancel_button	).withWidth(100.0));
+		FlexBox button_row;
+		button_row.flexDirection = FlexBox::Direction::row;
+		button_row.justifyContent = FlexBox::JustifyContent::flexEnd;
+		button_row.items.add(FlexItem(add_button)	.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(delete_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem()				.withFlex(1.0));
+		button_row.items.add(FlexItem(import_video_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(open_folder_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem()				.withFlex(1.0));
+		button_row.items.add(FlexItem(refresh_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(ok_button		).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(cancel_button	).withWidth(100.0));
 
-	FlexBox fb;
-	fb.flexDirection = FlexBox::Direction::column;
-	fb.items.add(FlexItem(notebook).withFlex(1.0));
-	fb.items.add(FlexItem(button_row).withHeight(30.0).withMargin(FlexItem::Margin(margin_size, 0, 0, 0)));
+		FlexBox fb;
+		fb.flexDirection = FlexBox::Direction::column;
+		fb.items.add(FlexItem(notebook).withFlex(1.0));
+		fb.items.add(FlexItem(button_row).withHeight(30.0).withMargin(FlexItem::Margin(margin_size, 0, 0, 0)));
 
-	auto r = getLocalBounds();
-	r.reduce(margin_size, margin_size);
-	fb.performLayout(r);
+		auto r = getLocalBounds();
+		r.reduce(margin_size, margin_size);
+		fb.performLayout(r);
+	}
 
 	return;
 }
@@ -400,29 +430,32 @@ void dm::StartupWnd::buttonClicked(Button * button)
 			size_t warning_count	= 0;
 			size_t error_count		= 0;
 
-			std::stringstream ss;
-			ss << std::endl << std::endl;
-			if (image_count			< 1)		{ ss << "- There are no images in the project directory."	<< std::endl;	error_count		++; }
-			if (dir_exists			== false)	{ ss << "- The project directory does not exist."			<< std::endl;	error_count		++; }
-			if (cfg_exists			== false)	{ ss << "- The .cfg file does not exist."					<< std::endl;	warning_count	++; }
-			if (weights_exits		== false)	{ ss << "- The .weights file does not exist."				<< std::endl;	warning_count	++; }
-			if (names_exists		== false)	{ ss << "- The .names file does not exist."					<< std::endl;	error_count		++; }
+			if (dmapp().cli_options.count("project_key") == 0)
+			{
+				std::stringstream ss;
+				ss << std::endl << std::endl;
+				if (image_count			< 1)		{ ss << "- There are no images in the project directory."	<< std::endl;	error_count		++; }
+				if (dir_exists			== false)	{ ss << "- The project directory does not exist."			<< std::endl;	error_count		++; }
+				if (cfg_exists			== false)	{ ss << "- The .cfg file does not exist."					<< std::endl;	warning_count	++; }
+				if (weights_exits		== false)	{ ss << "- The .weights file does not exist."				<< std::endl;	warning_count	++; }
+				if (names_exists		== false)	{ ss << "- The .names file does not exist."					<< std::endl;	error_count		++; }
 
-			const size_t message_count = warning_count + error_count;
-			if (error_count > 0)
-			{
-				const String title = "DarkMark Project Error" + String(message_count == 1 ? "" : "s") + " Detected";
-				const String msg = "Please note the following error message" + String(message_count == 1 ? "" : "s") + ":" + ss.str();
-				AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, title, msg);
-				load_project = false;
-			}
-			else if (warning_count > 0)
-			{
-				ss << std::endl << "Continue to load this project?";
-				const String title = "DarkMark Project Warning" + String(message_count == 1 ? "" : "s") + " Detected";
-				const String msg = "Please note the following warning message" + String(message_count == 1 ? "" : "s") + ":" + ss.str();
-				const int result = AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, title, msg, "Load", "Cancel");
-				load_project = (result == 1 ? true : false);
+				const size_t message_count = warning_count + error_count;
+				if (error_count > 0)
+				{
+					const String title = "DarkMark Project Error" + String(message_count == 1 ? "" : "s") + " Detected";
+					const String msg = "Please note the following error message" + String(message_count == 1 ? "" : "s") + ":" + ss.str();
+					AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, title, msg);
+					load_project = false;
+				}
+				else if (warning_count > 0)
+				{
+					ss << std::endl << "Continue to load this project?";
+					const String title = "DarkMark Project Warning" + String(message_count == 1 ? "" : "s") + " Detected";
+					const String msg = "Please note the following warning message" + String(message_count == 1 ? "" : "s") + ":" + ss.str();
+					const int result = AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, title, msg, "Load", "Cancel");
+					load_project = (result == 1 ? true : false);
+				}
 			}
 
 			if (load_project)

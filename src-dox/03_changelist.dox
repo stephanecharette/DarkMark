@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.5.26-1	| 2021-08-08	| Added some new CLI parameters.  See @ref CLI for details.
 1.5.24-1	| 2021-07-25	| New "flip image" window similar to "rotate image".
 1.5.23-1	| 2021-07-24	| New "rotate image" window with several new options.
 1.5.22-1	| 2021-07-19	| Update JUCE to the latest version (6.0.8)

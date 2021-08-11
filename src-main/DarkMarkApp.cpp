@@ -163,6 +163,88 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	std::srand(std::time(nullptr));
 
 	cfg.reset(new Cfg);
+
+	for (auto parm : StringArray::fromTokens(commandLine, true))
+	{
+		parm = parm.unquoted();
+		auto key = parm.toStdString();
+		auto val = key;
+		dm::Log("parsing parameter: " + parm.toStdString());
+		auto pos = parm.indexOfChar('=');
+		if (pos > 0)
+		{
+			// split the parm into 2 parts based on the "=" sign
+			key = parm.substring(0, pos).toStdString();
+			val = parm.substring(pos + 1).toStdString();
+		}
+
+		if (cli_options.count(key))
+		{
+			dm::Log("Error: duplicate key \"" + key + "\" in CLI parameters: 1=\"" + cli_options[key] + "\", 2=\"" + val + "\"");
+			throw std::runtime_error("CLI parameters has a duplicate key: \"" + key + "\"");
+		}
+
+		cli_options[key] = val;
+	}
+
+	String project_key;
+	for (const auto & [key, val] : cli_options)
+	{
+		if (key == "editor" and val == "gen-darknet")
+		{
+			// if "editor" is specified, the only action currently supported is "gen-darknet"
+		}
+		else if (key == "darknet" and val == "run")
+		{
+		}
+		else if (key == "load")
+		{
+			/* Check to see if this project exits in configuration.
+			 * For example, configuration might have these lines:
+			 *
+			 *		<VALUE name="project_1760944655_dir" val="/home/stephane/nn/driving"/>
+			 *		<VALUE name="project_1760944655_name" val="driving"/>
+			 *
+			 * ...in which case if "load=driving" or "load=1760944655" was specified,
+			 * we'd want to match and record the key "1760944655".
+			 */
+			for (const String & k : cfg->getAllProperties().getAllKeys())
+			{
+				if (k.endsWith("_dir") or k.endsWith("_name"))
+				{
+					if (cfg->getValue(k).endsWith(val) or k.toStdString() == "project_" + val + "_dir")
+					{
+						// found which project we need to load!
+						dm::Log("match for \"" + val + "\" found in " + k.toStdString() + "=" + cfg->getValue(k).toStdString());
+						auto p1 = k.indexOfChar('_');
+						auto p2 = k.lastIndexOfChar('_');
+						if (p1 > 0 and p2 > p1)
+						{
+							project_key = k.substring(p1 + 1, p2);
+							dm::Log("project key=" + project_key.toStdString());
+						}
+						break;
+					}
+				}
+			}
+
+			if (project_key.isEmpty())
+			{
+				dm::Log("Error: failed to match project name, dir, or key: \"" + val + "\"");
+				throw std::runtime_error("cannot find project \"" + val + "\"");
+			}
+		}
+		else
+		{
+			dm::Log("Error: unknown CLI option: key=\"" + key + "\", val=\"" + val + "\"");
+			throw std::runtime_error("CLI parameter is invalid: \"" + key + "\"");
+		}
+	}
+	if (project_key.isNotEmpty())
+	{
+		cli_options["project_key"] = project_key.toStdString();
+	}
+
 	startup_wnd.reset(new StartupWnd);
 
 	// before we go any further, check to see if Darknet is installed where we think it is
@@ -172,7 +254,8 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	{
 		Log("darknet directory does not exist: " + darknet_dir);
 		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark",
-				"The darknet directory is set to " + darknet_dir + ", but that directory does not exist.\n\n"
+				"The darknet directory is set to " + darknet_dir + ", but that directory does not exist.\n"
+				"\n"
 				"Please quit from DarkMark and edit the configuration file " + cfg->getFile().getFullPathName().toStdString() + " to set \"darknet_dir\" to the correct location.");
 	}
 

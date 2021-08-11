@@ -52,13 +52,15 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	setWantsKeyboardFocus(true);
 
 	VStr json_filenames;
-	VStr images_without_json;
+	images_without_json.clear();
 	std::atomic<bool> done = false;
 	find_files(File(project_info.project_dir), image_filenames, json_filenames, images_without_json, done);
 	Log("number of images found in " + project_info.project_dir + ": " + std::to_string(image_filenames.size()));
 
+	const auto & action = dmapp().cli_options["editor"];
+
 	const std::string exclusion_regex = cfg().get_str(cfg_prefix + "exclusion_regex");
-	if (exclusion_regex.empty() == false)
+	if (exclusion_regex.empty() == false and action != "gen-darknet")
 	{
 		try
 		{
@@ -92,13 +94,15 @@ dm::DMContent::DMContent(const std::string & prefix) :
 		}
 	}
 
-	if (images_without_json.empty() == false)
+	if (images_without_json.empty() == false and action != "gen-darknet")
 	{
 		String msg = "1 image file was found with \".txt\" annotations.";
 		if (images_without_json.size() > 1)
 		{
 			msg = String(images_without_json.size()) + " image files were found with \".txt\" annotations.";
 		}
+		Log(msg.toStdString());
+
 		msg += "\n\nWould you like to import the annotations into DarkMark?";
 
 		AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark", msg, "", "", this,
@@ -139,6 +143,13 @@ dm::DMContent::~DMContent(void)
 
 void dm::DMContent::resized()
 {
+	if (dmapp().wnd and dmapp().wnd->show_window == false)
+	{
+		dmapp().wnd->setMinimised(true);
+		dmapp().wnd->setVisible(false);
+		return;
+	}
+
 	const double window_width	= getWidth();
 	const double window_height	= getHeight();
 	if(	window_width	< 1.0 or
@@ -1263,8 +1274,11 @@ dm::DMContent & dm::DMContent::save_json()
 
 dm::DMContent & dm::DMContent::import_text_annotations(const VStr & images_fn)
 {
-	DMContentImportTxt helper(*this, images_fn);
-	helper.runThread(); // waits for this to finish before continuing
+	if (images_fn.empty() == false)
+	{
+		DMContentImportTxt helper(*this, images_fn);
+		helper.runThread(); // waits for this to finish before continuing
+	}
 
 	return *this;
 }

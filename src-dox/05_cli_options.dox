@@ -1,0 +1,11 @@
+/** @page CLI CLI Options
+
+%DarkMark cli options:
+
+Command						| Examples																	| Description
+----------------------------|---------------------------------------------------------------------------|------------
+@p editor=&lt;name&gt;		| @p editor=gen-darknet														| Action to perform from the main editor window.  Only value supported is @p gen-darknet.
+@p darknet=run				| @p darknet=run															| Auto-run the darknet generation when combined with @p editor=gen-darknet.
+@p load=&lt;name&gt;		| @p load=cars <br/> @p load=123456 <br/> @p load=/home/username/nn/cars	| Hide the DarkMark Launcher and use the given project instead.  Can use the project name, the project key, or the directory.  The project must already exist in DarkMark.
+
+*/
