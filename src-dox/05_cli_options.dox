@@ -8,4 +8,14 @@ Command						| Examples																	| Description
 @p darknet=run				| @p darknet=run															| Auto-run the darknet generation when combined with @p editor=gen-darknet.
 @p load=&lt;name&gt;		| @p load=cars <br/> @p load=123456 <br/> @p load=/home/username/nn/cars	| Hide the DarkMark Launcher and use the given project instead.  Can use the project name, the project key, or the directory.  The project must already exist in DarkMark.
 
+Examples, assuming there is a project called "animals":
+
+~~~~{.sh}
+DarkMark load=animals editor=gen-darknet darknet=run
+~~~~
+Or:
+~~~~{.sh}
+DarkMark load=animals editor=gen-darknet
+~~~~
+
 */

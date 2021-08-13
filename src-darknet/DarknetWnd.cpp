@@ -4,6 +4,18 @@
 #include "yolo_anchors.hpp"
 
 
+// This is part of a sponsored change to provide a simplified "darknet" window
+// with less options than normal.  Usually, this is set to "false".
+const bool simplified_interface =
+#if DARKNET_GEN_SIMPLIFIED
+	true
+#else
+	false
+#endif
+	;
+const bool normal_interface = not simplified_interface;
+
+
 class SaveTask : public ThreadWithProgressWindow
 {
 	public:
@@ -179,7 +191,8 @@ class CfgTemplateButton : public ButtonPropertyComponent
 
 
 dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
-	DocumentWindow("DarkMark v" DARKMARK_VERSION " - Darknet Output", Colours::darkgrey, TitleBarButtons::closeButton),
+	DocumentWindow(
+		(normal_interface ? "DarkMark v" DARKMARK_VERSION " - Darknet Output" : "Settings"), Colours::darkgrey, TitleBarButtons::closeButton),
 	content(c),
 	info(c.project_info),
 	help_button("Read Me!"),
@@ -244,13 +257,13 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_show_receptive_field			= false;
 
 	// when the template changes, then we need to determine if the YOLO and anchors controls need to be modified
-	v_cfg_template.addListener(this);
+	v_cfg_template			.addListener(this);
 
 	// when this value is toggled, we need to enable/disable the image percentage slider
-	v_train_with_all_images.addListener(this);
+	v_train_with_all_images	.addListener(this);
 
 	// counters_per_class depends on this being enabled
-	v_recalculate_anchors.addListener(this);
+	v_recalculate_anchors	.addListener(this);
 
 	// handle the strange interactions between the "resize" options
 	v_do_not_resize_images	.addListener(this);
@@ -264,16 +277,19 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	SliderPropertyComponent		* s = nullptr;
 	ButtonPropertyComponent		* u = nullptr;
 
-	t = new TextPropertyComponent(v_darknet_dir, "darknet directory", 1000, false, true);
-	t->setTooltip("The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example .cfg files to use as templates.");
-	properties.add(t);
+	if (normal_interface)
+	{
+		t = new TextPropertyComponent(v_darknet_dir, "darknet directory", 1000, false, true);
+		t->setTooltip("The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example .cfg files to use as templates.");
+		properties.add(t);
 
-	u = new CfgTemplateButton(v_cfg_template);
-	u->setTooltip("The darknet configuration file to use as a template for this project.");
-	properties.add(u);
+		u = new CfgTemplateButton(v_cfg_template);
+		u->setTooltip("The darknet configuration file to use as a template for this project.");
+		properties.add(u);
 
-	pp.addSection("darknet", properties, true);
-	properties.clear();
+		pp.addSection("darknet", properties, true);
+		properties.clear();
+	}
 
 	s = new SliderPropertyComponent(v_image_width, "network width", 32.0, 2048.0, 32.0, 0.5, false);
 	s->setTooltip("Network width. Must be a multiple of 32. Default is 448.");
@@ -299,9 +315,12 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s->setTooltip("The learning rate determines the step size at each iteration while moving toward a minimum of a loss function. Since it influences to what extent newly acquired information overrides old information, it metaphorically represents the speed at which a machine learning model \"learns\".");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_max_chart_loss, "max loss for chart.png", 1.0, 20.0, 0.1);
-	s->setTooltip("The maximum amount of loss to display on the output image \"chart.png\". This sets the maximum value to use for the Y-axis, and is for display purposes only; it has zero impact on how the neural network is trained.");
-	properties.add(s);
+	if (normal_interface)
+	{
+		s = new SliderPropertyComponent(v_max_chart_loss, "max loss for chart.png", 1.0, 20.0, 0.1);
+		s->setTooltip("The maximum amount of loss to display on the output image \"chart.png\". This sets the maximum value to use for the Y-axis, and is for display purposes only; it has zero impact on how the neural network is trained.");
+		properties.add(s);
+	}
 
 	pp.addSection("configuration", properties, true);
 	properties.clear();
@@ -318,9 +337,16 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b->setTooltip("DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_zoom_images, "crop & zoom images", "random crop and zoom images");
-	b->setTooltip("DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
-	properties.add(b);
+	if (normal_interface)
+	{
+		b = new BooleanPropertyComponent(v_zoom_images, "crop & zoom images", "random crop and zoom images");
+		b->setTooltip("DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
+		properties.add(b);
+	}
+	else
+	{
+		v_zoom_images = false;
+	}
 
 	b = new BooleanPropertyComponent(v_limit_negative_samples, "limit negative samples", "limit negative samples");
 	b->setTooltip("Limit the number of negative samples included in the training and validation sets to 50% of the images. This should be enabled.");
@@ -363,7 +389,15 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	}
 	properties.add(b);
 
-	pp.addSection("yolo", properties, false);
+	if (normal_interface)
+	{
+		pp.addSection("yolo", properties, false);
+	}
+	else
+	{
+		v_recalculate_anchors = false;
+		v_class_imbalance = false;
+	}
 	properties.clear();
 
 	std::string name;
@@ -415,13 +449,21 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b->setTooltip("WARNING: Issue #6105: \"Mosaic degrades accuracy for tiny model.\"");
 	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_cutmix, "enable cutmix", "cutmix");
-//	b->setTooltip("...?");
-	properties.add(b);
+	if (normal_interface)
+	{
+		b = new BooleanPropertyComponent(v_cutmix, "enable cutmix", "cutmix");
+//		b->setTooltip("...?");
+		properties.add(b);
 
-	b = new BooleanPropertyComponent(v_mixup, "enable mixup", "mixup");
-//	b->setTooltip("...?");
-	properties.add(b);
+		b = new BooleanPropertyComponent(v_mixup, "enable mixup", "mixup");
+//		b->setTooltip("...?");
+		properties.add(b);
+	}
+	else
+	{
+		v_cutmix = false;
+		v_mixup = false;
+	}
 
 #if 0
 	// This is not yet supported by Darknet.
@@ -434,16 +476,19 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	pp.addSection("data augmentation [misc]", properties, false);
 	properties.clear();
 
-	b = new BooleanPropertyComponent(v_keep_augmented_images, "keep images", "keep images");
-	b->setTooltip("Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
-	properties.add(b);
+	if (normal_interface)
+	{
+		b = new BooleanPropertyComponent(v_keep_augmented_images, "keep images", "keep images");
+		b->setTooltip("Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
+		properties.add(b);
 
-	b = new BooleanPropertyComponent(v_show_receptive_field, "show receptive field", "show receptive field");
-	b->setTooltip("Display receptive field debug information on the console when using \"darknet detector test ...\"");
-	properties.add(b);
+		b = new BooleanPropertyComponent(v_show_receptive_field, "show receptive field", "show receptive field");
+		b->setTooltip("Display receptive field debug information on the console when using \"darknet detector test ...\"");
+		properties.add(b);
 
-	pp.addSection("darknet debug", properties, false);
-	properties.clear();
+		pp.addSection("darknet debug", properties, false);
+		properties.clear();
+	}
 
 	auto r = Rectangle<int>();
 	if (dmapp().wnd->show_window)
@@ -458,7 +503,16 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 			r = display->userArea;
 		}
 	}
-	r = r.withSizeKeepingCentre(550, 650);
+
+	if (normal_interface)
+	{
+		r = r.withSizeKeepingCentre(550, 650);
+	}
+	else
+	{
+		r = r.withSizeKeepingCentre(550, 500);
+	}
+
 	setBounds(r);
 
 	// force some of the handlers to run on the initial config

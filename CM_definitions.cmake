@@ -17,6 +17,12 @@ ELSE ()
 	SET ( CMAKE_ENABLE_EXPORTS TRUE )		# equivalent to -rdynamic (to get the backtrace when something goes wrong)
 ENDIF ()
 
+IF (FALSE)
+	# This is part of a sponsored change to provide a simplified "darknet" window
+	# with less options than normal.  Usually, this "IF" block should remain disabled.
+	ADD_DEFINITIONS ( -DDARKNET_GEN_SIMPLIFIED=1 )
+ENDIF ()
+
 ADD_DEFINITIONS ( -DJUCE_USE_CURL=0 )
 ADD_DEFINITIONS ( -DJUCE_WEB_BROWSER=0 )
 ADD_DEFINITIONS ( -DJUCE_ENABLE_LIVE_CONSTANT_EDITOR=0 )
