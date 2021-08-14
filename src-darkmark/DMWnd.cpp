@@ -21,6 +21,7 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 	if (dmapp().cli_options.count("editor") and dmapp().cli_options.at("editor") == "gen-darknet")
 	{
 		show_window = false;
+		content.show_window = false;
 		setVisible(false);
 	}
 	else

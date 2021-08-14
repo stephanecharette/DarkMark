@@ -5,15 +5,87 @@
 
 
 // This is part of a sponsored change to provide a simplified "darknet" window
-// with less options than normal.  Usually, this is set to "false".
-const bool simplified_interface =
+// with less options than normal.  This is also used to trigger the Japanese
+// translations.  Usually, this flag is set to "false".
 #if DARKNET_GEN_SIMPLIFIED
-	true
+const bool simplified_interface = true;
 #else
-	false
+const bool simplified_interface = false;
 #endif
-	;
 const bool normal_interface = not simplified_interface;
+
+
+String getText(String key)
+{
+	if (normal_interface)
+	{
+		if (key == "TITLE")
+		{
+			return "DarkMark v" DARKMARK_VERSION " - Darknet Output";
+		}
+
+		return key;
+	}
+
+	const std::map<String, String> m =
+	{
+//		{"TITLE"						, String::fromUTF8("学習設定画面")					},
+		{"TITLE"						, "DNNM v" DARKMARK_VERSION							},
+		{"configuration"				, String::fromUTF8("設定")							},
+		{"network width"				, String::fromUTF8("画像横幅（Px）")					},
+		{"network height"				, String::fromUTF8("画像縦幅（Px）")					},
+		{"batch size"					, String::fromUTF8("バッチサイズ")					},
+		{"subdivisions"					, String::fromUTF8("分割数")							},
+		{"max_batches"					, String::fromUTF8("学習回数")						},
+		{"learning_rate"				, String::fromUTF8("学習率")							},
+		{"images"						, String::fromUTF8("画像処理")						},
+		{"do not resize images"			, String::fromUTF8("拡大縮小しない")					},
+		{"resize images"				, String::fromUTF8("縦横幅に合わせて縮小")				},
+		{"tile images"					, String::fromUTF8("縦横幅に合わせてタイリング")			},
+		{"limit negative samples"		, String::fromUTF8("マークなしサンプル数を抑制")			},
+		{"train with all images"		, String::fromUTF8("全画像を学習に用いる")				},
+		{"training images %"			, String::fromUTF8("学習用に使用する画像の数量（%）")		},
+		{"data augmentation [colour]"	, String::fromUTF8("データオーグメンテーション [色]")	},
+		{"saturation"					, String::fromUTF8("彩度")							},
+		{"exposure"						, String::fromUTF8("明度")							},
+		{"hue"							, String::fromUTF8("色相")							},
+		{"data augmentation [misc]"		, String::fromUTF8("データオーグメンテーション [その他]")	},
+		{"enable flip"					, String::fromUTF8("左右反転")						},
+		{"enable mosaic"				, String::fromUTF8("モザイク")						},
+		{"Cancel"						, String::fromUTF8("キャンセル")						},
+		{"OK"							, String::fromUTF8("決定")							}
+	};
+
+	const std::map<String, String> special_cases =
+	{
+		{"resize images to match the network dimensions", "resize images"	},
+		{"tile images to match the network dimensions"	, "tile images"		},
+		{"flip (left-right)"							, "enable flip"		},
+		{"mosaic"										, "enable mosaic"	}
+	};
+	if (special_cases.count(key))
+	{
+		key = special_cases.at(key);
+	}
+
+	if (m.count(key))
+	{
+		return m.at(key);
+	}
+
+	return key;
+}
+
+
+void setTooltip(PropertyComponent * component, const String & msg)
+{
+	if (component and normal_interface)
+	{
+		component->setTooltip(msg);
+	}
+
+	return;
+}
 
 
 class SaveTask : public ThreadWithProgressWindow
@@ -191,13 +263,12 @@ class CfgTemplateButton : public ButtonPropertyComponent
 
 
 dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
-	DocumentWindow(
-		(normal_interface ? "DarkMark v" DARKMARK_VERSION " - Darknet Output" : "Settings"), Colours::darkgrey, TitleBarButtons::closeButton),
+	DocumentWindow(getText("TITLE"), Colours::darkgrey, TitleBarButtons::closeButton),
 	content(c),
 	info(c.project_info),
-	help_button("Read Me!"),
-	ok_button("OK"),
-	cancel_button("Cancel")
+	help_button(getText("Read Me!")),
+	ok_button(getText("OK")),
+	cancel_button(getText("Cancel"))
 {
 	percentage_slider			= nullptr;
 	recalculate_anchors_toggle	= nullptr;
@@ -280,67 +351,67 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	if (normal_interface)
 	{
 		t = new TextPropertyComponent(v_darknet_dir, "darknet directory", 1000, false, true);
-		t->setTooltip("The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example .cfg files to use as templates.");
+		setTooltip(t, "The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example .cfg files to use as templates.");
 		properties.add(t);
 
 		u = new CfgTemplateButton(v_cfg_template);
-		u->setTooltip("The darknet configuration file to use as a template for this project.");
+		setTooltip(u, "The darknet configuration file to use as a template for this project.");
 		properties.add(u);
 
 		pp.addSection("darknet", properties, true);
 		properties.clear();
 	}
 
-	s = new SliderPropertyComponent(v_image_width, "network width", 32.0, 2048.0, 32.0, 0.5, false);
-	s->setTooltip("Network width. Must be a multiple of 32. Default is 448.");
+	s = new SliderPropertyComponent(v_image_width, getText("network width"), 32.0, 2048.0, 32.0, 0.5, false);
+	setTooltip(s, "Network width. Must be a multiple of 32. Default is 448.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_image_height, "network height", 32.0, 2048.0, 32.0, 0.5, false);
-	s->setTooltip("Network height. Must be a multiple of 32. Default is 256.");
+	s = new SliderPropertyComponent(v_image_height, getText("network height"), 32.0, 2048.0, 32.0, 0.5, false);
+	setTooltip(s, "Network height. Must be a multiple of 32. Default is 256.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_batch_size, "batch size", 1.0, 512.0, 1.0, 0.5, false);
-	s->setTooltip("Batch size determines the number of images processed per iteration. Default is 64 images per iteration.");
+	s = new SliderPropertyComponent(v_batch_size, getText("batch size"), 1.0, 512.0, 1.0, 0.5, false);
+	setTooltip(s, "Batch size determines the number of images processed per iteration. Default is 64 images per iteration.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_subdivisions, "subdivisions", 1.0, 512.0, 1.0, 0.5, false);
-	s->setTooltip("The number of images processed in parallel by the GPU is the batch size divided by subdivisions. Default is 8.");
+	s = new SliderPropertyComponent(v_subdivisions, getText("subdivisions"), 1.0, 512.0, 1.0, 0.5, false);
+	setTooltip(s, "The number of images processed in parallel by the GPU is the batch size divided by subdivisions. Default is 8.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_iterations, "max_batches", 1000.0, 1000000.0, 1.0, 0.5, false);
-	s->setTooltip("The total number of iterations to run. As a general rule of thumb, at the very least this should be 2000x more than the number of classes defined.");
+	s = new SliderPropertyComponent(v_iterations, getText("max_batches"), 1000.0, 1000000.0, 1.0, 0.5, false);
+	setTooltip(s, "The total number of iterations to run. As a general rule of thumb, at the very least this should be 2000x more than the number of classes defined.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_learning_rate, "learning_rate", 0.000001, 0.999999, 0.000001, 0.25, false);
-	s->setTooltip("The learning rate determines the step size at each iteration while moving toward a minimum of a loss function. Since it influences to what extent newly acquired information overrides old information, it metaphorically represents the speed at which a machine learning model \"learns\".");
+	s = new SliderPropertyComponent(v_learning_rate, getText("learning_rate"), 0.000001, 0.999999, 0.000001, 0.25, false);
+	setTooltip(s, "The learning rate determines the step size at each iteration while moving toward a minimum of a loss function. Since it influences to what extent newly acquired information overrides old information, it metaphorically represents the speed at which a machine learning model \"learns\".");
 	properties.add(s);
 
 	if (normal_interface)
 	{
 		s = new SliderPropertyComponent(v_max_chart_loss, "max loss for chart.png", 1.0, 20.0, 0.1);
-		s->setTooltip("The maximum amount of loss to display on the output image \"chart.png\". This sets the maximum value to use for the Y-axis, and is for display purposes only; it has zero impact on how the neural network is trained.");
+		setTooltip(s, "The maximum amount of loss to display on the output image \"chart.png\". This sets the maximum value to use for the Y-axis, and is for display purposes only; it has zero impact on how the neural network is trained.");
 		properties.add(s);
 	}
 
-	pp.addSection("configuration", properties, true);
+	pp.addSection(getText("configuration"), properties, true);
 	properties.clear();
 
-	b = new BooleanPropertyComponent(v_do_not_resize_images, "do not resize images", "do not resize images");
-	b->setTooltip("Images will be left exactly as they are.  This means Darknet will be responsible for resizing them to match the network dimensions during training.");
+	b = new BooleanPropertyComponent(v_do_not_resize_images, getText("do not resize images"), getText("do not resize images"));
+	setTooltip(b, "Images will be left exactly as they are.  This means Darknet will be responsible for resizing them to match the network dimensions during training.");
 	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_resize_images, "resize images", "resize images to match the network dimensions");
-	b->setTooltip("DarkMark will automatically resize all the images to match the network dimensions. This speeds up training since Darknet doesn't have to dynamically resize the images while training. This may be combined with the 'tile images' option.");
+	b = new BooleanPropertyComponent(v_resize_images, getText("resize images"), getText("resize images to match the network dimensions"));
+	setTooltip(b, "DarkMark will automatically resize all the images to match the network dimensions. This speeds up training since Darknet doesn't have to dynamically resize the images while training. This may be combined with the 'tile images' option.");
 	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_tile_images, "tile images", "tile images to match the network dimensions");
-	b->setTooltip("DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
+	b = new BooleanPropertyComponent(v_tile_images, getText("tile images"), getText("tile images to match the network dimensions"));
+	setTooltip(b, "DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 	properties.add(b);
 
 	if (normal_interface)
 	{
 		b = new BooleanPropertyComponent(v_zoom_images, "crop & zoom images", "random crop and zoom images");
-		b->setTooltip("DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
+		setTooltip(b, "DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 		properties.add(b);
 	}
 	else
@@ -348,16 +419,16 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		v_zoom_images = false;
 	}
 
-	b = new BooleanPropertyComponent(v_limit_negative_samples, "limit negative samples", "limit negative samples");
-	b->setTooltip("Limit the number of negative samples included in the training and validation sets to 50% of the images. This should be enabled.");
+	b = new BooleanPropertyComponent(v_limit_negative_samples, getText("limit negative samples"), getText("limit negative samples"));
+	setTooltip(b, "Limit the number of negative samples included in the training and validation sets to 50% of the images. This should be enabled.");
 	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_train_with_all_images, "train with all images", "train with all images");
-	b->setTooltip("Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. If you are training your own custom network then you probably want to enable this.");
+	b = new BooleanPropertyComponent(v_train_with_all_images, getText("train with all images"), getText("train with all images"));
+	setTooltip(b, "Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. If you are training your own custom network then you probably want to enable this.");
 	properties.add(b);
 
-	s = new SliderPropertyComponent(v_training_images_percentage, "training images %", 50.0, 100.0, 1.0);
-	s->setTooltip("Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
+	s = new SliderPropertyComponent(v_training_images_percentage, getText("training images %"), 50.0, 100.0, 1.0);
+	setTooltip(s, "Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
 	percentage_slider = s; // remember this slider, because we need to enable/disable it based on the previous boolean toggle
 	if (v_train_with_all_images.getValue())
 	{
@@ -365,22 +436,22 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	}
 	properties.add(s);
 
-	pp.addSection("images", properties, true);
+	pp.addSection(getText("images"), properties, true);
 	properties.clear();
 
-	b = new BooleanPropertyComponent(v_recalculate_anchors, "recalculate yolo anchors", "recalculate yolo anchors");
-	b->setTooltip("Recalculate the best anchors to use given the images, bounding boxes, and network dimensions.");
+	b = new BooleanPropertyComponent(v_recalculate_anchors, getText("recalculate yolo anchors"), getText("recalculate yolo anchors"));
+	setTooltip(b, "Recalculate the best anchors to use given the images, bounding boxes, and network dimensions.");
 	recalculate_anchors_toggle = b;
 	properties.add(b);
 
-	s = new SliderPropertyComponent(v_anchor_clusters, "number of anchor clusters", 0.0, 20.0, 1.0);
-	s->setTooltip("Number of anchor clusters.  If you want to increase or decrease the number of clusters, then you'll need to manually edit the configuration file.");
+	s = new SliderPropertyComponent(v_anchor_clusters, getText("number of anchor clusters"), 0.0, 20.0, 1.0);
+	setTooltip(s, "Number of anchor clusters.  If you want to increase or decrease the number of clusters, then you'll need to manually edit the configuration file.");
 	s->setValue(9);
 	s->setEnabled(false);
 	properties.add(s);
 
-	b = new BooleanPropertyComponent(v_class_imbalance, "handle class imbalance", "compensate for class imbalance");
-	b->setTooltip("Sets counters_per_class in YOLO sections to balance out the network.");
+	b = new BooleanPropertyComponent(v_class_imbalance, getText("handle class imbalance"), getText("compensate for class imbalance"));
+	setTooltip(b, "Sets counters_per_class in YOLO sections to balance out the network.");
 	class_imbalance_toggle = b;
 	if (v_recalculate_anchors.getValue().operator bool() == false)
 	{
@@ -391,7 +462,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	if (normal_interface)
 	{
-		pp.addSection("yolo", properties, false);
+		pp.addSection(getText("yolo"), properties, false);
 	}
 	else
 	{
@@ -400,63 +471,71 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	}
 	properties.clear();
 
-	std::string name;
-	const std::string darknet_weights = cfg().get_str(content.cfg_prefix + "weights");
-	if (darknet_weights.empty() == false)
+	if (normal_interface)
 	{
-		File f(darknet_weights);
-		if (f.existsAsFile())
+		std::string name;
+		const std::string darknet_weights = cfg().get_str(content.cfg_prefix + "weights");
+		if (darknet_weights.empty() == false)
 		{
-			name = f.getFileName().toStdString();
+			File f(darknet_weights);
+			if (f.existsAsFile())
+			{
+				name = f.getFileName().toStdString();
+			}
 		}
+		b = new BooleanPropertyComponent(v_restart_training, getText("re-use existing weights"), (name.empty() ? getText("weights file not found") : name));
+		setTooltip(b, "Restart training using an existing .weights file (normally *_best.weights). This clears the 'images seen' counter in the weights file to restart training at zero. WARNING: Do not use this if you've added, removed, or re-ordered lines in your .names file since you last trained the network.");
+		if (name.empty())
+		{
+			b->setState(false);
+			b->setEnabled(false);
+		}
+		properties.add(b);
+
+		b = new BooleanPropertyComponent(v_delete_temp_weights, getText("delete temporary weights"), getText("delete temporary weights"));
+		setTooltip(b, "Delete the temporary weights (1000, 2000, 3000, etc) and keep only the best and final weights.");
+		properties.add(b);
+
+		pp.addSection(getText("weights"), properties, false);
+		properties.clear();
 	}
-	b = new BooleanPropertyComponent(v_restart_training, "re-use existing weights", (name.empty() ? "weights file not found" : name));
-	b->setTooltip("Restart training using an existing .weights file (normally *_best.weights). This clears the 'images seen' counter in the weights file to restart training at zero. WARNING: Do not use this if you've added, removed, or re-ordered lines in your .names file since you last trained the network.");
-	if (name.empty())
+	else
 	{
-		b->setState(false);
-		b->setEnabled(false);
+		v_restart_training = false;
+		v_delete_temp_weights = false;
 	}
-	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_delete_temp_weights, "delete temporary weights", "delete temporary weights");
-	b->setTooltip("Delete the temporary weights (1000, 2000, 3000, etc) and keep only the best and final weights.");
-	properties.add(b);
+	s = new SliderPropertyComponent(v_saturation, getText("saturation"), 0.0, 10.0, 0.001);
+	setTooltip(s, "The intensity of the colour. Default value is 1.5.");
+	properties.add(s);
 
-	pp.addSection("weights", properties, false);
+	s = new SliderPropertyComponent(v_exposure, getText("exposure"), 0.0, 10.0, 0.001);
+	setTooltip(s, "The amount of white or black added to a colour to create a new shade. Default value is 1.5.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_hue, getText("hue"), 0.0, 1.0, 0.001);
+	setTooltip(s, "If the network you are training contains classes based on colour, then you'll want to disable this or use a very low value to prevent darknet from altering the hue during data augmentation. Set to 0.5 or higher if the colour does not matter. Default value is 0.1.");
+	properties.add(s);
+
+	pp.addSection(getText("data augmentation [colour]"), properties, false);
 	properties.clear();
 
-	s = new SliderPropertyComponent(v_saturation, "saturation", 0.0, 10.0, 0.001);
-	s->setTooltip("The intensity of the colour. Default value is 1.5.");
-	properties.add(s);
-
-	s = new SliderPropertyComponent(v_exposure, "exposure", 0.0, 10.0, 0.001);
-	s->setTooltip("The amount of white or black added to a colour to create a new shade. Default value is 1.5.");
-	properties.add(s);
-
-	s = new SliderPropertyComponent(v_hue, "hue", 0.0, 1.0, 0.001);
-	s->setTooltip("If the network you are training contains classes based on colour, then you'll want to disable this or use a very low value to prevent darknet from altering the hue during data augmentation. Set to 0.5 or higher if the colour does not matter. Default value is 0.1.");
-	properties.add(s);
-
-	pp.addSection("data augmentation [colour]", properties, false);
-	properties.clear();
-
-	b = new BooleanPropertyComponent(v_enable_flip, "enable flip", "flip (left-right)");
-	b->setTooltip("If the network you are training contains objects that have different meaning when flipped/mirrored (left hand vs right hand, 'b' vs 'd', ...) then you'll want to disable this to prevent darknet from mirroring objects during data augmentation. Otherwise, this should be left 'on'.");
+	b = new BooleanPropertyComponent(v_enable_flip, getText("enable flip"), getText("flip (left-right)"));
+	setTooltip(b, "If the network you are training contains objects that have different meaning when flipped/mirrored (left hand vs right hand, 'b' vs 'd', ...) then you'll want to disable this to prevent darknet from mirroring objects during data augmentation. Otherwise, this should be left 'on'.");
 	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_mosaic, "enable mosaic", "mosaic");
-	b->setTooltip("WARNING: Issue #6105: \"Mosaic degrades accuracy for tiny model.\"");
+	b = new BooleanPropertyComponent(v_mosaic, getText("enable mosaic"), getText("mosaic"));
+	setTooltip(b, "WARNING: Issue #6105: \"Mosaic degrades accuracy for tiny model.\"");
 	properties.add(b);
 
 	if (normal_interface)
 	{
-		b = new BooleanPropertyComponent(v_cutmix, "enable cutmix", "cutmix");
-//		b->setTooltip("...?");
+		b = new BooleanPropertyComponent(v_cutmix, getText("enable cutmix"), getText("cutmix"));
+//		setTooltip(b, "...?");
 		properties.add(b);
 
-		b = new BooleanPropertyComponent(v_mixup, "enable mixup", "mixup");
-//		b->setTooltip("...?");
+		b = new BooleanPropertyComponent(v_mixup, getText("enable mixup"), getText("mixup"));
+//		setTooltip(b, "...?");
 		properties.add(b);
 	}
 	else
@@ -469,21 +548,21 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	// This is not yet supported by Darknet.
 	// https://github.com/AlexeyAB/darknet/issues/4626
 	s = new SliderPropertyComponent(v_angle, "rotation angle", 0.0, 180.0, 1.0);
-	s->setTooltip("The number of degrees (+/-) by which the image can be rotated.");
+	setTooltip(s, "The number of degrees (+/-) by which the image can be rotated.");
 	properties.add(s);
 #endif
 
-	pp.addSection("data augmentation [misc]", properties, false);
+	pp.addSection(getText("data augmentation [misc]"), properties, false);
 	properties.clear();
 
 	if (normal_interface)
 	{
 		b = new BooleanPropertyComponent(v_keep_augmented_images, "keep images", "keep images");
-		b->setTooltip("Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
+		setTooltip(b, "Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
 		properties.add(b);
 
 		b = new BooleanPropertyComponent(v_show_receptive_field, "show receptive field", "show receptive field");
-		b->setTooltip("Display receptive field debug information on the console when using \"darknet detector test ...\"");
+		setTooltip(b, "Display receptive field debug information on the console when using \"darknet detector test ...\"");
 		properties.add(b);
 
 		pp.addSection("darknet debug", properties, false);
@@ -510,7 +589,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	}
 	else
 	{
-		r = r.withSizeKeepingCentre(550, 500);
+		help_button.setVisible(false);
+		r = r.withSizeKeepingCentre(550, 450);
 	}
 
 	setBounds(r);
@@ -726,6 +806,11 @@ void dm::DarknetWnd::valueChanged(Value & value)
 	if (percentage_slider)
 	{
 		percentage_slider->setEnabled(not v_train_with_all_images.getValue());
+	}
+
+	if (simplified_interface and v_zoom_images == true)
+	{
+		v_zoom_images = false;
 	}
 
 	// resize, do-not-resize, and tile need to behave like modified radio buttons

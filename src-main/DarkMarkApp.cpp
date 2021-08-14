@@ -162,6 +162,11 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 
 	std::srand(std::time(nullptr));
 
+	#if DARKNET_GEN_SIMPLIFIED
+		// different default font is needed for Japanese characters; this requires: "sudo apt-get install fonts-ipafont-gothic"
+		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("IPAPGothic");
+	#endif
+
 	cfg.reset(new Cfg);
 
 	for (auto parm : StringArray::fromTokens(commandLine, true))

@@ -137,6 +137,8 @@ namespace dm
 			/// The text prefix used to store keys in configuration.  This differs for every project.
 			std::string cfg_prefix;
 
+			bool show_window;
+
 			DMCanvas canvas;
 
 			ScrollField scrollfield;

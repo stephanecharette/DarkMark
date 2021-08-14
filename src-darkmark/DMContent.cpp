@@ -8,6 +8,7 @@ using json = nlohmann::json;
 
 dm::DMContent::DMContent(const std::string & prefix) :
 	cfg_prefix(prefix),
+	show_window(not (dmapp().cli_options.count("editor") and dmapp().cli_options.at("editor") == "gen-darknet")),
 	canvas(*this),
 	scrollfield(*this),
 	scrollfield_width(cfg().get_int("scrollfield_width")),
@@ -143,7 +144,13 @@ dm::DMContent::~DMContent(void)
 
 void dm::DMContent::resized()
 {
-	if (dmapp().wnd and dmapp().wnd->show_window == false)
+	if (dmapp().wnd == nullptr)
+	{
+		// window has not yet been fully created
+		return;
+	}
+
+	if (show_window == false)
 	{
 		dmapp().wnd->setMinimised(true);
 		dmapp().wnd->setVisible(false);
@@ -262,21 +269,27 @@ void dm::DMContent::start_darknet()
 		{
 			dmapp().darkhelp.reset(nullptr);
 			Log("failed to load darknet (cfg=" + darknet_cfg + ", weights=" + darknet_weights + ", names=" + darknet_names + "): " + e.what());
-			AlertWindow::showMessageBoxAsync(
-				AlertWindow::AlertIconType::WarningIcon,
-				"DarkMark",
-				"Failed to load darknet neural network. The error message returned was:\n" +
-				String("\n") +
-				e.what());
+			if (show_window)
+			{
+				AlertWindow::showMessageBoxAsync(
+					AlertWindow::AlertIconType::WarningIcon,
+					"DarkMark",
+					"Failed to load darknet neural network. The error message returned was:\n" +
+					String("\n") +
+					e.what());
+			}
 		}
 	}
 	else
 	{
 		Log("skipped loading darknet due to missing or invalid .cfg or .weights filenames");
-		AlertWindow::showMessageBoxAsync(
-			AlertWindow::AlertIconType::InfoIcon,
-			"DarkMark",
-			"One or more required neural network file was not found. The neural network cannot be loaded.");
+		if (show_window)
+		{
+			AlertWindow::showMessageBoxAsync(
+				AlertWindow::AlertIconType::InfoIcon,
+				"DarkMark",
+				"One or more required neural network file was not found. The neural network cannot be loaded.");
+		}
 	}
 
 	if (names.empty() and darknet_names.empty() == false)

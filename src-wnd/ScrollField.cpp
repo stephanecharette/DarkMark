@@ -61,6 +61,12 @@ void dm::ScrollField::run()
 	cached_image	= juce::Image();
 	map_idx_imagesets.clear();
 
+	if (content.show_window == false)
+	{
+		Log("ScrollField: ending thread since window is not shown");
+		return;
+	}
+
 	if (content.scrollfield_width < 1)
 	{
 		Log("ScrollField: ending thread since size=" + std::to_string(content.scrollfield_width));
