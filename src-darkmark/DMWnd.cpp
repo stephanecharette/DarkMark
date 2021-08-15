@@ -23,6 +23,7 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 		show_window = false;
 		content.show_window = false;
 		setVisible(false);
+		removeFromDesktop();
 	}
 	else
 	{

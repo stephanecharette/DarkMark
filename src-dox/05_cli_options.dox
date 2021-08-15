@@ -2,11 +2,24 @@
 
 %DarkMark cli options:
 
-Command						| Examples																	| Description
-----------------------------|---------------------------------------------------------------------------|------------
-@p editor=&lt;name&gt;		| @p editor=gen-darknet														| Action to perform from the main editor window.  Only value supported is @p gen-darknet.
-@p darknet=run				| @p darknet=run															| Auto-run the darknet generation when combined with @p editor=gen-darknet.
-@p load=&lt;name&gt;		| @p load=cars <br/> @p load=123456 <br/> @p load=/home/username/nn/cars	| Hide the DarkMark Launcher and use the given project instead.  Can use the project name, the project key, or the directory.  The project must already exist in DarkMark.
+Command									| Examples																	| Description
+----------------------------------------|---------------------------------------------------------------------------|------------
+@p darknet=run							| @p darknet=run															| Auto-run the darknet generation when combined with @p editor=gen-darknet.
+@p do_not_resize_images=&lt;bool&gt;	| @p do_not_resize_images=true												| Determines if images are left "as-is".  See @ref do_not_resize.
+@p editor=&lt;name&gt;					| @p editor=gen-darknet														| Action to perform from the main editor window.  Only value supported is @p gen-darknet.
+@p height=&gt;number&gt;				| @p height=416																| Network dimensions to use when generating the Darknet .cfg file.
+@p limit_neg_samples=&lt;bool&gt;		| @p limit_neg_samples=true													| Determines if negative samples should be limited.
+@p load=&lt;name&gt;					| @p load=cars <br/> @p load=123456 <br/> @p load=/home/username/nn/cars	| Hide the DarkMark Launcher and use the given project instead.  Can use the project name, the project key, or the directory.  The project must already exist in DarkMark.
+@p max_batches=&gt;number&gt;			| @p max_batches=20000														| The number of iterations to use when generating the Darknet .cfg file.
+@p resize_images=&lt;bool&gt;			| @p resize_images=true														| Determines if images are resized to match the network dimensions.  See @ref resize_images.
+@p subdivisions=&gt;number&gt;			| @p subdivisions=2															| The number of subdivisions to use when generating the Darknet .cfg file.
+@p template=&lt;filename&gt;			| @p template=/home/bob/src/darknet/cfg/yolov4-tiny.cfg						| Configuration template to use when combined with @p load=...
+@p tile_images=&lt;bool&gt;				| @p tile_images=true														| Determines if image tiling should be enabled.  See @ref tile_images.
+@p width=&lt;number&gt;					| @p width=416																| Network dimensions to use when generating the Darknet .cfg file.
+@p yolo_anchors=&lt;bool&gt;			| @p yolo_anchors=true														| Determines if the YOLO anchors should be re-calculated.
+@p zoom_images=&lt;bool&gt;				| @p zoom_images=true														| Determines if crop-and-zoom is enabled when processing images.  See @ref crop_and_zoom_images.
+
+Boolean flags can be set using @p true, @p false, @p yes, @p no, @p on, @p off, @p 0, or @p 1.
 
 Examples, assuming there is a project called "animals":
 
@@ -16,6 +29,10 @@ DarkMark load=animals editor=gen-darknet darknet=run
 Or:
 ~~~~{.sh}
 DarkMark load=animals editor=gen-darknet
+~~~~
+Or:
+~~~~{.sh}
+DarkMark load=animals tile_images=on limit_neg_samples=off max_batches=10000 width=416 hight=416 editor=gen-darknet
 ~~~~
 
 */

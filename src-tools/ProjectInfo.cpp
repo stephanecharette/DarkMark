@@ -3,6 +3,38 @@
 #include "DarkMark.hpp"
 
 
+int toInt(const std::string & str)
+{
+	int i = 0;
+	try
+	{
+		i = std::stoi(str);
+	}
+	catch (...)
+	{
+	}
+
+	return i;
+}
+
+
+bool toBool(const std::string & str)
+{
+	if (str == "true"	||
+		str == "TRUE"	||
+		str == "yes"	||
+		str == "YES"	||
+		str == "on"		||
+		str == "ON"		||
+		str == "1"		)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
 dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 {
 	// these settings are "global" (not project specific)
@@ -39,7 +71,20 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	enable_cutmix				= cfg().get_bool	(cfg_prefix + "darknet_cutmix"					, false	);
 	enable_mixup				= cfg().get_bool	(cfg_prefix + "darknet_mixup"					, false	);
 
-	// handle the special restrictions between the 3 "image resizing" modes since they're all related and exactly 1 *must* be enabled
+	const auto & options = dmapp().cli_options;
+	if (options.count("template"			))	cfg_template			= options.at("template");
+	if (options.count("width"				))	image_width				= toInt(options.at("width"					));
+	if (options.count("height"				))	image_height			= toInt(options.at("height"					));
+	if (options.count("max_batches"			))	iterations				= toInt(options.at("max_batches"			));
+	if (options.count("subdivisions"		))	subdivisions			= toInt(options.at("subdivisions"			));
+	if (options.count("do_not_resize_images"))	do_not_resize_images	= toBool(options.at("do_not_resize_images"	));
+	if (options.count("resize_images"		))	resize_images			= toBool(options.at("resize_images"			));
+	if (options.count("tile_images"			))	tile_images				= toBool(options.at("tile_images"			));
+	if (options.count("zoom_images"			))	zoom_images				= toBool(options.at("zoom_images"			));
+	if (options.count("limit_neg_samples"	))	limit_negative_samples	= toBool(options.at("limit_neg_samples"		));
+	if (options.count("yolo_anchors"		))	recalculate_anchors		= toBool(options.at("yolo_anchors"			));
+
+	// handle the special restrictions between the 3 "image resizing" modes since they're all related
 	if (do_not_resize_images == false and resize_images == false and tile_images == false and zoom_images == false)
 	{
 		do_not_resize_images = true;

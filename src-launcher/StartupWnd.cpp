@@ -66,8 +66,10 @@ dm::StartupWnd::StartupWnd() :
 	ok_button			.addListener(this);
 	cancel_button		.addListener(this);
 
+	const auto & options = dmapp().cli_options;
+
 	bool found = false;
-	if (dmapp().cli_options.count("project_key"))
+	if (options.count("project_key"))
 	{
 		setVisible(false);
 		for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
@@ -76,7 +78,7 @@ dm::StartupWnd::StartupWnd() :
 			if (startup_canvas)
 			{
 				const auto & key = startup_canvas->cfg_key;
-				if (key == dmapp().cli_options["project_key"])
+				if (key == options.at("project_key"))
 				{
 					notebook.setCurrentTabIndex(idx);
 					ok_button.triggerClick();

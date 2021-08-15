@@ -148,6 +148,51 @@ void dm::DarkMarkApplication::setup_signal_handling()
 }
 
 
+bool validPositiveInt(const std::string & str)
+{
+	try
+	{
+		size_t pos = 0;
+		const auto i = std::stoi(str, &pos);
+
+		// catch the difference between "4" and "4abc"
+		if (pos == str.size() and i >= 0)
+		{
+			return true;
+		}
+	}
+	catch (...)
+	{
+	}
+
+	return false;
+}
+
+
+bool validBool(const std::string & str)
+{
+	if (str == "true"	||
+		str == "TRUE"	||
+		str == "yes"	||
+		str == "YES"	||
+		str == "on"		||
+		str == "ON"		||
+		str == "1"		||
+		str == "false"	||
+		str == "FALSE"	||
+		str == "no"		||
+		str == "NO"		||
+		str == "off"	||
+		str == "OFF"	||
+		str == "0"		)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
 void dm::DarkMarkApplication::initialise(const String & commandLine)
 {
 	// This method is where you should put your application's initialisation code.
@@ -238,6 +283,35 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				dm::Log("Error: failed to match project name, dir, or key: \"" + val + "\"");
 				throw std::runtime_error("cannot find project \"" + val + "\"");
 			}
+		}
+		else if (key == "template")
+		{
+			File f(val);
+			if (!f.existsAsFile())
+			{
+				dm::Log("template file \"" + val + "\" not found");
+				throw std::runtime_error("cannot find template \"" + val + "\"");
+			}
+		}
+		else if (
+			validPositiveInt(val) and (
+				key == "width"					or
+				key == "height"					or
+				key == "max_batches"			or
+				key == "subdivisions"			))
+		{
+			// no further validation performed here
+		}
+		else if (
+			validBool(val) and (
+				key == "do_not_resize_images"	or
+				key == "resize_images"			or
+				key == "tile_images"			or
+				key == "zoom_images"			or
+				key == "limit_neg_samples"		or
+				key == "yolo_anchors"			))
+		{
+			// no further validation performed here
 		}
 		else
 		{

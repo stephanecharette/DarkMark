@@ -1181,6 +1181,11 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 
 void dm::DarknetWnd::create_Darknet_shell_scripts()
 {
+	if (simplified_interface)
+	{
+		return;
+	}
+
 	std::string header;
 
 	if (true)
