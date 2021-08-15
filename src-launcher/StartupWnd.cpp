@@ -68,9 +68,23 @@ dm::StartupWnd::StartupWnd() :
 
 	const auto & options = dmapp().cli_options;
 
+	if (options.count("add"))
+	{
+		removeFromDesktop();
+		setVisible(false);
+		add_button.triggerClick();
+	}
+
+	if (options.count("del"))
+	{
+		removeFromDesktop();
+		setVisible(false);
+	}
+
 	bool found = false;
 	if (options.count("project_key"))
 	{
+		removeFromDesktop();
 		setVisible(false);
 		for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
 		{
@@ -161,7 +175,11 @@ void dm::StartupWnd::userTriedToCloseWindow()
 
 void dm::StartupWnd::resized()
 {
-	if (dmapp().cli_options.count("project_key") == 0)
+	const auto & options = dmapp().cli_options;
+
+	if (options.count("add"			) == 0 and
+		options.count("del"			) == 0 and
+		options.count("project_key"	) == 0 )
 	{
 		// get the document window to resize the canvas, then we'll deal with the rest of the components
 		DocumentWindow::resized();
@@ -272,27 +290,40 @@ void dm::StartupWnd::buttonClicked(Button * button)
 	}
 	else if (button == &add_button)
 	{
-		File home = File::getSpecialLocation(File::SpecialLocationType::userHomeDirectory);
-		File dir = home;
+		bool result = true;
+		File dir;
 
-		// attempt to default to the parent directory of the active tab (if we have a tab)
-		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
-		if (notebook_canvas)
+		auto & options = dmapp().cli_options;
+		if (options.count("add"))
 		{
-			dir = File(notebook_canvas->project_directory.toString()).getParentDirectory();
+			dir = File(options["add"]);
+		}
+		else
+		{
+			dir = File::getSpecialLocation(File::SpecialLocationType::userHomeDirectory);
+
+			// attempt to default to the parent directory of the active tab (if we have a tab)
+			StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
+			if (notebook_canvas)
+			{
+				dir = File(notebook_canvas->project_directory.toString()).getParentDirectory();
+			}
+
+			FileChooser chooser("Select the new project directory...", dir);
+			result = chooser.browseForDirectory();
+			if (result)
+			{
+				dir = chooser.getResult();
+			}
 		}
 
-		FileChooser chooser("Select the new project directory...", dir);
-		bool result = chooser.browseForDirectory();
 		if (result)
 		{
-			dir = chooser.getResult();
-
 			// loop through the existing tabs and make sure this directory doesn't already show up
 			bool ok = true;
 			for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
 			{
-				notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
+				StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
 				if (notebook_canvas)
 				{
 					File path(notebook_canvas->project_directory.toString());
@@ -338,10 +369,19 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				notebook.addTab(project_name, Colours::darkgrey, new StartupCanvas(key.toStdString(), dir.getFullPathName().toStdString()), true, 0);
 				notebook.setCurrentTabIndex(0);
 
-				AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark Project", "Successfully added the new project " + dir.getFullPathName() + ".");
-				if (need_to_create_new_names_file)
+				if (options.count("add"))
 				{
-					File(names).revealToUser();
+					options["load"]			= project_name;
+					options["project_key"]	= key.toStdString();
+					ok_button.triggerClick();
+				}
+				else
+				{
+					AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark Project", "Successfully added the new project " + dir.getFullPathName() + ".");
+					if (need_to_create_new_names_file)
+					{
+						File(names).revealToUser();
+					}
 				}
 			}
 		}

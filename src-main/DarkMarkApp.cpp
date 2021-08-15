@@ -240,12 +240,102 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	String project_key;
 	for (const auto & [key, val] : cli_options)
 	{
-		if (key == "editor" and val == "gen-darknet")
+		if (key == "help" or key == "--help")
+		{
+			dm::Log("For help with DarkMark's CLI options, please see: https://www.ccoderun.ca/darkmark/CLI.html");
+			systemRequestedQuit();
+		}
+		else if (key == "version" or key == "--version")
+		{
+			dm::Log("DarkMark v" DARKMARK_VERSION);
+			systemRequestedQuit();
+		}
+		else if (key == "editor" and val == "gen-darknet")
 		{
 			// if "editor" is specified, the only action currently supported is "gen-darknet"
 		}
 		else if (key == "darknet" and val == "run")
 		{
+		}
+		else if (key == "add")
+		{
+			File f(val);
+			if (f.isDirectory() == false)
+			{
+				dm::Log("Error: directory does not exist: \"" + val + "\"");
+				throw std::runtime_error("cannot add directory \"" + val + "\"");
+			}
+
+			// go through all of the existing directories and make sure we don't already have this project
+			for (const String & k : cfg->getAllProperties().getAllKeys())
+			{
+				if (k.endsWith("_dir"))
+				{
+					File kf(cfg->getValue(k));
+
+					if (kf.getFullPathName() == f.getFullPathName())
+					{
+						dm::Log("Error: project already exists with this directory: " + k.toStdString() + "=" + kf.getFullPathName().toStdString());
+						throw std::runtime_error("cannot add new project since it already seems to exist: " + k.toStdString() + "=" + kf.getFullPathName().toStdString());
+					}
+
+					if (kf.isAChildOf(f) or f.isAChildOf(kf))
+					{
+						dm::Log("Error: directories " + f.getFullPathName().toStdString() + " and " + kf.getFullPathName().toStdString() + " seem to overlap");
+						throw std::runtime_error("cannot add " + val + " due to existing project " + k.toStdString() + "=" + kf.getFullPathName().toStdString());
+					}
+				}
+			}
+		}
+		else if (key == "del")
+		{
+			File f(val);
+
+			String name;
+			for (const String & k : cfg->getAllProperties().getAllKeys())
+			{
+				if (k.endsWith("_dir"))
+				{
+					if (File(cfg->getValue(k)).getFullPathName() == f.getFullPathName())
+					{
+						dm::Log("found a match: " + k.toStdString() + " uses directory " + val);
+						auto p1 = k.indexOfChar('_');
+						auto p2 = k.lastIndexOfChar('_');
+						if (p1 > 0 and p2 > p1)
+						{
+							project_key = k.substring(p1 + 1, p2);
+							name = "project_" + project_key;
+							break;
+						}
+					}
+				}
+			}
+
+			if (name.isNotEmpty())
+			{
+				SStr keys_to_delete;
+				for (const String k : cfg->getAllProperties().getAllKeys())
+				{
+					if (k.startsWith(name))
+					{
+						keys_to_delete.insert(k.toStdString());
+					}
+				}
+				for (const std::string k : keys_to_delete)
+				{
+					dm::Log(val + ": removing key from configuration: " + k);
+					cfg->removeValue(k);
+				}
+
+				// this is intentional, once the project has been removed from configuration we want to completely exit
+				// note this will be processed asynchronously once the message queue is running
+				systemRequestedQuit();
+			}
+			else
+			{
+				dm::Log("Error: did not find a project to delete using the directory name \"" + val + "\"");
+				throw std::runtime_error("cannot delete project " + val);
+			}
 		}
 		else if (key == "load")
 		{

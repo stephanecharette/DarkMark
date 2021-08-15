@@ -4,7 +4,9 @@
 
 Command									| Examples																	| Description
 ----------------------------------------|---------------------------------------------------------------------------|------------
+@p add=&lt;path&gt;						| @p add=/home/bob/nn/cars													| Add the specified directory as a new project, then load that project as if @p load=... had been specified.
 @p darknet=run							| @p darknet=run															| Auto-run the darknet generation when combined with @p editor=gen-darknet.
+@p del=&lt;path&gt;						| @p del=/home/bob/nn/cars													| Delete the project that matches the specified directory. This does @em not delete the files, only the project definition.
 @p do_not_resize_images=&lt;bool&gt;	| @p do_not_resize_images=true												| Determines if images are left "as-is".  See @ref do_not_resize.
 @p editor=&lt;name&gt;					| @p editor=gen-darknet														| Action to perform from the main editor window.  Only value supported is @p gen-darknet.
 @p height=&gt;number&gt;				| @p height=416																| Network dimensions to use when generating the Darknet .cfg file.
@@ -33,6 +35,14 @@ DarkMark load=animals editor=gen-darknet
 Or:
 ~~~~{.sh}
 DarkMark load=animals tile_images=on limit_neg_samples=off max_batches=10000 width=416 hight=416 editor=gen-darknet
+~~~~
+Or:
+~~~~{.sh}
+DarkMark add=/home/bob/nn/animals editor=gen-darknet width=608 height=608 do_not_resize=true darknet=run
+~~~~
+Or:
+~~~~{.sh}
+DarkMark del=/home/bob/nn/animals
 ~~~~
 
 */

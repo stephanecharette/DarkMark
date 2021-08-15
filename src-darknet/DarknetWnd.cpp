@@ -207,7 +207,8 @@ class SaveTask : public ThreadWithProgressWindow
 
 				dm::Log(ss.str());
 
-				if (dm::dmapp().cli_options["darknet"] != "run")
+				if (normal_interface and dm::dmapp().cli_options.count("darknet") == 0)
+
 				{
 					AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
 				}
