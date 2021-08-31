@@ -45,6 +45,7 @@ String getText(String key)
 		{"limit negative samples"		, String::fromUTF8("マークなしサンプル数を抑制")			},
 		{"train with all images"		, String::fromUTF8("全画像を学習に用いる")				},
 		{"training images %"			, String::fromUTF8("学習用に使用する画像の数量（%）")		},
+		{"recalculate yolo anchors"		, String::fromUTF8("アンカーの再設定")					},
 		{"data augmentation [colour]"	, String::fromUTF8("データオーグメンテーション [色]")	},
 		{"saturation"					, String::fromUTF8("彩度")							},
 		{"exposure"						, String::fromUTF8("明度")							},
@@ -207,8 +208,7 @@ class SaveTask : public ThreadWithProgressWindow
 
 				dm::Log(ss.str());
 
-				if (normal_interface and dm::dmapp().cli_options.count("darknet") == 0)
-
+				if (normal_interface and dm::dmapp().cli_options["darknet"] != "run")
 				{
 					AlertWindow::showMessageBox(AlertWindow::AlertIconType::InfoIcon, "DarkMark", ss.str());
 				}
@@ -445,31 +445,30 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	recalculate_anchors_toggle = b;
 	properties.add(b);
 
-	s = new SliderPropertyComponent(v_anchor_clusters, getText("number of anchor clusters"), 0.0, 20.0, 1.0);
-	setTooltip(s, "Number of anchor clusters.  If you want to increase or decrease the number of clusters, then you'll need to manually edit the configuration file.");
-	s->setValue(9);
-	s->setEnabled(false);
-	properties.add(s);
-
-	b = new BooleanPropertyComponent(v_class_imbalance, getText("handle class imbalance"), getText("compensate for class imbalance"));
-	setTooltip(b, "Sets counters_per_class in YOLO sections to balance out the network.");
-	class_imbalance_toggle = b;
-	if (v_recalculate_anchors.getValue().operator bool() == false)
-	{
-		v_class_imbalance = false;
-		b->setEnabled(false);
-	}
-	properties.add(b);
-
 	if (normal_interface)
 	{
-		pp.addSection(getText("yolo"), properties, false);
+		s = new SliderPropertyComponent(v_anchor_clusters, getText("number of anchor clusters"), 0.0, 20.0, 1.0);
+		setTooltip(s, "Number of anchor clusters.  If you want to increase or decrease the number of clusters, then you'll need to manually edit the configuration file.");
+		s->setValue(9);
+		s->setEnabled(false);
+		properties.add(s);
+
+		b = new BooleanPropertyComponent(v_class_imbalance, getText("handle class imbalance"), getText("compensate for class imbalance"));
+		setTooltip(b, "Sets counters_per_class in YOLO sections to balance out the network.");
+		class_imbalance_toggle = b;
+		if (v_recalculate_anchors.getValue().operator bool() == false)
+		{
+			v_class_imbalance = false;
+			b->setEnabled(false);
+		}
+		properties.add(b);
 	}
 	else
 	{
-		v_recalculate_anchors = false;
 		v_class_imbalance = false;
 	}
+
+	pp.addSection(getText("yolo"), properties, false);
 	properties.clear();
 
 	if (normal_interface)
@@ -669,6 +668,28 @@ void dm::DarknetWnd::resized()
 	fb.performLayout(r);
 
 	return;
+}
+
+
+bool dm::DarknetWnd::keyPressed(const KeyPress & key)
+{
+	if (key.getKeyCode() == KeyPress::F1Key)
+	{
+		if (not dmapp().about_wnd)
+		{
+			dmapp().about_wnd.reset(new AboutWnd);
+		}
+		dmapp().about_wnd->toFront(true);
+		return true; // key has been handled
+	}
+
+	if (key.getKeyCode() == KeyPress::escapeKey)
+	{
+		cancel_button.triggerClick();
+		return true; // key has been handled
+	}
+
+	return false;
 }
 
 

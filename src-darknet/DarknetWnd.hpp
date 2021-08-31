@@ -20,6 +20,8 @@ namespace dm
 
 			virtual void resized();
 
+			virtual bool keyPressed(const KeyPress & key);
+
 			virtual void buttonClicked(Button * button);
 
 			virtual void valueChanged(Value & value);

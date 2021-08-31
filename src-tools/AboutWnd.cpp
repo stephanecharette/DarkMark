@@ -1,19 +1,37 @@
 // DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
+#include <random>
+
+
+namespace
+{
+	float get_random_delta()
+	{
+		static std::default_random_engine e;
+		static std::uniform_real_distribution<> d(0.008f, 0.030f);
+
+		return d(e);
+	}
+}
 
 
 dm::AboutCanvas::AboutCanvas()
 {
-	opacity_for_swirl	= 0.5;
-	opacity_for_darknet	= 0.8;
-
-	delta_for_swirl		= -0.01;
-	delta_for_darknet	= +0.01;
+	opacity_for_swirl	= 1.0f;
+	opacity_for_darknet	= 0.1f;
+	delta_for_swirl		= 0.0f;
+	delta_for_darknet	= 0.0f;
 
 	startTimer(100); // in milliseconds
 
 	return;
+}
+
+
+dm::AboutCanvas::~AboutCanvas()
+{
+	stopTimer();
 }
 
 
@@ -29,6 +47,16 @@ void dm::AboutCanvas::paint(Graphics & g)
 	g.fillAll(Colours::lightgrey);
 	g.drawImageAt(AboutLogoWhiteBackground(), x, y, false);
 
+	if (opacity_for_swirl	<= 0.0f or opacity_for_swirl	> 1.0f or
+		opacity_for_darknet	<= 0.0f or opacity_for_darknet	> 1.0f )
+	{
+		dm::Log("something is wrong with the image opacity: "
+			"swirl=" + std::to_string(opacity_for_swirl) +
+			"darknet=" + std::to_string(opacity_for_darknet));
+		opacity_for_swirl = 0.8f;
+		opacity_for_darknet = 0.2f;
+	}
+
 	g.setOpacity(opacity_for_swirl);
 	g.drawImageAt(AboutLogoRedSwirl(), x, y, false);
 
@@ -38,7 +66,7 @@ void dm::AboutCanvas::paint(Graphics & g)
 	g.setOpacity(1.0);
 	g.setColour(Colours::black);
 	g.drawMultiLineText(
-		"C Code Run's DarkMark, (C) 2019-2021 Stephane Charette\n"
+		"C Code Run's DarkMark (C) 2019-2021 Stephane Charette\n"
 		"Application to mark up images for use with Darknet.\n"
 		"See https://www.ccoderun.ca/darkmark/ for details.", 0, h + 10, w, Justification::centred);
 
@@ -51,13 +79,37 @@ void dm::AboutCanvas::timerCallback()
 	opacity_for_swirl	+= delta_for_swirl;
 	opacity_for_darknet	+= delta_for_darknet;
 
-	const float min_alpha = 0.1;
-	const float max_alpha = 1.0;
+	const float min_alpha = 0.05f;
+	const float max_alpha = 1.00f;
 
-	if (opacity_for_swirl	< min_alpha) { opacity_for_swirl	= min_alpha;	delta_for_swirl		= +0.01; }
-	if (opacity_for_swirl	> max_alpha) { opacity_for_swirl	= max_alpha;	delta_for_swirl		= -0.01; }
-	if (opacity_for_darknet	< min_alpha) { opacity_for_darknet	= min_alpha;	delta_for_darknet	= +0.01; }
-	if (opacity_for_darknet	> max_alpha) { opacity_for_darknet	= max_alpha;	delta_for_darknet	= -0.01; }
+	if (opacity_for_swirl	< min_alpha) { opacity_for_swirl	= min_alpha;	delta_for_swirl		= 0.0f; }
+	if (opacity_for_swirl	> max_alpha) { opacity_for_swirl	= max_alpha;	delta_for_swirl		= 0.0f; }
+	if (opacity_for_darknet	< min_alpha) { opacity_for_darknet	= min_alpha;	delta_for_darknet	= 0.0f; }
+	if (opacity_for_darknet	> max_alpha) { opacity_for_darknet	= max_alpha;	delta_for_darknet	= 0.0f; }
+
+	if (std::abs(delta_for_swirl) < 0.008f)
+	{
+		if (opacity_for_swirl == max_alpha)
+		{
+			delta_for_swirl = 0.0f - get_random_delta();
+		}
+		else
+		{
+			delta_for_swirl = 0.0f + get_random_delta();
+		}
+	}
+
+	if (std::abs(delta_for_darknet) < 0.008f)
+	{
+		if (opacity_for_darknet == max_alpha)
+		{
+			delta_for_darknet = 0.0f - get_random_delta();
+		}
+		else
+		{
+			delta_for_darknet = 0.0f + get_random_delta();
+		}
+	}
 
 	repaint();
 
@@ -94,10 +146,21 @@ dm::AboutWnd::~AboutWnd()
 }
 
 
+bool dm::AboutWnd::keyPressed(const KeyPress & key)
+{
+	if (key.getKeyCode() == KeyPress::escapeKey)
+	{
+		dmapp().about_wnd.reset(nullptr);
+		return true; // key has been handled
+	}
+
+	return false;
+}
+
+
 void dm::AboutWnd::closeButtonPressed()
 {
 	// close button
-
 	dmapp().about_wnd.reset(nullptr);
 
 	return;
@@ -107,7 +170,6 @@ void dm::AboutWnd::closeButtonPressed()
 void dm::AboutWnd::userTriedToCloseWindow()
 {
 	// ALT+F4
-
 	dmapp().about_wnd.reset(nullptr);
 
 	return;

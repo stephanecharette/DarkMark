@@ -12,6 +12,7 @@ namespace dm
 		public:
 
 			AboutCanvas();
+			virtual ~AboutCanvas();
 
 			virtual void paint(Graphics & g);
 
@@ -30,6 +31,8 @@ namespace dm
 			AboutWnd();
 
 			virtual ~AboutWnd();
+
+			virtual bool keyPressed(const KeyPress & key);
 
 			virtual void closeButtonPressed();
 			virtual void userTriedToCloseWindow();
