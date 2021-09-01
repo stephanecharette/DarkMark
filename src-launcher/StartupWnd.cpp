@@ -340,7 +340,19 @@ void dm::StartupWnd::buttonClicked(Button * button)
 			if (ok)
 			{
 				const std::string project_name = dir.getFileNameWithoutExtension().toStdString();
-				const std::string names = dir.getChildFile(project_name).withFileExtension(".names").getFullPathName().toStdString();
+				std::string names = dir.getChildFile(project_name).withFileExtension(".names").getFullPathName().toStdString();
+
+				if (File(names).existsAsFile() == false)
+				{
+					// see if we can find a .names file we can use
+					auto type = File::TypesOfFileToFind::findFiles + File::TypesOfFileToFind::ignoreHiddenFiles;
+					auto files = dir.findChildFiles(type, false, "*.names");
+					if (not files.isEmpty())
+					{
+						names = files[0].getFullPathName().toStdString();
+					}
+				}
+
 				const bool need_to_create_new_names_file = (File(names).existsAsFile() == false);
 				if (need_to_create_new_names_file)
 				{

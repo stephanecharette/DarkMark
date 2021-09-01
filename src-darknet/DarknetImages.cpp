@@ -11,7 +11,7 @@ void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progre
 	double work_done = 0.0;
 	double work_to_do = content.image_filenames.size() + 1.0;
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Finding all images and annotations...");
+	progress_window.setStatusMessage(getText("Finding all images and annotations..."));
 
 	annotated_images.clear();
 	skipped_images.clear();
@@ -46,7 +46,7 @@ void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progre
 	work_done = 0.0;
 	work_to_do = skipped_images.size() + 1.0;
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Listing skipped images...");
+	progress_window.setStatusMessage(getText("Listing skipped images..."));
 
 	std::random_shuffle(skipped_images.begin(), skipped_images.end());
 	const std::string fn = File(info.project_dir).getChildFile("skipped_images.txt").getFullPathName().toStdString();
@@ -68,7 +68,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Resizing images to " + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
+	progress_window.setStatusMessage(getText("Resizing images to ") + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache").getChildFile("resize");
 	const std::string dir_name = dir.getFullPathName().toStdString();
@@ -146,7 +146,7 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Tiling images to " + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
+	progress_window.setStatusMessage(getText("Tiling images to ") + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache").getChildFile("tiles");
 	const std::string dir_name = dir.getFullPathName().toStdString();
@@ -342,7 +342,7 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Random image crop and zoom...");
+	progress_window.setStatusMessage(getText("Random image crop and zoom..."));
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache").getChildFile("zoom");
 	const std::string dir_name = dir.getFullPathName().toStdString();

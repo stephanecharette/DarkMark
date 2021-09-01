@@ -4,78 +4,13 @@
 #include "yolo_anchors.hpp"
 
 
-// This is part of a sponsored change to provide a simplified "darknet" window
-// with less options than normal.  This is also used to trigger the Japanese
-// translations.  Usually, this flag is set to "false".
+// Sponsored change:  simplified interface + Japanese translation.
 #if DARKNET_GEN_SIMPLIFIED
-const bool simplified_interface = true;
+constexpr bool simplified_interface = true;
 #else
-const bool simplified_interface = false;
+constexpr bool simplified_interface = false;
 #endif
-const bool normal_interface = not simplified_interface;
-
-
-String getText(String key)
-{
-	if (normal_interface)
-	{
-		if (key == "TITLE")
-		{
-			return "DarkMark v" DARKMARK_VERSION " - Darknet Output";
-		}
-
-		return key;
-	}
-
-	const std::map<String, String> m =
-	{
-//		{"TITLE"						, String::fromUTF8("学習設定画面")					},
-		{"TITLE"						, "DNNM v" DARKMARK_VERSION							},
-		{"configuration"				, String::fromUTF8("設定")							},
-		{"network width"				, String::fromUTF8("画像横幅（Px）")					},
-		{"network height"				, String::fromUTF8("画像縦幅（Px）")					},
-		{"batch size"					, String::fromUTF8("バッチサイズ")					},
-		{"subdivisions"					, String::fromUTF8("分割数")							},
-		{"max_batches"					, String::fromUTF8("学習回数")						},
-		{"learning_rate"				, String::fromUTF8("学習率")							},
-		{"images"						, String::fromUTF8("画像処理")						},
-		{"do not resize images"			, String::fromUTF8("拡大縮小しない")					},
-		{"resize images"				, String::fromUTF8("縦横幅に合わせて縮小")				},
-		{"tile images"					, String::fromUTF8("縦横幅に合わせてタイリング")			},
-		{"limit negative samples"		, String::fromUTF8("マークなしサンプル数を抑制")			},
-		{"train with all images"		, String::fromUTF8("全画像を学習に用いる")				},
-		{"training images %"			, String::fromUTF8("学習用に使用する画像の数量（%）")		},
-		{"recalculate yolo anchors"		, String::fromUTF8("アンカーの再設定")					},
-		{"data augmentation [colour]"	, String::fromUTF8("データオーグメンテーション [色]")	},
-		{"saturation"					, String::fromUTF8("彩度")							},
-		{"exposure"						, String::fromUTF8("明度")							},
-		{"hue"							, String::fromUTF8("色相")							},
-		{"data augmentation [misc]"		, String::fromUTF8("データオーグメンテーション [その他]")	},
-		{"enable flip"					, String::fromUTF8("左右反転")						},
-		{"enable mosaic"				, String::fromUTF8("モザイク")						},
-		{"Cancel"						, String::fromUTF8("キャンセル")						},
-		{"OK"							, String::fromUTF8("決定")							}
-	};
-
-	const std::map<String, String> special_cases =
-	{
-		{"resize images to match the network dimensions", "resize images"	},
-		{"tile images to match the network dimensions"	, "tile images"		},
-		{"flip (left-right)"							, "enable flip"		},
-		{"mosaic"										, "enable mosaic"	}
-	};
-	if (special_cases.count(key))
-	{
-		key = special_cases.at(key);
-	}
-
-	if (m.count(key))
-	{
-		return m.at(key);
-	}
-
-	return key;
-}
+constexpr bool normal_interface = not simplified_interface;
 
 
 void setTooltip(PropertyComponent * component, const String & msg)
@@ -94,7 +29,7 @@ class SaveTask : public ThreadWithProgressWindow
 	public:
 
 		SaveTask(dm::DarknetWnd & w) :
-			ThreadWithProgressWindow("Saving Darknet Files...", true, false),
+			ThreadWithProgressWindow(dm::getText("TITLE3"), true, false),
 			wnd(w)
 		{
 			return;
@@ -118,7 +53,7 @@ class SaveTask : public ThreadWithProgressWindow
 				size_t number_of_tiles_created			= 0;
 				size_t number_of_zooms_created			= 0;
 
-				setStatusMessage("Creating training and validation files...");
+				setStatusMessage(dm::getText("Creating training and validation files..."));
 				wnd.create_Darknet_training_and_validation_files(
 					*this,
 					number_of_files_train,
@@ -133,13 +68,13 @@ class SaveTask : public ThreadWithProgressWindow
 					number_of_tiles_created,
 					number_of_zooms_created);
 
-				setStatusMessage("Creating configuration files and shell scripts...");
+				setStatusMessage(dm::getText("Creating configuration files and shell scripts..."));
 				setProgress(0.333);
 				wnd.create_Darknet_configuration_file(*this);
 				setProgress(1.0);
 				wnd.create_Darknet_shell_scripts();
 
-				setStatusMessage("Done!");
+				setStatusMessage(dm::getText("Done!"));
 				setProgress(1.0);
 
 				const bool singular = (wnd.content.names.size() == 2); // two because the "empty" class is appended to the names, but it does not get output
@@ -409,16 +344,9 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	setTooltip(b, "DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 	properties.add(b);
 
-	if (normal_interface)
-	{
-		b = new BooleanPropertyComponent(v_zoom_images, "crop & zoom images", "random crop and zoom images");
-		setTooltip(b, "DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
-		properties.add(b);
-	}
-	else
-	{
-		v_zoom_images = false;
-	}
+	b = new BooleanPropertyComponent(v_zoom_images, getText("crop & zoom images"), getText("random crop and zoom images"));
+	setTooltip(b, "DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
+	properties.add(b);
 
 	b = new BooleanPropertyComponent(v_limit_negative_samples, getText("limit negative samples"), getText("limit negative samples"));
 	setTooltip(b, "Limit the number of negative samples included in the training and validation sets to 50% of the images. This should be enabled.");
@@ -590,7 +518,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	else
 	{
 		help_button.setVisible(false);
-		r = r.withSizeKeepingCentre(550, 450);
+		r = r.withSizeKeepingCentre(550, 500);
 	}
 
 	setBounds(r);
@@ -830,11 +758,6 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		percentage_slider->setEnabled(not v_train_with_all_images.getValue());
 	}
 
-	if (simplified_interface and v_zoom_images == true)
-	{
-		v_zoom_images = false;
-	}
-
 	// resize, do-not-resize, and tile need to behave like modified radio buttons
 	if (value.refersToSameSourceAs(v_do_not_resize_images))
 	{
@@ -954,7 +877,7 @@ void dm::DarknetWnd::create_Darknet_configuration_file(ThreadWithProgressWindow 
 	m.clear();
 	if (recalculate_anchors)
 	{
-		progress_window.setStatusMessage("Recalculating anchors...");
+		progress_window.setStatusMessage(dm::getText("Recalculating anchors..."));
 		progress_window.setProgress(0.0);
 
 		/* Make many attempts at figuring out the best anchors.  In tests, I've seen the best anchors found as high
@@ -1117,7 +1040,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		double work_done = 0.0;
 		double work_to_do = all_output_images.size() + 1.0;
 		progress_window.setProgress(0.0);
-		progress_window.setStatusMessage("Limit negative samples...");
+		progress_window.setStatusMessage(dm::getText("Limit negative samples..."));
 		for (size_t idx = 0; idx < all_output_images.size(); idx ++)
 		{
 			work_done ++;
@@ -1156,7 +1079,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	double work_done = 0.0;
 	double work_to_do = all_output_images.size() + 1.0;
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage("Writing training and validation files...");
+	progress_window.setStatusMessage(dm::getText("Writing training and validation files..."));
 	Log("total number of output images ............ " + std::to_string(all_output_images.size()));
 
 	const bool use_all_images = info.train_with_all_images;

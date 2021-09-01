@@ -78,6 +78,7 @@ namespace dm
 	typedef std::vector<size_t> VSizet;
 }
 
+#include "Text.hpp"
 #include "Log.hpp"
 #include "Cfg.hpp"
 #include "Bitmaps.hpp"

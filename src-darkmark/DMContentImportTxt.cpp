@@ -4,7 +4,7 @@
 
 
 dm::DMContentImportTxt::DMContentImportTxt(dm::DMContent & c, const VStr & v) :
-	ThreadWithProgressWindow("Importing .txt files...", true, true),
+	ThreadWithProgressWindow(getText("TITLE2"), true, true, 10000, getText("Cancel")),
 	content(c),
 	image_filenames(v)
 {
@@ -33,7 +33,7 @@ void dm::DMContentImportTxt::run()
 	double work_completed = 0.0;
 
 	// for quick lookup, create a set with the images we need to find
-	setStatusMessage("Building image list...");
+	setStatusMessage(getText("Building image list..."));
 	std::set<std::string> s;
 	for (const auto & fn : image_filenames)
 	{
@@ -54,7 +54,7 @@ void dm::DMContentImportTxt::run()
 
 	max_work = content.image_filenames.size();
 	work_completed = 0.0;
-	setStatusMessage("Looking for images and annotations...");
+	setStatusMessage(getText("Looking for images and annotations..."));
 	for (size_t idx = 0; idx < content.image_filenames.size(); idx ++)
 	{
 		if (s.empty() or threadShouldExit())
