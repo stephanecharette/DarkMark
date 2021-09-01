@@ -1358,13 +1358,38 @@ bool dm::DMContent::load_text()
 			double w = 0.0;
 			double h = 0.0;
 			ss >> class_idx >> x >> y >> w >> h;
-			Mark m(cv::Point2d(x, y), cv::Size2d(w, h), cv::Size(0, 0), class_idx);
-			m.name = names.at(class_idx);
-			m.description = m.name;
-			marks.push_back(m);
+
+			if (class_idx >= static_cast<int>(names.size()))
+			{
+				Log("ERROR: the annotations in " + text_filename + " references class #" + std::to_string(class_idx) + " but the neural network doesn't have that many classes!?");
+				success = false;
+				marks.clear();
+				break;
+			}
+
+			if (class_idx >= 0 and x > 0.0 and y > 0.0 and w > 0.0 and h > 0.0)
+			{
+				Mark m(cv::Point2d(x, y), cv::Size2d(w, h), cv::Size(0, 0), class_idx);
+
+				m.name = names.at(class_idx);
+				m.description = m.name;
+				marks.push_back(m);
+			}
+			else
+			{
+				Log("ERROR: invalid annotations in " + text_filename +
+					": class=" + std::to_string(class_idx) +
+					" x=" + std::to_string(x) +
+					" y=" + std::to_string(y) +
+					" w=" + std::to_string(w) +
+					" h=" + std::to_string(h));
+				success = false;
+				marks.clear();
+				break;
+			}
 		}
 
-		if (marks.empty())
+		if (success and marks.empty())
 		{
 			image_is_completely_empty = true;
 		}
