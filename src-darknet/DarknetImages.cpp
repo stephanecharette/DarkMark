@@ -67,8 +67,17 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 {
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
+
+	const String sizing = String(info.image_width) + "x" + String(info.image_height);
+	String text = getText("Resizing images to");
+	#if DARKNET_GEN_SIMPLIFIED
+		text = sizing + " " + text + "...";
+	#else
+		text += " " + sizing + "...";
+	#endif
+
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage(getText("Resizing images to ") + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
+	progress_window.setStatusMessage(text);
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache").getChildFile("resize");
 	const std::string dir_name = dir.getFullPathName().toStdString();
@@ -145,8 +154,17 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 {
 	double work_done = 0.0;
 	double work_to_do = annotated_images.size() + 1.0;
+
+	const String sizing = String(info.image_width) + "x" + String(info.image_height);
+	String text = getText("Tiling images to");
+	#if DARKNET_GEN_SIMPLIFIED
+		text = sizing + " " + text + "...";
+	#else
+		text += " " + sizing + "...";
+	#endif
+
 	progress_window.setProgress(0.0);
-	progress_window.setStatusMessage(getText("Tiling images to ") + std::to_string(info.image_width) + "x" + std::to_string(info.image_height) + "...");
+	progress_window.setStatusMessage(text);
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache").getChildFile("tiles");
 	const std::string dir_name = dir.getFullPathName().toStdString();

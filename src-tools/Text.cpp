@@ -69,9 +69,9 @@ String dm::getText(String key)
 		{"Looking for images and annotations..."	, String::fromUTF8("アノテーションをインポート中")			},
 
 		{"Finding all images and annotations..."	, String::fromUTF8("全ての画像とアノテーションを検索中...")	},
-		{"Listing skipped images..."				, String::fromUTF8("スキップした画像を列挙中...")			},
-		{"Resizing images to "						, String::fromUTF8("へ画像を縮小中 ")						},
-		{"Tiling images to "						, String::fromUTF8("へ画像をタイリング中 ")					},
+		{"Listing skipped images..."				, String::fromUTF8("スキップした画像リストを生成中...")		},
+		{"Resizing images to"						, String::fromUTF8("へ画像を縮小中")						},
+		{"Tiling images to"							, String::fromUTF8("へ画像をタイリング中")					},
 		{"Random image crop and zoom..."			, String::fromUTF8("画像の切り出しと拡大中...")				},
 		{"Recalculating anchors..."					, String::fromUTF8("アンカーを設定中...")					},
 		{"Limit negative samples..."				, String::fromUTF8("マークなしサンプル数を削減中...")		},
