@@ -542,6 +542,8 @@ void dm::VideoImportWindow::run()
 				}
 			}
 
+			Log("about to start extracting " + std::to_string(frames_needed.size()) + " frames from " + filename);
+
 			size_t frame_number = 0;
 			while (threadShouldExit() == false)
 			{
@@ -568,7 +570,8 @@ void dm::VideoImportWindow::run()
 				if (mat.empty())
 				{
 					// must have reached the EOF
-					break;
+					Log("received an empty mat while reading frame #" + std::to_string(frame_number));
+					continue;
 				}
 
 				if (resize_frame and (mat.cols != new_width or mat.rows != new_height))
@@ -627,6 +630,7 @@ void dm::VideoImportWindow::run()
 
 	if (error_shown == false and threadShouldExit() == false)
 	{
+		Log("finished extracting " + std::to_string(number_of_processed_frames) + " video frames");
 		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::InfoIcon, "DarkMark", "Extracted " + std::to_string(number_of_processed_frames) + " video frames.");
 	}
 
