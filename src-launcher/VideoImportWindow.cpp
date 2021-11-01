@@ -150,7 +150,7 @@ dm::VideoImportWindow::VideoImportWindow(const std::string & dir, const VStr & v
 		// Almost all videos will be "avc1" and "I420", but every once in a while we might see something else.
 		const uint32_t fourcc			= cap.get(cv::VideoCaptureProperties::CAP_PROP_FOURCC				);
 
-#if CV_VERSION_MAJOR >= 4
+#if CV_VERSION_MAJOR > 4 || (CV_VERSION_MAJOR == 4 && CV_VERSION_MINOR >= 2)
 		// Turns out the pixel format enum and backend name only exists in OpenCV v4.x and newer,
 		// but Ubuntu 18.04 is still using the older version 3.2, so those have to be handled differently.
 		const uint32_t format			= cap.get(cv::VideoCaptureProperties::CAP_PROP_CODEC_PIXEL_FORMAT	);
