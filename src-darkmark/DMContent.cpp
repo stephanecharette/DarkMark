@@ -256,18 +256,18 @@ void dm::DMContent::start_darknet()
 		try
 		{
 			Log("attempting to load neural network " + darknet_cfg + " / " + darknet_weights + " / " + darknet_names);
-			dmapp().darkhelp.reset(new DarkHelp(darknet_cfg, darknet_weights, darknet_names));
-			Log("neural network loaded in " + darkhelp().duration_string());
+			dmapp().darkhelp_nn.reset(new DarkHelp::NN(darknet_cfg, darknet_weights, darknet_names));
+			Log("neural network loaded in " + darkhelp_nn().duration_string());
 
-			darkhelp().threshold							= cfg().get_int("darknet_threshold")			/ 100.0f;
-			darkhelp().hierarchy_threshold					= cfg().get_int("darknet_hierarchy_threshold")	/ 100.0f;
-			darkhelp().non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold")		/ 100.0f;
-			darkhelp().enable_tiles							= cfg().get_bool("darknet_image_tiling");
-			names = darkhelp().names;
+			darkhelp_nn().config.threshold							= cfg().get_int("darknet_threshold")			/ 100.0f;
+			darkhelp_nn().config.hierarchy_threshold				= cfg().get_int("darknet_hierarchy_threshold")	/ 100.0f;
+			darkhelp_nn().config.non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold")		/ 100.0f;
+			darkhelp_nn().config.enable_tiles						= cfg().get_bool("darknet_image_tiling");
+			names = darkhelp_nn().names;
 		}
 		catch (const std::exception & e)
 		{
-			dmapp().darkhelp.reset(nullptr);
+			dmapp().darkhelp_nn.reset(nullptr);
 			Log("failed to load darknet (cfg=" + darknet_cfg + ", weights=" + darknet_weights + ", names=" + darknet_names + "): " + e.what());
 			if (show_window)
 			{
@@ -557,16 +557,16 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keycode == KeyPress::upKey or keycode == KeyPress::downKey)
 	{
-		if (dmapp().darkhelp)
+		if (dmapp().darkhelp_nn)
 		{
-			float threshold = dmapp().darkhelp->threshold;
+			float threshold = dmapp().darkhelp_nn->config.threshold;
 
 			threshold += (keycode == KeyPress::upKey ? 0.05f : -0.05f);
 			threshold = std::min(std::max(threshold, 0.05f), 0.95f);
 
-			if (threshold != dmapp().darkhelp->threshold)
+			if (threshold != dmapp().darkhelp_nn->config.threshold)
 			{
-				dmapp().darkhelp->threshold = threshold;
+				dmapp().darkhelp_nn->config.threshold = threshold;
 				load_image(image_filename_index);
 				show_message("darknet threshold: " + std::to_string((int)std::round(100.0 * threshold)) + "%");
 			}
@@ -800,12 +800,12 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keychar == 't')
 	{
-		if (dmapp().darkhelp)
+		if (dmapp().darkhelp_nn)
 		{
-			dmapp().darkhelp->enable_tiles = ! dmapp().darkhelp->enable_tiles;
-			show_message("image tiling: " + std::string(dmapp().darkhelp->enable_tiles ? "enable" : "disable"));
+			dmapp().darkhelp_nn->config.enable_tiles = ! dmapp().darkhelp_nn->config.enable_tiles;
+			show_message("image tiling: " + std::string(dmapp().darkhelp_nn->config.enable_tiles ? "enable" : "disable"));
 			load_image(image_filename_index);
-			cfg().setValue("darknet_image_tiling", dmapp().darkhelp->enable_tiles);
+			cfg().setValue("darknet_image_tiling", dmapp().darkhelp_nn->config.enable_tiles);
 		}
 		return true;
 	}
@@ -1077,18 +1077,18 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 
 			if (show_predictions != EToggle::kOff)
 			{
-				if (dmapp().darkhelp)
+				if (dmapp().darkhelp_nn)
 				{
 					task = "getting predictions";
-					darkhelp().predict(original_image);
-					darknet_image_processing_time = darkhelp().duration_string();
+					darkhelp_nn().predict(original_image);
+					darknet_image_processing_time = darkhelp_nn().duration_string();
 					Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
 
 //					std::cout << darkhelp().prediction_results << std::endl;
 
 					// convert the predictions into marks
 					task = "converting predictions";
-					for (auto prediction : darkhelp().prediction_results)
+					for (auto prediction : darkhelp_nn().prediction_results)
 					{
 						Mark m(prediction.original_point, prediction.original_size, original_image.size(), prediction.best_class);
 						m.name = names.at(m.class_idx);

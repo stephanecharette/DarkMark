@@ -38,9 +38,17 @@ void dm::DMCanvas::rebuild_cache_image()
 		return;
 	}
 
+#if 0
+	Log("rebuild_cache_image:"
+		" empty=" + std::string(content.original_image.empty() ? "true" : "false") +
+		" size=" + std::to_string(content.original_image.cols) + "x" + std::to_string(content.original_image.rows) +
+		" scaled=" + std::to_string(content.scaled_image_size.width) + "x" + std::to_string(content.scaled_image_size.height)
+		);
+#endif
+
 	if (content.original_image.size() != content.scaled_image_size)
 	{
-		content.scaled_image = resize_keeping_aspect_ratio(content.original_image, content.scaled_image_size);
+		content.scaled_image = DarkHelp::resize_keeping_aspect_ratio(content.original_image, content.scaled_image_size);
 	}
 	else
 	{

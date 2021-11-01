@@ -33,7 +33,7 @@ namespace dm
 
 			std::unique_ptr<Cfg>			cfg;
 			std::unique_ptr<DMWnd>			wnd;
-			std::unique_ptr<DarkHelp>		darkhelp;
+			std::unique_ptr<DarkHelp::NN>	darkhelp_nn;
 			std::unique_ptr<DMStatsWnd>		stats_wnd;
 			std::unique_ptr<AboutWnd>		about_wnd;
 			std::unique_ptr<DMJumpWnd>		jump_wnd;
@@ -75,8 +75,8 @@ namespace dm
 	}
 
 	/// Quick and easy access to DarkHelp (darknet).  Will throw if the application does not exist.
-	inline DarkHelp & darkhelp()
+	inline DarkHelp::NN & darkhelp_nn()
 	{
-		return *dmapp().darkhelp;
+		return *dmapp().darkhelp_nn;
 	}
 }

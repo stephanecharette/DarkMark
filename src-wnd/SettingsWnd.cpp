@@ -67,12 +67,12 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		peer->setIcon(DarkMarkLogo());
 	}
 
-	if (dmapp().darkhelp)
+	if (dmapp().darkhelp_nn)
 	{
-		v_darkhelp_threshold							= std::round(100.0f * dmapp().darkhelp->threshold);
-		v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp->hierarchy_threshold);
-		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp->non_maximal_suppression_threshold);
-		v_image_tiling									= dmapp().darkhelp->enable_tiles;
+		v_darkhelp_threshold							= std::round(100.0f * dmapp().darkhelp_nn->config.threshold);
+		v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp_nn->config.hierarchy_threshold);
+		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp_nn->config.non_maximal_suppression_threshold);
+		v_image_tiling									= dmapp().darkhelp_nn->config.enable_tiles;
 	}
 	else
 	{
@@ -240,12 +240,12 @@ void dm::SettingsWnd::buttonClicked(Button * button)
 
 void dm::SettingsWnd::valueChanged(Value & value)
 {
-	if (dmapp().darkhelp)
+	if (dmapp().darkhelp_nn)
 	{
-		dmapp().darkhelp->hierarchy_threshold				= static_cast<float>(v_darkhelp_hierchy_threshold					.getValue()) / 100.0f;
-		dmapp().darkhelp->non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
-		dmapp().darkhelp->threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
-		dmapp().darkhelp->enable_tiles						= static_cast<bool>(v_image_tiling.getValue());
+		dmapp().darkhelp_nn->config.hierarchy_threshold					= static_cast<float>(v_darkhelp_hierchy_threshold					.getValue()) / 100.0f;
+		dmapp().darkhelp_nn->config.non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
+		dmapp().darkhelp_nn->config.threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
+		dmapp().darkhelp_nn->config.enable_tiles						= static_cast<bool>(v_image_tiling.getValue());
 	}
 	content.scrollfield_width			= v_scrollfield_width		.getValue();
 	content.scrollfield.triangle_size	= v_scrollfield_marker_size	.getValue();

@@ -578,7 +578,7 @@ void dm::VideoImportWindow::run()
 				{
 					if (maintain_aspect_ratio)
 					{
-						mat = resize_keeping_aspect_ratio(mat, {new_width, new_height});
+						mat = DarkHelp::resize_keeping_aspect_ratio(mat, {new_width, new_height});
 					}
 					else
 					{

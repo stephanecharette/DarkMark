@@ -114,7 +114,7 @@ void dm::DMContentReview::run()
 			review_info.r = cv::Rect(0, 0, mat.cols, mat.rows);
 
 			// full-size images are always resized
-			review_info.mat = resize_keeping_aspect_ratio(mat, desired_size);
+			review_info.mat = DarkHelp::resize_keeping_aspect_ratio(mat, desired_size);
 
 			const size_t idx = m[class_idx].size();
 			m[class_idx][idx] = review_info;
@@ -207,7 +207,7 @@ void dm::DMContentReview::run()
 				cv::Mat roi = mat(r1);
 				if (resize_thumbnails or roi.rows > row_height)
 				{
-					review_info.mat = resize_keeping_aspect_ratio(roi, desired_size).clone();
+					review_info.mat = DarkHelp::resize_keeping_aspect_ratio(roi, desired_size).clone();
 				}
 				else
 				{
