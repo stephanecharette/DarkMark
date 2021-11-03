@@ -293,7 +293,7 @@ dm::Mark & dm::Mark::rebalance()
 	// take one corner at a time, and figure out the distance between each remaining point and that corner
 
 	MapCornerToPoint2d result;
-	for (const auto iter : bounding_rect_points)
+	for (const auto & iter : bounding_rect_points)
 	{
 		const ECorner type = iter.first;
 		const cv::Point2d & corner_point = iter.second;

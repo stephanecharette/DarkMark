@@ -314,14 +314,14 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 			if (name.isNotEmpty())
 			{
 				SStr keys_to_delete;
-				for (const String k : cfg->getAllProperties().getAllKeys())
+				for (const String & k : cfg->getAllProperties().getAllKeys())
 				{
 					if (k.startsWith(name))
 					{
 						keys_to_delete.insert(k.toStdString());
 					}
 				}
-				for (const std::string k : keys_to_delete)
+				for (const std::string & k : keys_to_delete)
 				{
 					dm::Log(val + ": removing key from configuration: " + k);
 					cfg->removeValue(k);

@@ -272,7 +272,7 @@ void dm::DMContentReview::run()
 	if (threadShouldExit() == false)
 	{
 		Log("review map entries (classes found): " + std::to_string(m.size()));
-		for (const auto iter : m)
+		for (const auto & iter : m)
 		{
 			const auto & class_idx = iter.first;
 			const auto & mri = iter.second;

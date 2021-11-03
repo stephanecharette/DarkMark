@@ -91,7 +91,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 
 	std::ofstream resized_txt(dir_name + "/resized.txt");
 
-	for (const auto original_image : annotated_images)
+	for (const auto & original_image : annotated_images)
 	{
 		work_done ++;
 		progress_window.setProgress(work_done / work_to_do);
@@ -177,7 +177,7 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 	std::ofstream tiles_txt(dir_name + "/tiles.txt");
 	const cv::Size desired_tile_size(info.image_width, info.image_height);
 
-	for (const auto original_image : annotated_images)
+	for (const auto & original_image : annotated_images)
 	{
 		work_done ++;
 		progress_window.setProgress(work_done / work_to_do);
@@ -383,7 +383,7 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 	std::random_device rd;
 	std::mt19937 rng(rd());
 
-	for (const auto original_image : annotated_images)
+	for (const auto & original_image : annotated_images)
 	{
 		work_done ++;
 		progress_window.setProgress(work_done / work_to_do);
@@ -408,7 +408,7 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 			const int w = j["rect"]["int_w"];
 			const int h = j["rect"]["int_h"];
 
-			for (const cv::Point p :
+			for (const cv::Point & p :
 				{
 					cv::Point(x + 0, y + 0),	// TL
 					cv::Point(x + w, y + 0),	// TR

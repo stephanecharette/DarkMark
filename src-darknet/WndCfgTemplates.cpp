@@ -257,7 +257,7 @@ void dm::WndCfgTemplates::run()
 		size_t network_width			= 0;
 		size_t network_height			= 0;
 		bool look_for_width_and_height	= true;
-		for (const auto line : lines)
+		for (const auto & line : lines)
 		{
 			if (threadShouldExit())
 			{

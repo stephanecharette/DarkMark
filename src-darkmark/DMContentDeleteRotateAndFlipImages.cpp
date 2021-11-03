@@ -37,7 +37,7 @@ void dm::DMContentDeleteRotateAndFlipImages::run()
 	size_t json_file_deleted	= 0;
 	size_t txt_file_deleted		= 0;
 
-	for (const auto fn : content.image_filenames)
+	for (const auto & fn : content.image_filenames)
 	{
 		if (threadShouldExit())
 		{
