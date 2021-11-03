@@ -700,7 +700,7 @@ public:
         z-order will be left unchanged.
 
         @param child    the new component to add. If the component passed-in is already
-                        the child of another component, it'll first be removed from it current parent.
+                        the child of another component, it'll first be removed from its current parent.
         @param zOrder   The index in the child-list at which this component should be inserted.
                         A value of -1 will insert it in front of the others, 0 is the back.
         @see removeChildComponent, addAndMakeVisible, addChildAndSetID, getChild, ComponentListener::componentChildrenChanged
@@ -718,7 +718,7 @@ public:
         z-order will be left unchanged.
 
         @param child    the new component to add. If the component passed-in is already
-                        the child of another component, it'll first be removed from it current parent.
+                        the child of another component, it'll first be removed from its current parent.
         @param zOrder   The index in the child-list at which this component should be inserted.
                         A value of -1 will insert it in front of the others, 0 is the back.
         @see removeChildComponent, addAndMakeVisible, addChildAndSetID, getChild, ComponentListener::componentChildrenChanged
@@ -731,7 +731,7 @@ public:
         See addChildComponent() for more details.
 
         @param child    the new component to add. If the component passed-in is already
-                        the child of another component, it'll first be removed from it current parent.
+                        the child of another component, it'll first be removed from its current parent.
         @param zOrder   The index in the child-list at which this component should be inserted.
                         A value of -1 will insert it in front of the others, 0 is the back.
     */
@@ -743,7 +743,7 @@ public:
         See addChildComponent() for more details.
 
         @param child    the new component to add. If the component passed-in is already
-                        the child of another component, it'll first be removed from it current parent.
+                        the child of another component, it'll first be removed from its current parent.
         @param zOrder   The index in the child-list at which this component should be inserted.
                         A value of -1 will insert it in front of the others, 0 is the back.
     */
@@ -936,6 +936,19 @@ public:
     */
     bool contains (Point<int> localPoint);
 
+    /** Returns true if a given point lies within this component or one of its children.
+
+        Never override this method! Use hitTest to create custom hit regions.
+
+        @param localPoint    the coordinate to test, relative to this component's top-left.
+        @returns    true if the point is within the component's hit-test area, but only if
+                    that part of the component isn't clipped by its parent component. Note
+                    that this won't take into account any overlapping sibling components
+                    which might be in the way - for that, see reallyContains()
+        @see hitTest, reallyContains, getComponentAt
+    */
+    bool contains (Point<float> localPoint);
+
     /** Returns true if a given point lies in this component, taking any overlapping
         siblings into account.
 
@@ -945,6 +958,16 @@ public:
         @see contains, getComponentAt
     */
     bool reallyContains (Point<int> localPoint, bool returnTrueIfWithinAChild);
+
+    /** Returns true if a given point lies in this component, taking any overlapping
+        siblings into account.
+
+        @param localPoint    the coordinate to test, relative to this component's top-left.
+        @param returnTrueIfWithinAChild     if the point actually lies within a child of this component,
+                                            this determines whether that is counted as a hit.
+        @see contains, getComponentAt
+    */
+    bool reallyContains (Point<float> localPoint, bool returnTrueIfWithinAChild);
 
     /** Returns the component at a certain point within this one.
 
@@ -968,6 +991,17 @@ public:
         @see hitTest, contains, reallyContains
     */
     Component* getComponentAt (Point<int> position);
+
+    /** Returns the component at a certain point within this one.
+
+        @param position  the coordinate to test, relative to this component's top-left.
+        @returns    the component that is at this position - which may be 0, this component,
+                    or one of its children. Note that overlapping siblings that might actually
+                    be in the way are not taken into account by this method - to account for these,
+                    instead call getComponentAt on the top-level parent of this component.
+        @see hitTest, contains, reallyContains
+    */
+    Component* getComponentAt (Point<float> position);
 
     //==============================================================================
     /** Marks the whole component as needing to be redrawn.
@@ -2408,16 +2442,22 @@ public:
     */
     void setHelpText (const String& newHelpText);
 
-    /** Sets whether this component is visible to accessibility clients.
+    /** Sets whether this component and its children are visible to accessibility clients.
 
         If this flag is set to false then the getAccessibilityHandler() method will return nullptr
-        and this component will not be visible to any accessibility clients.
+        and this component and its children will not be visible to any accessibility clients.
 
         By default this is set to true.
 
-        @see getAccessibilityHandler
+        @see isAccessible, getAccessibilityHandler
     */
     void setAccessible (bool shouldBeAccessible);
+
+    /** Returns true if this component and its children are visible to accessibility clients.
+
+        @see setAccessible
+    */
+    bool isAccessible() const noexcept;
 
     /** Returns the accessibility handler for this component, or nullptr if this component is not
         accessible.
@@ -2436,13 +2476,15 @@ public:
 
     //==============================================================================
    #ifndef DOXYGEN
-    // This method has been deprecated in favour of the setFocusContainerType() method
-    // that takes a more descriptive enum.
-    JUCE_DEPRECATED_WITH_BODY (void setFocusContainer (bool shouldBeFocusContainer) noexcept,
+    [[deprecated ("Use the setFocusContainerType that takes a more descriptive enum.")]]
+    void setFocusContainer (bool shouldBeFocusContainer) noexcept
     {
         setFocusContainerType (shouldBeFocusContainer ? FocusContainerType::keyboardFocusContainer
                                                       : FocusContainerType::none);
-    })
+    }
+
+    [[deprecated ("Use the contains that takes a Point<int>.")]]
+    void contains (int, int) = delete;
    #endif
 
 private:
@@ -2466,7 +2508,6 @@ private:
 
     //==============================================================================
     friend class ComponentPeer;
-    friend class MouseInputSource;
     friend class MouseInputSourceInternal;
 
    #ifndef DOXYGEN
@@ -2566,10 +2607,6 @@ private:
     void sendEnablementChangeMessage();
     void sendVisibilityChangeMessage();
 
-    bool containsInternal (Point<float>);
-    bool reallyContainsInternal (Point<float>, bool);
-    Component* getComponentAtInternal (Point<float>);
-
     struct ComponentHelpers;
     friend struct ComponentHelpers;
 
@@ -2578,23 +2615,12 @@ private:
     */
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Component)
 
-    //==============================================================================
-   #if JUCE_CATCH_DEPRECATED_CODE_MISUSE
-    // This is included here just to cause a compile error if your code is still handling
-    // drag-and-drop with this method. If so, just update it to use the new FileDragAndDropTarget
-    // class, which is easy (just make your class inherit from FileDragAndDropTarget, and
-    // implement its methods instead of this Component method).
-    virtual void filesDropped (const StringArray&, int, int) {}
-
-    // This is included here to cause an error if you use or overload it - it has been deprecated in
-    // favour of contains (Point<int>)
-    void contains (int, int) = delete;
-   #endif
-
 protected:
     //==============================================================================
     /** @internal */
     virtual ComponentPeer* createNewPeer (int styleFlags, void* nativeWindowToAttachTo);
+    /** @internal */
+    static std::unique_ptr<AccessibilityHandler> createIgnoredAccessibilityHandler (Component&);
    #endif
 };
 

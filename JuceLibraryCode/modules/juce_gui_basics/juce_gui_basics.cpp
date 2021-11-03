@@ -66,6 +66,7 @@
  #include <windowsx.h>
  #include <vfw.h>
  #include <commdlg.h>
+ #include <commctrl.h>
 
  #if ! JUCE_MINGW
   #include <UIAutomation.h>
@@ -82,6 +83,7 @@
  #elif ! JUCE_DONT_AUTOLINK_TO_WIN32_LIBRARIES
   #pragma comment(lib, "vfw32.lib")
   #pragma comment(lib, "imm32.lib")
+  #pragma comment(lib, "comctl32.lib")
 
   #if JUCE_OPENGL
    #pragma comment(lib, "OpenGL32.Lib")
@@ -116,11 +118,26 @@ namespace juce
     /*  Returns true if this process is in the foreground, or if the viewComponent
         is embedded into a window owned by the foreground process.
     */
-    bool isForegroundOrEmbeddedProcess (Component* viewComponent)
+    static bool isForegroundOrEmbeddedProcess (Component* viewComponent)
     {
         return Process::isForegroundProcess() || isEmbeddedInForegroundProcess (viewComponent);
     }
-}
+
+    bool isWindowOnCurrentVirtualDesktop (void*);
+
+    struct CustomMouseCursorInfo
+    {
+        CustomMouseCursorInfo() = default;
+
+        CustomMouseCursorInfo (const Image& im, Point<int> hs, float scale = 1.0f) noexcept
+            : image (im), hotspot (hs), scaleFactor (scale)
+        {}
+
+        Image image;
+        Point<int> hotspot;
+        float scaleFactor = 1.0f;
+    };
+} // namespace juce
 
 #include "accessibility/juce_AccessibilityHandler.cpp"
 #include "components/juce_Component.cpp"
@@ -132,7 +149,6 @@ namespace juce
 #include "components/juce_ModalComponentManager.cpp"
 #include "mouse/juce_ComponentDragger.cpp"
 #include "mouse/juce_DragAndDropContainer.cpp"
-#include "mouse/juce_MouseCursor.cpp"
 #include "mouse/juce_MouseEvent.cpp"
 #include "mouse/juce_MouseInactivityDetector.cpp"
 #include "mouse/juce_MouseListener.cpp"
@@ -250,10 +266,16 @@ namespace juce
  #include "native/juce_MultiTouchMapper.h"
 #endif
 
+#if JUCE_ANDROID || JUCE_WINDOWS
+ #include "native/accessibility/juce_AccessibilityTextHelpers.h"
+#endif
+
 namespace juce
 {
 
 static const juce::Identifier disableAsyncLayerBackedViewIdentifier { "disableAsyncLayerBackedView" };
+
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wmissing-prototypes")
 
 /** Used by the macOS and iOS peers. */
 void setComponentAsyncLayerBackedViewDisabled (juce::Component& comp, bool shouldDisableAsyncLayerBackedView)
@@ -267,10 +289,15 @@ bool getComponentAsyncLayerBackedViewDisabled (juce::Component& comp)
     return comp.getProperties()[disableAsyncLayerBackedViewIdentifier];
 }
 
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+
 } // namespace juce
 
 #if JUCE_MAC || JUCE_IOS
+ #include "native/accessibility/juce_mac_AccessibilitySharedCode.mm"
+
  #if JUCE_IOS
+  #include "native/accessibility/juce_ios_Accessibility.mm"
   #include "native/juce_ios_UIViewComponentPeer.mm"
   #include "native/juce_ios_Windowing.mm"
   #include "native/juce_ios_FileChooser.mm"
@@ -328,6 +355,7 @@ bool getComponentAsyncLayerBackedViewDisabled (juce::Component& comp)
  #include "native/juce_linux_FileChooser.cpp"
 
 #elif JUCE_ANDROID
+ #include "native/accessibility/juce_android_Accessibility.cpp"
  #include "native/juce_android_Windowing.cpp"
  #include "native/juce_common_MimeTypes.cpp"
  #include "native/juce_android_FileChooser.cpp"
@@ -338,16 +366,80 @@ bool getComponentAsyncLayerBackedViewDisabled (juce::Component& comp)
 
 #endif
 
-#if ! JUCE_NATIVE_ACCESSIBILITY_INCLUDED
 namespace juce
 {
+   #if ! JUCE_NATIVE_ACCESSIBILITY_INCLUDED
     class AccessibilityHandler::AccessibilityNativeImpl { public: AccessibilityNativeImpl (AccessibilityHandler&) {} };
     void AccessibilityHandler::notifyAccessibilityEvent (AccessibilityEvent) const {}
     void AccessibilityHandler::postAnnouncement (const String&, AnnouncementPriority) {}
     AccessibilityNativeHandle* AccessibilityHandler::getNativeImplementation() const { return nullptr; }
-    AccessibilityHandler::AccessibilityNativeImpl* AccessibilityHandler::createNativeImpl (AccessibilityHandler&) { return nullptr; }
-    void AccessibilityHandler::DestroyNativeImpl::operator() (AccessibilityHandler::AccessibilityNativeImpl*) const noexcept {}
-    bool areAnyAccessibilityClientsActive() { return false; }
     void notifyAccessibilityEventInternal (const AccessibilityHandler&, InternalAccessibilityEvent) {}
+    std::unique_ptr<AccessibilityHandler::AccessibilityNativeImpl> AccessibilityHandler::createNativeImpl (AccessibilityHandler&)
+    {
+        return nullptr;
+    }
+   #else
+    std::unique_ptr<AccessibilityHandler::AccessibilityNativeImpl> AccessibilityHandler::createNativeImpl (AccessibilityHandler& handler)
+    {
+        return std::make_unique<AccessibilityNativeImpl> (handler);
+    }
+   #endif
 }
+
+//==============================================================================
+#if JUCE_WINDOWS
+bool juce::isWindowOnCurrentVirtualDesktop (void* x)
+{
+    if (x == nullptr)
+        return false;
+
+    static auto* desktopManager = []
+    {
+        // IVirtualDesktopManager Copied from ShObjdl_core.h, because it may not be defined
+        MIDL_INTERFACE ("a5cd92ff-29be-454c-8d04-d82879fb3f1b")
+        juce_IVirtualDesktopManager : public IUnknown
+        {
+        public:
+            virtual HRESULT STDMETHODCALLTYPE IsWindowOnCurrentVirtualDesktop(
+                 __RPC__in HWND topLevelWindow,
+                 __RPC__out BOOL * onCurrentDesktop) = 0;
+
+            virtual HRESULT STDMETHODCALLTYPE GetWindowDesktopId(
+                 __RPC__in HWND topLevelWindow,
+                 __RPC__out GUID * desktopId) = 0;
+
+            virtual HRESULT STDMETHODCALLTYPE MoveWindowToDesktop(
+                 __RPC__in HWND topLevelWindow,
+                 __RPC__in REFGUID desktopId) = 0;
+        };
+
+        juce_IVirtualDesktopManager* result = nullptr;
+
+        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wlanguage-extension-token")
+
+        class DECLSPEC_UUID("aa509086-5ca9-4c25-8f95-589d3c07b48a") juce_VirtualDesktopManager;
+
+        if (SUCCEEDED (CoCreateInstance (__uuidof (juce_VirtualDesktopManager), nullptr, CLSCTX_ALL, IID_PPV_ARGS (&result))))
+            return result;
+
+        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+
+        return static_cast<juce_IVirtualDesktopManager*> (nullptr);
+    }();
+
+    BOOL current = false;
+
+    if (auto* dm = desktopManager)
+        if (SUCCEEDED (dm->IsWindowOnCurrentVirtualDesktop (static_cast<HWND> (x), &current)))
+            return current != false;
+
+    return true;
+}
+#else
+ bool juce::isWindowOnCurrentVirtualDesktop (void*) { return true; }
+ juce::ScopedDPIAwarenessDisabler::ScopedDPIAwarenessDisabler()  { ignoreUnused (previousContext); }
+ juce::ScopedDPIAwarenessDisabler::~ScopedDPIAwarenessDisabler() {}
 #endif
+
+// Depends on types defined in platform-specific windowing files
+#include "mouse/juce_MouseCursor.cpp"

@@ -32,7 +32,7 @@
 
   ID:                 juce_events
   vendor:             juce
-  version:            6.0.8
+  version:            6.1.2
   name:               JUCE message and event handling classes
   description:        Classes for running an application's main event loop and sending/receiving messages, timers, etc.
   website:            http://www.juce.com/juce
@@ -90,6 +90,7 @@
 #include "interprocess/juce_InterprocessConnectionServer.h"
 #include "interprocess/juce_ConnectedChildProcess.h"
 #include "interprocess/juce_NetworkServiceDiscovery.h"
+#include "native/juce_ScopedLowPowerModeDisabler.h"
 
 #if JUCE_LINUX || JUCE_BSD
  #include "native/juce_linux_EventLoop.h"

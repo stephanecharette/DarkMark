@@ -94,7 +94,7 @@ AccessibilityNativeHandle* AccessibilityHandler::getNativeImplementation() const
     return nativeImpl->accessibilityElement;
 }
 
-bool areAnyAccessibilityClientsActive()
+static bool areAnyAccessibilityClientsActive()
 {
     const auto areClientsListening = []
     {
@@ -191,9 +191,23 @@ void AccessibilityHandler::notifyAccessibilityEvent (AccessibilityEvent eventTyp
         VariantHelpers::setString (getTitle(), &newValue);
 
         sendAccessibilityPropertyChangedEvent (*this, UIA_NamePropertyId, newValue);
+        return;
     }
 
-    auto event = [eventType] () -> EVENTID
+    if (eventType == AccessibilityEvent::valueChanged)
+    {
+        if (auto* valueInterface = getValueInterface())
+        {
+            VARIANT newValue;
+            VariantHelpers::setString (valueInterface->getCurrentValueAsString(), &newValue);
+
+            sendAccessibilityPropertyChangedEvent (*this, UIA_ValueValuePropertyId, newValue);
+        }
+
+        return;
+    }
+
+    auto event = [eventType]() -> EVENTID
     {
         switch (eventType)
         {
@@ -218,8 +232,7 @@ struct SpVoiceWrapper  : public DeletedAtShutdown
     {
         auto hr = voice.CoCreateInstance (CLSID_SpVoice);
 
-        jassert (SUCCEEDED (hr));
-        ignoreUnused (hr);
+        jassertquiet (SUCCEEDED (hr));
     }
 
     ~SpVoiceWrapper() override
@@ -258,16 +271,6 @@ void AccessibilityHandler::postAnnouncement (const String& announcementString, A
         sharedVoice->voice->SetPriority (voicePriority);
         sharedVoice->voice->Speak (announcementString.toWideCharPointer(), SPF_ASYNC, nullptr);
     }
-}
-
-AccessibilityHandler::AccessibilityNativeImpl* AccessibilityHandler::createNativeImpl (AccessibilityHandler& handler)
-{
-    return new AccessibilityHandler::AccessibilityNativeImpl (handler);
-}
-
-void AccessibilityHandler::DestroyNativeImpl::operator() (AccessibilityHandler::AccessibilityNativeImpl* impl) const noexcept
-{
-    delete impl;
 }
 
 //==============================================================================

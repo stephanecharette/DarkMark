@@ -326,7 +326,7 @@ private:
         auto oldFile = documentFile;
         documentFile = newFile;
 
-        auto tidyUp = [parent, newFile, oldFile, showMessageOnFailure, showWaitCursor, completed]
+        auto tidyUp = [parent, newFile, oldFile, showMessageOnFailure, showWaitCursor, completed] (Result result)
         {
             if (parent.shouldExitAsyncCallback())
                 return;
@@ -336,10 +336,8 @@ private:
             if (showWaitCursor)
                 MouseCursor::hideWaitCursor();
 
-            auto result = Result::fail (TRANS ("The file doesn't exist"));
-
             if (showMessageOnFailure)
-                AlertWindow::showMessageBoxAsync (AlertWindow::WarningIcon,
+                AlertWindow::showMessageBoxAsync (MessageBoxIconType::WarningIcon,
                                                   TRANS ("Failed to open file..."),
                                                   TRANS ("There was an error while trying to load the file: FLNM")
                                                           .replace ("FLNM", "\n" + newFile.getFullPathName())
@@ -373,7 +371,7 @@ private:
                     return;
                 }
 
-                tidyUp();
+                tidyUp (result);
             };
 
             doLoadDocument (newFile, std::move (afterLoading));
@@ -381,7 +379,7 @@ private:
             return;
         }
 
-        tidyUp();
+        tidyUp (Result::fail (TRANS ("The file doesn't exist")));
     }
 
     //==============================================================================
@@ -448,7 +446,7 @@ private:
                                                                            callback (parent, alertResult);
                                                                    });
 
-        return AlertWindow::showYesNoCancelBox (AlertWindow::QuestionIcon,
+        return AlertWindow::showYesNoCancelBox (MessageBoxIconType::QuestionIcon,
                                                 TRANS ("Closing document..."),
                                                 TRANS ("Do you want to save the changes to \"DCNM\"?")
                                                     .replace ("DCNM", document.getDocumentTitle()),
@@ -510,7 +508,7 @@ private:
                 MouseCursor::hideWaitCursor();
 
             if (showMessageOnFailure)
-                AlertWindow::showMessageBoxAsync (AlertWindow::WarningIcon,
+                AlertWindow::showMessageBoxAsync (MessageBoxIconType::WarningIcon,
                                                   TRANS ("Error writing to file..."),
                                                   TRANS ("An error occurred while trying to save \"DCNM\" to the file: FLNM")
                                                           .replace ("DCNM", parent->document.getDocumentTitle())
@@ -682,7 +680,7 @@ private:
                                                                            callback (parent, r == 1);
                                                                    });
 
-        return AlertWindow::showOkCancelBox (AlertWindow::WarningIcon,
+        return AlertWindow::showOkCancelBox (MessageBoxIconType::WarningIcon,
                                              TRANS ("File already exists"),
                                              TRANS ("There's already a file called: FLNM")
                                                      .replace ("FLNM", newFile.getFullPathName())
@@ -725,9 +723,9 @@ private:
                           warnAboutOverwritingExistingFiles,
                           [doSaveAs = std::forward<DoSaveAs> (doSaveAs),
                            doAskToOverwriteFile = std::forward<DoAskToOverwriteFile> (doAskToOverwriteFile),
-                           callback = std::move (callback)] (SafeParentPointer ptr, File chosen)
+                           callback = std::move (callback)] (SafeParentPointer parentPtr, File chosen)
         {
-            if (ptr.shouldExitAsyncCallback())
+            if (parentPtr.shouldExitAsyncCallback())
                 return;
 
             if (chosen == File{})
@@ -738,18 +736,18 @@ private:
                 return;
             }
 
-            auto updateAndSaveAs = [ptr, doSaveAs, callback] (const File& chosenFile)
+            auto updateAndSaveAs = [parentPtr, doSaveAs, callback] (const File& chosenFile)
             {
-                if (ptr.shouldExitAsyncCallback())
+                if (parentPtr.shouldExitAsyncCallback())
                     return;
 
-                ptr->document.setLastDocumentOpened (chosenFile);
-                doSaveAs (ptr, chosenFile, false, false, true, callback, false);
+                parentPtr->document.setLastDocumentOpened (chosenFile);
+                doSaveAs (parentPtr, chosenFile, false, false, true, callback, false);
             };
 
             if (chosen.getFileExtension().isEmpty())
             {
-                chosen = chosen.withFileExtension (ptr->fileExtension);
+                chosen = chosen.withFileExtension (parentPtr->fileExtension);
 
                 if (chosen.exists())
                 {
@@ -765,7 +763,7 @@ private:
                             callback (userCancelledSave);
                     };
 
-                    doAskToOverwriteFile (ptr, chosen, std::move (afterAsking));
+                    doAskToOverwriteFile (parentPtr, chosen, std::move (afterAsking));
                     return;
                 }
             }

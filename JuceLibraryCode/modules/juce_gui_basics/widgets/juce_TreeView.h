@@ -914,8 +914,6 @@ public:
     void itemDragExit (const SourceDetails&) override;
     /** @internal */
     void itemDropped (const SourceDetails&) override;
-    /** @internal */
-    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
 
 private:
     friend class TreeViewItem;
@@ -928,6 +926,7 @@ private:
     class TreeAccessibilityHandler;
     struct InsertPoint;
 
+    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
     void itemsChanged() noexcept;
     void updateVisibleItems();
     void updateButtonUnderMouse (const MouseEvent&);
@@ -946,11 +945,6 @@ private:
     std::unique_ptr<TargetGroupHighlight> dragTargetGroupHighlight;
     int indentSize = -1;
     bool defaultOpenness = false, rootItemVisible = true, multiSelectEnabled = false, openCloseButtonsVisible = true;
-
-   #if JUCE_CATCH_DEPRECATED_CODE_MISUSE
-    // this method has been deprecated - see the new version..
-    virtual int paintOpenCloseButton (Graphics&, int, int, bool) { return 0; }
-   #endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TreeView)
 };

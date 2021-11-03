@@ -82,14 +82,18 @@ public:
 
     var getValue() const override
     {
-        if (valueWithDefault != nullptr
-            && ! valueWithDefault->isUsingDefault())
+        if (valueWithDefault != nullptr && ! valueWithDefault->isUsingDefault())
         {
-            auto targetValue = sourceValue.getValue();
+            const auto target = sourceValue.getValue();
+            const auto equalsWithSameType = [&target] (const var& map) { return map.equalsWithSameType (target); };
 
-            for (auto map : mappings)
-                if (map.equalsWithSameType (targetValue))
-                    return mappings.indexOf (map) + 1;
+            auto iter = std::find_if (mappings.begin(), mappings.end(), equalsWithSameType);
+
+            if (iter == mappings.end())
+                iter = std::find (mappings.begin(), mappings.end(), target);
+
+            if (iter != mappings.end())
+                return 1 + (int) std::distance (mappings.begin(), iter);
         }
 
         return -1;
@@ -141,9 +145,7 @@ ChoicePropertyComponent::ChoicePropertyComponent (const String& name,
 {
     // The array of corresponding values must contain one value for each of the items in
     // the choices array!
-    jassert (correspondingValues.size() == choices.size());
-
-    ignoreUnused (correspondingValues);
+    jassertquiet (correspondingValues.size() == choices.size());
 }
 
 ChoicePropertyComponent::ChoicePropertyComponent (const Value& valueToControl,
@@ -207,11 +209,9 @@ ChoicePropertyComponent::~ChoicePropertyComponent()
 void ChoicePropertyComponent::initialiseComboBox (const Value& v)
 {
     if (v != Value())
-    {
         comboBox.setSelectedId (v.getValue(), dontSendNotification);
-        comboBox.getSelectedIdAsValue().referTo (v);
-    }
 
+    comboBox.getSelectedIdAsValue().referTo (v);
     comboBox.setEditableText (false);
     addAndMakeVisible (comboBox);
 }
@@ -220,10 +220,12 @@ void ChoicePropertyComponent::refreshChoices()
 {
     comboBox.clear();
 
-    for (auto choice : choices)
+    for (int i = 0; i < choices.size(); ++i)
     {
+        const auto& choice = choices[i];
+
         if (choice.isNotEmpty())
-            comboBox.addItem (choice, choices.indexOf (choice) + 1);
+            comboBox.addItem (choice, i + 1);
         else
             comboBox.addSeparator();
     }

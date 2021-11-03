@@ -230,7 +230,7 @@ NSRect makeNSRect (const RectangleType& r) noexcept
 #endif
 
 template <typename SuperType, typename ReturnType, typename... Params>
-static ReturnType ObjCMsgSendSuper (id self, SEL sel, Params... params)
+inline ReturnType ObjCMsgSendSuper (id self, SEL sel, Params... params)
 {
     using SuperFn = ReturnType (*) (struct objc_super*, SEL, Params...);
     const auto fn = reinterpret_cast<SuperFn> (MetaSuperFn<ReturnType>::value);
@@ -252,7 +252,75 @@ struct NSObjectDeleter
 template <typename NSType>
 using NSUniquePtr = std::unique_ptr<NSType, NSObjectDeleter>;
 
+/*  This has very similar semantics to NSUniquePtr, with the main difference that it doesn't
+    automatically add a pointer to the managed type. This makes it possible to declare
+    scoped handles to id or block types.
+*/
+template <typename T>
+class ObjCObjectHandle
+{
+public:
+    ObjCObjectHandle() = default;
+
+    // Note that this does *not* retain the argument.
+    explicit ObjCObjectHandle (T ptr) : item (ptr) {}
+
+    ~ObjCObjectHandle() noexcept { reset(); }
+
+    ObjCObjectHandle (const ObjCObjectHandle& other)
+        : item (other.item)
+    {
+        if (item != nullptr)
+            [item retain];
+    }
+
+    ObjCObjectHandle& operator= (const ObjCObjectHandle& other)
+    {
+        auto copy = other;
+        swap (copy);
+        return *this;
+    }
+
+    ObjCObjectHandle (ObjCObjectHandle&& other) noexcept { swap (other); }
+
+    ObjCObjectHandle& operator= (ObjCObjectHandle&& other) noexcept
+    {
+        reset();
+        swap (other);
+        return *this;
+    }
+
+    // Note that this does *not* retain the argument.
+    void reset (T ptr) { *this = ObjCObjectHandle { ptr }; }
+
+    T get() const { return item; }
+
+    void reset()
+    {
+        if (item != nullptr)
+            [item release];
+
+        item = {};
+    }
+
+    bool operator== (const ObjCObjectHandle& other) const { return item == other.item; }
+    bool operator!= (const ObjCObjectHandle& other) const { return ! (*this == other); }
+
+private:
+    void swap (ObjCObjectHandle& other) noexcept { std::swap (other.item, item); }
+
+    T item{};
+};
+
 //==============================================================================
+template <typename Type>
+inline Type getIvar (id self, const char* name)
+{
+    void* v = nullptr;
+    object_getInstanceVariable (self, name, &v);
+    return static_cast<Type> (v);
+}
+
 template <typename SuperclassType>
 struct ObjCClass
 {
@@ -321,14 +389,6 @@ struct ObjCClass
     static ReturnType sendSuperclassMessage (id self, SEL sel, Params... params)
     {
         return ObjCMsgSendSuper<SuperclassType, ReturnType, Params...> (self, sel, params...);
-    }
-
-    template <typename Type>
-    static Type getIvar (id self, const char* name)
-    {
-        void* v = nullptr;
-        object_getInstanceVariable (self, name, &v);
-        return static_cast<Type> (v);
     }
 
     Class cls;
@@ -402,7 +462,7 @@ NSObject* createNSObjectFromJuceClass (Class* obj)
 template <typename Class>
 Class* getJuceClassFromNSObject (NSObject* obj)
 {
-    return obj != nullptr ? ObjCLifetimeManagedClass<Class>:: template getIvar<Class*> (obj, "cppObject") : nullptr;
+    return obj != nullptr ? getIvar<Class*> (obj, "cppObject") : nullptr;
 }
 
 template <typename ReturnT, class Class, typename... Params>

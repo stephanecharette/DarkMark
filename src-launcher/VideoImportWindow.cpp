@@ -282,9 +282,9 @@ void dm::VideoImportWindow::resized()
 	fb_rows.items.add(FlexItem(fb_sequences_2			).withHeight(height).withMargin(left_indent));
 
 	fb_rows.items.add(FlexItem(tb_extract_maximum		).withHeight(height));
-	fb_rows.items.add(FlexItem(sl_maximum				).withHeight(height).withWidth(150.0f).withMargin(left_indent));
+	fb_rows.items.add(FlexItem(sl_maximum				).withHeight(height).withMaxWidth(150.0f).withMargin(left_indent));
 	fb_rows.items.add(FlexItem(tb_extract_percentage	).withHeight(height));
-	fb_rows.items.add(FlexItem(sl_percentage			).withHeight(height).withWidth(150.0f).withMargin(left_indent));
+	fb_rows.items.add(FlexItem(sl_percentage			).withHeight(height).withMaxWidth(150.0f).withMargin(left_indent));
 	fb_rows.items.add(FlexItem(tb_do_not_resize			).withHeight(height).withMargin(new_row_indent));
 	fb_rows.items.add(FlexItem(tb_resize				).withHeight(height));
 

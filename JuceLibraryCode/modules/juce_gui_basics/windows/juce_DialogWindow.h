@@ -262,11 +262,11 @@ protected:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
-    float getDesktopScaleFactor() const override { return desktopScale; }
-    /** @internal */
-    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
+    float getDesktopScaleFactor() const override { return desktopScale * Desktop::getInstance().getGlobalScaleFactor(); }
 
 private:
+    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
+
     float desktopScale = 1.0f;
     bool escapeKeyTriggersCloseButton;
 
