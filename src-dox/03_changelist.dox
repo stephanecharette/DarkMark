@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.6.3-1		| 2021-11-13	| Added inclusion regex to launcher window.
 1.6.0-1		| 2021-11-01	| Update to use newest version of DarkHelp.
 1.5.26-1	| 2021-08-08	| Added some new CLI parameters.  See @ref CLI for details.
 1.5.24-1	| 2021-07-25	| New "flip image" window similar to "rotate image".

@@ -189,15 +189,15 @@ void dm::StartupWnd::resized()
 		FlexBox button_row;
 		button_row.flexDirection = FlexBox::Direction::row;
 		button_row.justifyContent = FlexBox::JustifyContent::flexEnd;
-		button_row.items.add(FlexItem(add_button)	.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-		button_row.items.add(FlexItem(delete_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-		button_row.items.add(FlexItem()				.withFlex(1.0));
-		button_row.items.add(FlexItem(import_video_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-		button_row.items.add(FlexItem(open_folder_button).withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-		button_row.items.add(FlexItem()				.withFlex(1.0));
-		button_row.items.add(FlexItem(refresh_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-		button_row.items.add(FlexItem(ok_button		).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
-		button_row.items.add(FlexItem(cancel_button	).withWidth(100.0));
+		button_row.items.add(FlexItem(add_button)			.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(delete_button)		.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem()						.withFlex(1.0));
+		button_row.items.add(FlexItem(import_video_button)	.withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(open_folder_button)	.withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem()						.withFlex(1.0));
+		button_row.items.add(FlexItem(refresh_button)		.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(ok_button)			.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(cancel_button)		.withWidth(100.0));
 
 		FlexBox fb;
 		fb.flexDirection = FlexBox::Direction::column;
@@ -476,6 +476,10 @@ void dm::StartupWnd::buttonClicked(Button * button)
 			const String names_filename		= notebook_canvas->darknet_names_filename			.toString();
 			const int image_count			= notebook_canvas->number_of_images					.getValue();
 
+			const String inclusion_regex	= notebook_canvas->inclusion_regex					.toString();
+			const String exclusion_regex	= notebook_canvas->exclusion_regex					.toString();
+			const bool both_regex_set		= inclusion_regex.isNotEmpty() and exclusion_regex.isNotEmpty();
+
 			const bool dir_exists			= File(notebook_canvas->project_directory.toString()).exists();
 			const bool cfg_exists			= cfg_filename		.isEmpty()	or File(cfg_filename		).existsAsFile();
 			const bool weights_exits		= weights_filename	.isEmpty()	or File(weights_filename	).existsAsFile();
@@ -493,6 +497,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				if (cfg_exists			== false)	{ ss << "- The .cfg file does not exist."					<< std::endl;	warning_count	++; }
 				if (weights_exits		== false)	{ ss << "- The .weights file does not exist."				<< std::endl;	warning_count	++; }
 				if (names_exists		== false)	{ ss << "- The .names file does not exist."					<< std::endl;	error_count		++; }
+				if (both_regex_set		== true)	{ ss << "- Cannot set both inclusion and exclusion regex."	<< std::endl;	error_count		++; }
 
 				const size_t message_count = warning_count + error_count;
 				if (error_count > 0)
@@ -518,6 +523,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 				const std::string prefix = "project_" + key.toStdString() + "_";
 
+				cfg().setValue(prefix + "inclusion_regex"		, notebook_canvas->inclusion_regex					);
 				cfg().setValue(prefix + "exclusion_regex"		, notebook_canvas->exclusion_regex					);
 				cfg().setValue(prefix + "cfg"					, notebook_canvas->darknet_configuration_filename	);
 				cfg().setValue(prefix + "weights"				, notebook_canvas->darknet_weights_filename			);

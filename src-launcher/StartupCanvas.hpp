@@ -73,6 +73,7 @@ namespace dm
 		Value number_of_marks;
 		Value newest_markup;
 		Value oldest_markup;
+		Value inclusion_regex;
 		Value exclusion_regex;
 		Value darknet_network_dimensions;
 		Value darknet_configuration_template;

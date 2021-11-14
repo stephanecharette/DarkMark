@@ -60,39 +60,42 @@ dm::DMContent::DMContent(const std::string & prefix) :
 
 	const auto & action = dmapp().cli_options["editor"];
 
-	const std::string exclusion_regex = cfg().get_str(cfg_prefix + "exclusion_regex");
-	if (exclusion_regex.empty() == false and action != "gen-darknet")
+	try
 	{
-		try
+		const std::string inclusion_regex = cfg().get_str(cfg_prefix + "inclusion_regex");
+		const std::string exclusion_regex = cfg().get_str(cfg_prefix + "exclusion_regex");
+
+		const std::regex rx(inclusion_regex + exclusion_regex);
+
+		VStr v;
+		for (auto && fn : image_filenames)
 		{
-			const std::regex rx(exclusion_regex);
-
-			VStr v;
-			for (auto && fn : image_filenames)
+			const bool result = std::regex_search(fn, rx);
+			if (result == exclusion_regex.empty())
 			{
-				const bool result = std::regex_search(fn, rx);
-				if (result == false)
-				{
-					v.push_back(fn);
-				}
+				v.push_back(fn);
 			}
+		}
 
-			if (v.size() != image_filenames.size())
+		if (v.size() != image_filenames.size())
+		{
+			v.swap(image_filenames);
+
+			if (action != "gen-darknet")
 			{
-				v.swap(image_filenames);
 				AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::InfoIcon, "DarkMark",
-						"This project has an exclusion regex:\n\n"
-						"\t\t" + exclusion_regex + "\n\n" +
+						"This project has a regex filter:\n\n"
+						"\t\t" + inclusion_regex + exclusion_regex + "\n\n" +
 						std::to_string(v.size() - image_filenames.size()) + " images were excluded by this filter, bringing the total number of images from " +
 						std::to_string(v.size()) + " down to " + std::to_string(image_filenames.size()) + ".\n\n"
-						"Clear the \"exclusion regex\" field in the launcher window to include all images in the project."
+						"Clear the \"inclusion regex\" and \"exclusion regex\" fields in the launcher window to include all images in the project."
 						);
 			}
 		}
-		catch (...)
-		{
-			AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The \"exclusion regex\" for this project has caused an error and has been skipped.");
-		}
+	}
+	catch (...)
+	{
+		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The \"inclusion regex\" or \"exclusion regex\" for this project has caused an error and has been skipped.");
 	}
 
 	if (images_without_json.empty() == false and action != "gen-darknet")
@@ -2090,7 +2093,7 @@ dm::DMContent & dm::DMContent::move_empty_images()
 		"zero impact on how the neural network is trained. The length of time to train won't change, and the effectiveness of "
 		"the neural network will be exactly the same. The only real purpose is to help people organize their images for review.\n"
 		"\n"
-		"Do you wish to move the empty images into a folder called \"empty_images\"?");
+		"Do you wish to move the empty images (aka \"negative samples\") into a folder called \"empty_images\"?");
 
 	if (result != 0)
 	{

@@ -107,6 +107,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	project_directory = dir.c_str();
 
 	tab_name						.addListener(this);
+	inclusion_regex					.addListener(this);
 	exclusion_regex					.addListener(this);
 	darknet_configuration_template	.addListener(this);
 	darknet_configuration_filename	.addListener(this);
@@ -126,8 +127,12 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	properties.add(new TextPropertyComponent(newest_markup					, "newest markup"			, 1000, false, false));
 	properties.add(new TextPropertyComponent(oldest_markup					, "oldest markup"			, 1000, false, false));
 
-	auto tmp = new TextPropertyComponent(exclusion_regex					, "exclusion regex"			, 1000, false, true);
-	tmp->setTooltip("Exclusion regex is used to temporarily exclude a subset of images from the project. The regex will be applied individually to each image path and filename.\n\nFor example, set to \"car|truck\" to exclude all images that contains either the text \"car\" or \"truck\" anywhere in the path or filename.\n\nNormally, this field should be left blank.");
+	auto tmp = new TextPropertyComponent(inclusion_regex					, "inclusion regex"			, 1000, false, true);
+	tmp->setTooltip("Inclusion regex is used to temporarily include a subset of images from the project. The regex will be applied individually to each image path and filename.\n\nFor example, set to \"car|truck\" to include only the images that contains either \"car\" or \"truck\" anywhere in the path or filename.\n\nNormally, this field should be left blank.\n\nYou cannot set both an inclusion regex and an exclusion regex.");
+	properties.add(tmp);
+
+	tmp = new TextPropertyComponent(exclusion_regex							, "exclusion regex"			, 1000, false, true);
+	tmp->setTooltip("Exclusion regex is used to temporarily exclude a subset of images from the project. The regex will be applied individually to each image path and filename.\n\nFor example, set to \"car|truck\" to exclude all images that contains either the text \"car\" or \"truck\" anywhere in the path or filename.\n\nNormally, this field should be left blank.\n\nYou cannot set both an inclusion regex and an exclusion regex.");
 	properties.add(tmp);
 
 	tmp = new TextPropertyComponent(darknet_network_dimensions				, "network dimensions"		, 1000, false, false);
@@ -165,7 +170,7 @@ dm::StartupCanvas::~StartupCanvas()
 void dm::StartupCanvas::resized()
 {
 	const int margin_size		= 5;
-	const int number_of_lines	= 16;
+	const int number_of_lines	= 17;
 	const int height_per_line	= 25;
 	const int total_pp_height	= number_of_lines * height_per_line;
 
@@ -486,6 +491,7 @@ void dm::StartupCanvas::refresh()
 		dims = "";
 	}
 
+	inclusion_regex					= cfg().getValue("project_" + cfg_key + "_inclusion_regex"		);
 	exclusion_regex					= cfg().getValue("project_" + cfg_key + "_exclusion_regex"		);
 	darknet_network_dimensions		= dims;
 	darknet_configuration_template	= cfg().getValue("project_" + cfg_key + "_darknet_cfg_template"	);
