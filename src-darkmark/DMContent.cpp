@@ -109,7 +109,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 
 		msg += "\n\nWould you like to import the annotations into DarkMark?";
 
-		AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark", msg, "", "", this,
+		AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark", msg, "", "", nullptr,
 				ModalCallbackFunction::create(
 					[=](int result)
 					{
@@ -286,6 +286,7 @@ void dm::DMContent::start_darknet()
 	else
 	{
 		Log("skipped loading darknet due to missing or invalid .cfg or .weights filenames");
+#if 0
 		if (show_window)
 		{
 			AlertWindow::showMessageBoxAsync(
@@ -293,6 +294,7 @@ void dm::DMContent::start_darknet()
 				"DarkMark",
 				"One or more required neural network file was not found. The neural network cannot be loaded.");
 		}
+#endif
 	}
 
 	if (names.empty() and darknet_names.empty() == false)
