@@ -15,6 +15,7 @@ namespace dm
 		cv::Rect r;
 		double overlap_sum; // the total amount of overlap between this mark and all other marks in this image
 		std::string mime_type;
+		std::string md5;
 		VStr warnings;
 		VStr errors;
 	};
@@ -49,5 +50,6 @@ namespace dm
 			DMContent & content;
 			Notebook notebook;
 			MMReviewInfo m;
+			MStrSize md5s;
 	};
 }

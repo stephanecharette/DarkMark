@@ -73,6 +73,7 @@ namespace dm
 	typedef std::set<std::string> SStr;
 	typedef std::map<size_t, std::string> MIdxStr;
 	typedef std::map<std::string, std::string> MStr;
+	typedef std::map<std::string, size_t> MStrSize;
 	typedef std::vector<cv::Point> Contour;
 	typedef std::vector<Contour> VContours;
 	typedef std::vector<size_t> VSizet;

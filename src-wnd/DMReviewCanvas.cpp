@@ -3,8 +3,9 @@
 #include "DarkMark.hpp"
 
 
-dm::DMReviewCanvas::DMReviewCanvas(const MReviewInfo & m) :
-	mri(m)
+dm::DMReviewCanvas::DMReviewCanvas(const MReviewInfo & m, const MStrSize & md5s) :
+	mri(m),
+	md5s(md5s)
 {
 	const int h = cfg().get_int("review_table_row_height");
 	if (h > getRowHeight())
@@ -21,7 +22,9 @@ dm::DMReviewCanvas::DMReviewCanvas(const MReviewInfo & m) :
 	getHeader().addColumn("overlap"		, 7, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	getHeader().addColumn("filename"	, 8, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	getHeader().addColumn("type"		, 9, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	getHeader().addColumn("message"		, 10, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("md5"			, 10, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("duplicates"	, 11, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	getHeader().addColumn("message"		, 12, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	// if changing columns, also update paintCell() below
 
 	if (cfg().containsKey("review_columns"))
@@ -146,6 +149,10 @@ void dm::DMReviewCanvas::paintRowBackground(Graphics & g, int rowNumber, int wid
 		{
 			colour = Colours::lightpink;
 		}
+		else if (md5s.at(review_info.md5) > 1)
+		{
+			colour = Colours::lightcoral;
+		}
 	}
 
 	g.fillAll( colour );
@@ -163,7 +170,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 	if (rowNumber < 0					or
 		rowNumber >= (int)mri.size()	or
 		columnId < 1					or
-		columnId > 10					)
+		columnId > 12					)
 	{
 		// rows are 0-based, columns are 1-based
 		return;
@@ -185,7 +192,9 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 	 *		7: overlap
 	 *		8: filename
 	 *		9: mime type
-	 *		10: warning + error messages
+	 *		10: md5
+	 *		11: duplicates
+	 *		12: warning + error messages
 	 */
 
 	if (columnId == 2)
@@ -208,6 +217,16 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 		if (columnId == 4)	str = std::to_string(review_info.r.width) + " x " + std::to_string(review_info.r.height);
 		if (columnId == 5)	str = std::to_string(static_cast<double>(review_info.r.width) / static_cast<double>(review_info.r.height));
 		if (columnId == 9)	str = review_info.mime_type;
+		if (columnId == 10)	str = review_info.md5;
+
+		if (columnId == 11)
+		{
+			const auto count = md5s.at(review_info.md5);
+			if (count > 1)
+			{
+				str = std::to_string(count);
+			}
+		}
 
 		if (columnId == 6)
 		{
@@ -266,7 +285,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 			}
 		}
 
-		if (columnId == 10)
+		if (columnId == 12)
 		{
 			for (const auto & msg : review_info.warnings)
 			{
@@ -318,10 +337,12 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 	 *		7: overlap
 	 *		8: filename
 	 *		9: mime type
-	 *		10: warning + error messages
+	 *		10: md5
+	 *		11: duplicates
+	 *		12: warning + error messages
 	 */
 
-	if (newSortColumnId < 1 or newSortColumnId > 10)
+	if (newSortColumnId < 1 or newSortColumnId > 12)
 	{
 		Log("cannot sort table on invalid column=" + std::to_string(newSortColumnId));
 		return;
@@ -417,6 +438,30 @@ void dm::DMReviewCanvas::sortOrderChanged(int newSortColumnId, bool isForwards)
 						return lhs_idx < rhs_idx;
 					}
 					case 10:
+					{
+						if (lhs_info.md5 != rhs_info.md5)
+						{
+							return lhs_info.md5 < rhs_info.md5;
+						}
+						// if the mime-type is the same, then sort by index
+						return lhs_idx < rhs_idx;
+					}
+					case 11:
+					{
+						const auto & lhs_count = md5s.at(lhs_info.md5);
+						const auto & rhs_count = md5s.at(rhs_info.md5);
+						if (lhs_count != rhs_count)
+						{
+							return lhs_count < rhs_count;
+						}
+						if (lhs_info.md5 != rhs_info.md5)
+						{
+							return lhs_info.md5 < rhs_info.md5;
+						}
+						// if the mime-type is the same, then sort by index
+						return lhs_idx < rhs_idx;
+					}
+					case 12:
 					{
 						if (lhs_info.errors.size()		!= rhs_info.errors.size())		return lhs_info.errors.size()	< rhs_info.errors.size();
 						if (lhs_info.warnings.size()	!= rhs_info.warnings.size())	return lhs_info.warnings.size()	< rhs_info.warnings.size();

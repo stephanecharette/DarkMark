@@ -87,7 +87,7 @@ void dm::DMReviewWnd::rebuild_notebook()
 
 		Log("creating a notebook tab for class \"" + name + "\", mri has " + std::to_string(mri.size()) + " entries");
 
-		notebook.addTab(name, Colours::darkgrey, new DMReviewCanvas(mri), true);
+		notebook.addTab(name, Colours::darkgrey, new DMReviewCanvas(mri, md5s), true);
 	}
 
 	return;

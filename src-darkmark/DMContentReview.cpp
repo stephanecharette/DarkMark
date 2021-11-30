@@ -34,6 +34,7 @@ void dm::DMContentReview::run()
 	double work_completed = 0.0;
 
 	MMReviewInfo m;
+	MStrSize md5s;
 
 	// last index in the names vector will be to store "errors"
 	const size_t error_index = content.names.size();
@@ -103,6 +104,9 @@ void dm::DMContentReview::run()
 			continue;
 		}
 
+		const auto md5 = MD5(mat.data, mat.step[0] * mat.rows).toHexString().toStdString();
+		md5s[md5] ++;
+
 		if (root["mark"].empty() and root.value("completely_empty", false))
 		{
 			const auto class_idx = content.empty_image_name_index;
@@ -112,6 +116,7 @@ void dm::DMContentReview::run()
 			review_info.filename = fn;
 			review_info.mime_type = magic_file(magic_cookie, fn.c_str());
 			review_info.r = cv::Rect(0, 0, mat.cols, mat.rows);
+			review_info.md5 = md5;
 
 			// full-size images are always resized
 			review_info.mat = DarkHelp::resize_keeping_aspect_ratio(mat, desired_size);
@@ -130,6 +135,7 @@ void dm::DMContentReview::run()
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
+			review_info.md5 = md5;
 			review_info.mat = cv::Mat(32, 32, CV_8UC3, cv::Scalar(0, 0, 255)); // use a red square to indicate a problem
 			review_info.errors.push_back("no marks defined, yet image is not marked as empty");
 			const size_t idx = m[class_idx].size();
@@ -184,6 +190,7 @@ void dm::DMContentReview::run()
 			review_info.overlap_sum = 0.0;
 			review_info.class_idx = class_idx;
 			review_info.filename = fn;
+			review_info.md5 = md5;
 
 			// Check to see if the file type looks sane.  Especially when working with 3rd-party data sets, I've seen plenty of images
 			// which are saved with .jpg extension, but which are actually .bmp, .gif, or .png.  (Though I'm not certain if this causes
@@ -287,6 +294,7 @@ void dm::DMContentReview::run()
 		dmapp().review_wnd->setAlwaysOnTop(true);
 	}
 	dmapp().review_wnd->m.swap(m);
+	dmapp().review_wnd->md5s.swap(md5s);
 	dmapp().review_wnd->rebuild_notebook();
 	dmapp().review_wnd->toFront(true);
 

@@ -15,7 +15,7 @@ namespace dm
 		public:
 
 			/// Constructor.
-			DMReviewCanvas(const MReviewInfo & m);
+			DMReviewCanvas(const MReviewInfo & m, const MStrSize & md5s);
 
 			/// Destructor.
 			virtual ~DMReviewCanvas();
@@ -34,5 +34,6 @@ namespace dm
 
 			/// Map of review info, where each map record has everything needed to represent a single row in the table.
 			const MReviewInfo & mri;
+			const MStrSize & md5s;
 	};
 }
