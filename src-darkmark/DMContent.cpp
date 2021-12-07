@@ -34,6 +34,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	show_mouse_pointer(cfg().get_bool("show_mouse_pointer")),
 	corner_size(cfg().get_int("corner_size")),
 	selected_mark(-1),
+	images_are_loading(false),
 	scale_factor(1.0),
 	most_recent_class_idx(0),
 	image_filename_index(0),
@@ -1022,6 +1023,8 @@ dm::DMContent & dm::DMContent::toggle_show_processing_time()
 
 dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_load)
 {
+	images_are_loading = true;
+
 	if (need_to_save)
 	{
 		save_json();
@@ -1143,6 +1146,11 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 		what_msg = "\"unknown\"";
 	}
 
+	if (full_load)
+	{
+		images_are_loading = false;
+	}
+
 	if (exception_caught)
 	{
 		original_image = cv::Mat(32, 32, CV_8UC3, cv::Scalar(0, 0, 255)); // use a red square to indicate a problem
@@ -1157,9 +1165,11 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 			"\n"
 			"The exact error message logged is: " + what_msg);
 	}
-
-	resized();
-	rebuild_image_and_repaint();
+	else if (full_load)
+	{
+		resized();
+		rebuild_image_and_repaint();
+	}
 
 	return *this;
 }

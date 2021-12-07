@@ -32,7 +32,7 @@ void dm::DMCanvas::rebuild_cache_image()
 	const cv::Scalar black	(0x00, 0x00, 0x00);
 	const cv::Scalar white	(0xff, 0xff, 0xff);
 
-	if (content.original_image.empty())
+	if (content.images_are_loading or content.original_image.empty())
 	{
 		// nothing we can do
 		return;

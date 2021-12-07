@@ -36,7 +36,7 @@ dm::ScrollField::~ScrollField()
 
 void dm::ScrollField::rebuild_entire_field_on_thread()
 {
-	if (content.scrollfield_width > 0 and isThreadRunning() == false)
+	if (content.images_are_loading == false and content.scrollfield_width > 0 and isThreadRunning() == false)
 	{
 		field			= cv::Mat();
 		resized_image	= cv::Mat();
@@ -70,6 +70,12 @@ void dm::ScrollField::run()
 	if (content.scrollfield_width < 1)
 	{
 		Log("ScrollField: ending thread since size=" + std::to_string(content.scrollfield_width));
+		return;
+	}
+
+	if (content.images_are_loading)
+	{
+		Log("ScrollField: ending thread since images are being loaded");
 		return;
 	}
 

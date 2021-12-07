@@ -199,6 +199,8 @@ namespace dm
 			/// The most recently used class now determines the colour to use for the crosshairs.
 			Colour crosshair_colour;
 
+			std::atomic<bool> images_are_loading;
+
 			cv::Mat original_image;
 			cv::Mat scaled_image;
 
