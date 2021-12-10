@@ -61,7 +61,7 @@ namespace dm
 
 			DMContent & toggle_show_processing_time();
 
-			DMContent & load_image(const size_t new_idx, const bool full_load = true);
+			DMContent & load_image(const size_t new_idx, const bool full_load = true, const bool display_immediately = false);
 
 			DMContent & save_text();
 

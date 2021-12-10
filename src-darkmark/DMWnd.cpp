@@ -46,7 +46,7 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 	// May want to investigate putting this on a thread.
 	content.start_darknet();
 
-	content.load_image(0, false);
+	content.load_image(0, false, true);
 
 	// give the window some time to draw itself, and then we'll reload the first image including passing it through darkhelp
 	startTimer(50); // milliseconds

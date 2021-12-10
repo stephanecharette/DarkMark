@@ -1021,7 +1021,7 @@ dm::DMContent & dm::DMContent::toggle_show_processing_time()
 }
 
 
-dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_load)
+dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_load, const bool display_immediately)
 {
 	images_are_loading = true;
 
@@ -1165,7 +1165,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 			"\n"
 			"The exact error message logged is: " + what_msg);
 	}
-	else if (full_load)
+	else if (full_load or display_immediately)
 	{
 		resized();
 		rebuild_image_and_repaint();
@@ -1867,6 +1867,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	PopupMenu review;
 	review.addItem("zoom-and-review"	, std::function<void()>( [&]{ zoom_and_review();	} ));
 	review.addItem("review marks..."	, std::function<void()>( [&]{ review_marks();		} ));
+	review.addItem("gather statistics...",std::function<void()>( [&]{ gather_statistics();	} ));
 
 	PopupMenu m;
 	m.addSubMenu("class", classMenu, classMenu.containsAnyActiveItems());
@@ -1878,7 +1879,6 @@ PopupMenu dm::DMContent::create_popup_menu()
 	m.addSubMenu("help", help);
 
 	m.addSeparator();
-	m.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();		} ));
 	m.addItem("create darknet files..."	, std::function<void()>( [&]{ show_darknet_window();	} ));
 	m.addItem("other settings..."		, std::function<void()>( [&]
 	{

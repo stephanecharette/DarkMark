@@ -122,7 +122,7 @@ void dm::DMJumpWnd::sliderValueChanged(Slider * changed_slider)
 		if (idx != content.image_filename_index)
 		{
 			// this just does a "quick" load of the image and skips both predictions and markup
-			content.load_image(idx, false);
+			content.load_image(idx, false, true);
 
 			startTimer(500); // request a callback -- in milliseconds -- at which point in time we'll fully load this image
 		}

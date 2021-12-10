@@ -327,7 +327,7 @@ void dm::ScrollField::jump_to_location(const MouseEvent & event, const bool full
 
 			if (std::abs(y - marker_y) <= triangle_size)
 			{
-				content.load_image(marker_idx, full_load);
+				content.load_image(marker_idx, full_load, true);
 				return;
 			}
 		}
@@ -339,7 +339,7 @@ void dm::ScrollField::jump_to_location(const MouseEvent & event, const bool full
 
 	if (full_load or idx != content.image_filename_index)
 	{
-		content.load_image(idx, full_load);
+		content.load_image(idx, full_load, true);
 	}
 
 	return;
