@@ -1427,7 +1427,16 @@ bool dm::DMContent::load_json()
 		{
 			Mark m;
 			m.class_idx = root["mark"][idx]["class_idx"];
-			m.name = root["mark"][idx]["name"];
+
+			// use the most recent name from the .names file if available
+			if (m.class_idx < names.size())
+			{
+				m.name = names.at(m.class_idx);
+			}
+			else
+			{
+				m.name = root["mark"][idx]["name"];
+			}
 			m.description = m.name;
 			m.normalized_all_points.clear();
 			for (size_t point_idx = 0; point_idx < root["mark"][idx]["points"].size(); point_idx ++)
