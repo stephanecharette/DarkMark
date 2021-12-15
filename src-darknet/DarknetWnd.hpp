@@ -57,6 +57,7 @@ namespace dm
 			Value v_cfg_template;
 			Value v_train_with_all_images;
 			Value v_training_images_percentage;
+			Value v_limit_validation_images;
 			Value v_image_width;
 			Value v_image_height;
 			Value v_batch_size;

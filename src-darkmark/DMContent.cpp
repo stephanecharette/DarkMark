@@ -1763,17 +1763,22 @@ PopupMenu dm::DMContent::create_class_menu()
 
 		const bool is_ticked = (selected_class_idx == (int)idx ? true : false);
 
-		if (idx % 10 == 0 and names.size() - 1 > 1)
+		if (idx % 10 == 0 and names.size() - 1 > 1 and idx <= 40)
 		{
 			std::stringstream ss;
 			if (idx == 10) ss << "CTRL + ";
 			if (idx == 20) ss << "ALT + ";
 			if (idx == 30) ss << "CTRL + ALT + ";
-			ss << "0";
-			const size_t max_val = std::min(names.size() - 2, idx + 9) - idx;
-			if (max_val > 0)
+			if (idx == 40) ss << "more...";
+
+			if (idx < 40)
 			{
-				ss << " to " << max_val;
+				ss << "0";
+				const size_t max_val = std::min(names.size() - 2, idx + 9) - idx;
+				if (max_val > 0)
+				{
+					ss << " to " << max_val;
+				}
 			}
 			m.addSectionHeader(ss.str());
 		}

@@ -26,6 +26,7 @@ namespace dm
 
 			bool		train_with_all_images;		///< should we train with *all* images, or should we use @ref training_images_percentage?
 			double		training_images_percentage;	///< between 0.0 and 1.0
+			bool		limit_validation_images;	///< truncate valid.txt to limit validation images
 			int			image_width;				///< must be a multiple of 32 (416, 608, 832, ...)
 			int			image_height;				///< must be a multiple of 32 (416, 608, 832, ...)
 			int			batch_size;					///< e.g., @p 64

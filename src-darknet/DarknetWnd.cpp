@@ -235,6 +235,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_cfg_template					= info.cfg_template.c_str();
 	v_train_with_all_images			= info.train_with_all_images;
 	v_training_images_percentage	= std::round(100.0 * info.training_images_percentage);
+	v_limit_validation_images		= info.limit_validation_images;
 	v_image_width					= info.image_width;
 	v_image_height					= info.image_height;
 	v_batch_size					= info.batch_size;
@@ -364,6 +365,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		s->setEnabled(false);
 	}
 	properties.add(s);
+
+	b = new BooleanPropertyComponent(v_limit_validation_images, getText("limit validation images"), getText("limit validation images"));
+	setTooltip(b, "Limit the number of validation images to a maximum based on the number of classes.");
+	properties.add(b);
 
 	pp.addSection(getText("images"), properties, true);
 	properties.clear();
@@ -686,6 +691,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_cfg_template"			, v_cfg_template				);
 	cfg().setValue(content.cfg_prefix + "darknet_train_with_all_images"	, v_train_with_all_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_training_percentage"	, v_training_images_percentage	);
+	cfg().setValue(content.cfg_prefix + "darknet_limit_validation_images",v_limit_validation_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_image_width"			, v_image_width					);
 	cfg().setValue(content.cfg_prefix + "darknet_image_height"			, v_image_height				);
 	cfg().setValue(content.cfg_prefix + "darknet_batch_size"			, v_batch_size					);
@@ -716,6 +722,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.cfg_template				= v_cfg_template			.toString().toStdString();
 	info.train_with_all_images		= v_train_with_all_images	.getValue();
 	info.training_images_percentage	= static_cast<double>(v_training_images_percentage.getValue()) / 100.0;
+	info.limit_validation_images	= v_limit_validation_images	.getValue();
 	info.image_width				= v_image_width				.getValue();
 	info.image_height				= v_image_height			.getValue();
 	info.batch_size					= v_batch_size				.getValue();
@@ -1092,16 +1099,32 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		number_of_files_valid = all_output_images.size();
 	}
 
+	const size_t maximum_number_of_validation_images = 10 * content.names.size();
+	if (info.limit_validation_images)
+	{
+		if (number_of_files_valid > maximum_number_of_validation_images)
+		{
+			number_of_files_valid = maximum_number_of_validation_images;
+
+			if (not use_all_images)
+			{
+				number_of_files_train = all_output_images.size() - number_of_files_valid;
+			}
+		}
+	}
+
 	number_of_annotated_images = all_output_images.size() - number_of_empty_images;
 	Log("total number of annotated images ......... " + std::to_string(number_of_annotated_images	));
 	Log("total number of marks .................... " + std::to_string(number_of_marks				));
 	Log("total number of empty images ............. " + std::to_string(number_of_empty_images		));
 	Log("total number of training images .......... " + std::to_string(number_of_files_train) + " (" + info.train_filename + ")");
 	Log("total number of validation images ........ " + std::to_string(number_of_files_valid) + " (" + info.valid_filename + ")");
+	Log("cap validation images .................... " + std::string(info.limit_validation_images ? "true" : "false"));
 
 	std::ofstream fs_train(info.train_filename);
 	std::ofstream fs_valid(info.valid_filename);
 
+	size_t current_number_of_validation_images = 0;
 	for (size_t idx = 0; idx < all_output_images.size(); idx ++)
 	{
 		work_done ++;
@@ -1114,7 +1137,12 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 
 		if (use_all_images or idx >= number_of_files_train)
 		{
+			if (info.limit_validation_images and current_number_of_validation_images >= maximum_number_of_validation_images)
+			{
+				continue;
+			}
 			fs_valid << all_output_images[idx] << std::endl;
+			current_number_of_validation_images ++;
 		}
 	}
 
