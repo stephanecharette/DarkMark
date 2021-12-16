@@ -305,10 +305,23 @@ void dm::DMContent::start_darknet()
 		std::string line;
 		while (std::getline(ifs, line))
 		{
-			if (line.empty())
+			// truncate leading/trailing whitespace
+			// (helps deal with CRLF when .names was edited on Windows)
+
+			auto p = line.find_last_not_of(" \t\r\n");
+			if (p != std::string::npos)
 			{
+				line.erase(p + 1);
+			}
+
+			p = line.find_first_not_of(" \t\r\n");
+			if (p == std::string::npos)
+			{
+				// completely blank line in .names?
 				break;
 			}
+			line.erase(0, p);
+
 			names.push_back(line);
 		}
 	}
