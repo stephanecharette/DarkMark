@@ -179,15 +179,21 @@ XWindowSystemUtilities::GetXProperty::~GetXProperty()
 }
 
 //==============================================================================
-XWindowSystemUtilities::XSettings::XSettings (::Display* d)
-    : display (d)
+std::unique_ptr<XWindowSystemUtilities::XSettings> XWindowSystemUtilities::XSettings::createXSettings (::Display* d)
 {
-    settingsAtom = Atoms::getCreating (display, "_XSETTINGS_SETTINGS");
+    const auto settingsAtom = Atoms::getCreating (d, "_XSETTINGS_SETTINGS");
+    const auto settingsWindow = X11Symbols::getInstance()->xGetSelectionOwner (d,
+                                                                               Atoms::getCreating (d, "_XSETTINGS_S0"));
 
-    settingsWindow = X11Symbols::getInstance()->xGetSelectionOwner (display,
-                                                                    Atoms::getCreating (display, "_XSETTINGS_S0"));
+    if (settingsWindow == None)
+        return {};
 
-    jassert (settingsWindow != None);
+    return rawToUniquePtr (new XWindowSystemUtilities::XSettings (d, settingsWindow, settingsAtom));
+}
+
+XWindowSystemUtilities::XSettings::XSettings (::Display* d, ::Window settingsWindowIn, Atom settingsAtomIn)
+    : display (d), settingsWindow (settingsWindowIn), settingsAtom (settingsAtomIn)
+{
     update();
 }
 
@@ -1765,12 +1771,13 @@ void XWindowSystem::updateConstraints (::Window windowH, ComponentPeer& peer) co
         else if (auto* c = peer.getConstrainer())
         {
             const auto windowBorder = peer.getFrameSize();
+            const auto factor       = peer.getPlatformScaleFactor();
             const auto leftAndRight = windowBorder.getLeftAndRight();
             const auto topAndBottom = windowBorder.getTopAndBottom();
-            hints->min_width  = jmax (1, c->getMinimumWidth()  - leftAndRight);
-            hints->max_width  = jmax (1, c->getMaximumWidth()  - leftAndRight);
-            hints->min_height = jmax (1, c->getMinimumHeight() - topAndBottom);
-            hints->max_height = jmax (1, c->getMaximumHeight() - topAndBottom);
+            hints->min_width  = jmax (1, (int) (factor * c->getMinimumWidth())  - leftAndRight);
+            hints->max_width  = jmax (1, (int) (factor * c->getMaximumWidth())  - leftAndRight);
+            hints->min_height = jmax (1, (int) (factor * c->getMinimumHeight()) - topAndBottom);
+            hints->max_height = jmax (1, (int) (factor * c->getMaximumHeight()) - topAndBottom);
             hints->flags = PMinSize | PMaxSize;
         }
 
@@ -3029,11 +3036,12 @@ long XWindowSystem::getUserTime (::Window windowH) const
 
 void XWindowSystem::initialiseXSettings()
 {
-    xSettings = std::make_unique<XWindowSystemUtilities::XSettings> (display);
+    xSettings = XWindowSystemUtilities::XSettings::createXSettings (display);
 
-    X11Symbols::getInstance()->xSelectInput (display,
-                                             xSettings->getSettingsWindow(),
-                                             StructureNotifyMask | PropertyChangeMask);
+    if (xSettings != nullptr)
+        X11Symbols::getInstance()->xSelectInput (display,
+                                                 xSettings->getSettingsWindow(),
+                                                 StructureNotifyMask | PropertyChangeMask);
 }
 
 XWindowSystem::DisplayVisuals::DisplayVisuals (::Display* xDisplay)

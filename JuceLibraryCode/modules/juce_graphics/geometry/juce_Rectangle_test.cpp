@@ -23,25 +23,29 @@
   ==============================================================================
 */
 
-#ifdef JUCE_DATA_STRUCTURES_H_INCLUDED
- /* When you add this cpp file to your project, you mustn't include it in a file where you've
-    already included any other headers - just put it inside a file on its own, possibly with your config
-    flags preceding it, but don't include anything else. That also includes avoiding any automatic prefix
-    header files that the compiler may be using.
- */
- #error "Incorrect use of JUCE cpp file"
-#endif
+namespace juce
+{
 
-#include "juce_data_structures.h"
+struct RectangleUnitTest  : public UnitTest
+{
+    RectangleUnitTest() : UnitTest ("Rectangle", UnitTestCategories::graphics) {}
 
-#include "values/juce_Value.cpp"
-#include "values/juce_ValueTree.cpp"
-#include "values/juce_ValueTreeSynchroniser.cpp"
-#include "values/juce_CachedValue.cpp"
-#include "undomanager/juce_UndoManager.cpp"
-#include "app_properties/juce_ApplicationProperties.cpp"
-#include "app_properties/juce_PropertiesFile.cpp"
+    void runTest() override
+    {
+        beginTest ("Rectangle/string conversions can be round-tripped");
+        {
+            const Rectangle<float> a (0.1f, 0.2f, 0.3f, 0.4f);
+            expect (Rectangle<float>::fromString (a.toString()) == a);
 
-#if JUCE_UNIT_TESTS
- #include "values/juce_ValueTreePropertyWithDefault_test.cpp"
-#endif
+            const Rectangle<double> b (0.1, 0.2, 0.3, 0.4);
+            expect (Rectangle<double>::fromString (b.toString()) == b);
+
+            const Rectangle<int> c (1, 2, 3, 4);
+            expect (Rectangle<int>::fromString (c.toString()) == c);
+        }
+    }
+};
+
+static RectangleUnitTest rectangleUnitTest;
+
+} // namespace juce

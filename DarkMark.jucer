@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="NfrweQ" name="DarkMark" projectType="guiapp" displaySplashScreen="1"
-              jucerFormatVersion="1">
+              jucerFormatVersion="1" projectLineFeed="&#10;" cppLanguageStandard="17">
   <MAINGROUP id="qYtMUU" name="DarkMark"/>
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
