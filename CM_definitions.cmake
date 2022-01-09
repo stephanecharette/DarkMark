@@ -1,4 +1,4 @@
-# DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
+# DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
 
 
 SET ( CMAKE_CXX_STANDARD 17 )

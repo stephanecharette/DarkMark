@@ -1,4 +1,4 @@
-DarkMark (C) 2019-2021 Stephane Charette <stephanecharette@gmail.com>
+DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
 
 Since DarkMark uses JUCE for the GUI, and JUCE is licensed using
 GNU GPL v3, then all of DarkMark needs to use GNU GPL v3.
