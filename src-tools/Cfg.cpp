@@ -63,6 +63,9 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("show_mouse_pointer"			, false												);
 	insert_if_not_exist("corner_size"					, 10												);
 	insert_if_not_exist("review_resize_thumbnails"		, true												);
+	insert_if_not_exist("black_and_white_mode_enabled"	, false												);
+	insert_if_not_exist("black_and_white_threshold_blocksize", 15											);
+	insert_if_not_exist("black_and_white_threshold_constant", 15.0											);
 
 	removeValue("darknet_enable_hue");	// this was changed to the float value darknet_hue
 	removeValue("darknet_trailing_percentage");	// typo:  "trailing" -> "training"

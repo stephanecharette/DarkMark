@@ -46,13 +46,33 @@ void dm::DMCanvas::rebuild_cache_image()
 		);
 #endif
 
-	if (content.original_image.size() != content.scaled_image_size)
+	cv::Mat image_to_use;
+
+	if (content.black_and_white_mode_enabled)
 	{
-		content.scaled_image = DarkHelp::resize_keeping_aspect_ratio(content.original_image, content.scaled_image_size);
+		if (content.black_and_white_image.empty())
+		{
+			cv::Mat greyscale;
+			cv::Mat threshold;
+			cv::cvtColor(content.original_image, greyscale, cv::COLOR_BGR2GRAY);
+			cv::adaptiveThreshold(greyscale, threshold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, content.black_and_white_threshold_blocksize, content.black_and_white_threshold_constant);
+			cv::cvtColor(threshold, content.black_and_white_image, cv::COLOR_GRAY2BGR);
+		}
+
+		image_to_use = content.black_and_white_image;
 	}
 	else
 	{
-		content.scaled_image = content.original_image.clone();
+		image_to_use = content.original_image;
+	}
+
+	if (image_to_use.size() != content.scaled_image_size)
+	{
+		content.scaled_image = DarkHelp::resize_keeping_aspect_ratio(image_to_use, content.scaled_image_size);
+	}
+	else
+	{
+		content.scaled_image = image_to_use.clone();
 	}
 
 	const auto fontface			= cv::FONT_HERSHEY_PLAIN;

@@ -40,6 +40,7 @@ Key							| Saves Modified Marks First	| Description
 @p s (lowercase)			|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".  Screenshots must be saved in either @p .jpg or @p .png file format (default is @p PNG).
 @p S (uppercase)			|								| Same as @p 's' (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
 @p t						| yes							| Toggle image tiling.  See @ref ImageSize.
+@p w						|								| Toggle black-and-white mode. Images remain unchanged on disk, but shown in black-and-white (not greyscale!) in the main DarkMark window.  This can be useful when annotating images of text documents.
 @p y (lowercase)			|								| Copy marks from previous (alphabetical) marked up image.
 @p Y (uppercase)			|								| Copy marks from next (alphabetical) marked up image.
 @p z						| yes							| This zooms into the image to review all the annotations.  Use @p 'z' again to move to the next annotation or file.

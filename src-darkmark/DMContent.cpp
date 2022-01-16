@@ -35,6 +35,9 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	corner_size(cfg().get_int("corner_size")),
 	selected_mark(-1),
 	images_are_loading(false),
+	black_and_white_mode_enabled(cfg().get_bool("black_and_white_mode_enabled")),
+	black_and_white_threshold_blocksize(cfg().get_int("black_and_white_threshold_blocksize")),
+	black_and_white_threshold_constant(cfg().get_double("black_and_white_threshold_constant")),
 	scale_factor(1.0),
 	most_recent_class_idx(0),
 	image_filename_index(0),
@@ -783,6 +786,14 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		create_class_menu().showMenuAsync(PopupMenu::Options());
 		return true;
 	}
+	else if (keychar == 'd')
+	{
+		if (selected_mark >= 0)
+		{
+			snap_annotation(selected_mark);
+		}
+		return true;
+	}
 	else if (keychar == 'j')
 	{
 		show_jump_wnd();
@@ -826,6 +837,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 			load_image(image_filename_index);
 			cfg().setValue("darknet_image_tiling", dmapp().darkhelp_nn->config.enable_tiles);
 		}
+		return true;
+	}
+	else if (keychar == 'w')
+	{
+		toggle_black_and_white_mode();
 		return true;
 	}
 	else if (keychar == 'y')
@@ -1010,6 +1026,18 @@ dm::DMContent & dm::DMContent::toggle_show_predictions(const EToggle toggle)
 }
 
 
+dm::DMContent & dm::DMContent::toggle_black_and_white_mode()
+{
+	black_and_white_mode_enabled = not black_and_white_mode_enabled;
+	show_message(black_and_white_mode_enabled ? "black-and-white thresholding enabled" : "using colour image");
+	cfg().setValue("black_and_white_mode_enabled", black_and_white_mode_enabled);
+
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::toggle_show_marks()
 {
 	show_marks = not show_marks;
@@ -1048,6 +1076,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	darknet_image_processing_time = "";
 	selected_mark	= -1;
 	original_image	= cv::Mat();
+	black_and_white_image = cv::Mat();
 	marks.clear();
 	image_is_completely_empty = false;
 
@@ -1846,6 +1875,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	view.addSeparator();
 	view.addItem("show darknet processing time"		, (show_predictions != EToggle::kOff	), (show_processing_time				), std::function<void()>( [&]{ toggle_show_processing_time();			} ));
 	view.addSeparator();
+	view.addItem("display using black-and-white"	, true									, black_and_white_mode_enabled			,  std::function<void()>( [&]{ toggle_black_and_white_mode();			} ));
 	view.addItem("show marks"						, true									, show_marks							,  std::function<void()>( [&]{ toggle_show_marks();						} ));
 	view.addItem("shade"							, true									, shade_rectangles						,  std::function<void()>( [&]{ toggle_shade_rectangles();				} ));
 
@@ -2269,4 +2299,18 @@ void dm::DMContent::timerCallback()
 	// used by highlight_rectangle() and paintOverChildren()
 
 	repaint();
+}
+
+
+dm::DMContent & dm::DMContent::snap_annotation(int idx)
+{
+#if 0
+	bool done = false;
+	auto & m = marks[selected_mark];
+	while (not done)
+	{
+
+	}
+#endif
+	return *this;
 }

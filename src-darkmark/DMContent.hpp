@@ -59,6 +59,8 @@ namespace dm
 
 			DMContent & toggle_show_marks();
 
+			DMContent & toggle_black_and_white_mode();
+
 			DMContent & toggle_show_processing_time();
 
 			DMContent & load_image(const size_t new_idx, const bool full_load = true, const bool display_immediately = false);
@@ -134,6 +136,8 @@ namespace dm
 
 			virtual void timerCallback() override;
 
+			DMContent & snap_annotation(int idx);
+
 			/// The text prefix used to store keys in configuration.  This differs for every project.
 			std::string cfg_prefix;
 
@@ -203,6 +207,16 @@ namespace dm
 
 			cv::Mat original_image;
 			cv::Mat scaled_image;
+
+			/// Image to which we've applied black-and-white thresholding, and converted back to a RGB image.
+			/// This is only created when you press 'W' to enable black-and-white mode.
+			cv::Mat black_and_white_image;
+
+			/// Should we show colour or black-and-white (threshold) image?
+			bool black_and_white_mode_enabled;
+
+			int black_and_white_threshold_blocksize;
+			double black_and_white_threshold_constant;
 
 			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
 			double scale_factor; ///< @todo can this be removed now? replaced by current_zoom_factor?

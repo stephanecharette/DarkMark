@@ -90,6 +90,10 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_review_resize_thumbnails	= cfg().get_bool("review_resize_thumbnails");
 	v_review_table_row_height	= cfg().get_int("review_table_row_height");
 
+	v_black_and_white_mode_enabled			= content.black_and_white_mode_enabled;
+	v_black_and_white_threshold_blocksize	= content.black_and_white_threshold_blocksize;
+	v_black_and_white_threshold_constant	= content.black_and_white_threshold_constant;
+
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
 	v_darkhelp_non_maximal_suppression_threshold.addListener(this);
@@ -100,6 +104,9 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_corner_size								.addListener(this);
 	v_review_resize_thumbnails					.addListener(this);
 	v_review_table_row_height					.addListener(this);
+	v_black_and_white_mode_enabled				.addListener(this);
+	v_black_and_white_threshold_blocksize		.addListener(this);
+	v_black_and_white_threshold_constant		.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
@@ -157,8 +164,23 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	pp.addSection("drawing", properties);
 	properties.clear();
 
+	b = new BooleanPropertyComponent(v_black_and_white_mode_enabled, "black-and-white mode", "black-and-white mode");
+	b->setTooltip("Display black-and-white threshold images.");
+	properties.add(b);
+
+	s = new SliderPropertyComponent(v_black_and_white_threshold_blocksize, "threshold block size", 3.0, 99.0, 2.0);
+	s->setTooltip("Size of a pixel neighborhood that is used to calculate a threshold value. The default value is 15.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_black_and_white_threshold_constant, "threshold constant", -100.0, 100.0, 0.01);
+	s->setTooltip("Constant subtracted from the mean or weighted mean. The default value is 15.");
+	properties.add(s);
+
+	pp.addSection("black-and-white mode", properties);
+	properties.clear();
+
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 400);
+	r = r.withSizeKeepingCentre(400, 450);
 	setBounds(r);
 
 	setVisible(true);
@@ -177,17 +199,20 @@ void dm::SettingsWnd::closeButtonPressed()
 {
 	// close button
 
-//	cfg().setValue("crosshair_colour"			, CrosshairComponent::crosshair_colour			.toString());
-	cfg().setValue("darknet_threshold"			, v_darkhelp_threshold							.getValue());
-	cfg().setValue("darknet_hierarchy_threshold", v_darkhelp_hierchy_threshold					.getValue());
-	cfg().setValue("darknet_nms_threshold"		, v_darkhelp_non_maximal_suppression_threshold	.getValue());
-	cfg().setValue("scrollfield_width"			, v_scrollfield_width							.getValue());
-	cfg().setValue("scrollfield_marker_size"	, v_scrollfield_marker_size						.getValue());
-	cfg().setValue("show_mouse_pointer"			, v_show_mouse_pointer							.getValue());
-	cfg().setValue("darknet_image_tiling"		, v_image_tiling								.getValue());
-	cfg().setValue("corner_size"				, v_corner_size									.getValue());
-	cfg().setValue("review_resize_thumbnails"	, v_review_resize_thumbnails					.getValue());
-	cfg().setValue("review_table_row_height"	, v_review_table_row_height						.getValue());
+//	cfg().setValue("crosshair_colour"					, CrosshairComponent::crosshair_colour			.toString());
+	cfg().setValue("darknet_threshold"					, v_darkhelp_threshold							.getValue());
+	cfg().setValue("darknet_hierarchy_threshold"		, v_darkhelp_hierchy_threshold					.getValue());
+	cfg().setValue("darknet_nms_threshold"				, v_darkhelp_non_maximal_suppression_threshold	.getValue());
+	cfg().setValue("scrollfield_width"					, v_scrollfield_width							.getValue());
+	cfg().setValue("scrollfield_marker_size"			, v_scrollfield_marker_size						.getValue());
+	cfg().setValue("show_mouse_pointer"					, v_show_mouse_pointer							.getValue());
+	cfg().setValue("darknet_image_tiling"				, v_image_tiling								.getValue());
+	cfg().setValue("corner_size"						, v_corner_size									.getValue());
+	cfg().setValue("review_resize_thumbnails"			, v_review_resize_thumbnails					.getValue());
+	cfg().setValue("review_table_row_height"			, v_review_table_row_height						.getValue());
+	cfg().setValue("black_and_white_mode_enabled"		, v_black_and_white_mode_enabled				.getValue());
+	cfg().setValue("black_and_white_threshold_blocksize", v_black_and_white_threshold_blocksize			.getValue());
+	cfg().setValue("black_and_white_threshold_constant"	, v_black_and_white_threshold_constant			.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -247,10 +272,13 @@ void dm::SettingsWnd::valueChanged(Value & value)
 		dmapp().darkhelp_nn->config.threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
 		dmapp().darkhelp_nn->config.enable_tiles						= static_cast<bool>(v_image_tiling.getValue());
 	}
-	content.scrollfield_width			= v_scrollfield_width		.getValue();
-	content.scrollfield.triangle_size	= v_scrollfield_marker_size	.getValue();
-	content.show_mouse_pointer			= v_show_mouse_pointer		.getValue();
-	content.corner_size					= v_corner_size				.getValue();
+	content.scrollfield_width					= v_scrollfield_width					.getValue();
+	content.scrollfield.triangle_size			= v_scrollfield_marker_size				.getValue();
+	content.show_mouse_pointer					= v_show_mouse_pointer					.getValue();
+	content.corner_size							= v_corner_size							.getValue();
+	content.black_and_white_mode_enabled		= v_black_and_white_mode_enabled		.getValue();
+	content.black_and_white_threshold_blocksize	= v_black_and_white_threshold_blocksize	.getValue();
+	content.black_and_white_threshold_constant	= v_black_and_white_threshold_constant	.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 

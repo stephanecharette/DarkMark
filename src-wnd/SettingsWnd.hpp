@@ -32,7 +32,9 @@ namespace dm
 			Value v_corner_size;
 			Value v_review_resize_thumbnails;
 			Value v_review_table_row_height;
-
+			Value v_black_and_white_mode_enabled;
+			Value v_black_and_white_threshold_blocksize;
+			Value v_black_and_white_threshold_constant;
 			DMContent & content;
 			Component canvas;
 			PropertyPanel pp;
