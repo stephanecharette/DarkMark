@@ -38,6 +38,9 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	black_and_white_mode_enabled(cfg().get_bool("black_and_white_mode_enabled")),
 	black_and_white_threshold_blocksize(cfg().get_int("black_and_white_threshold_blocksize")),
 	black_and_white_threshold_constant(cfg().get_double("black_and_white_threshold_constant")),
+	snap_horizontal_tolerance(cfg().get_int("snap_horizontal_tolerance")),
+	snap_vertical_tolerance(cfg().get_int("snap_vertical_tolerance")),
+	snapping_enabled(cfg().get_bool("snapping_enabled")),
 	scale_factor(1.0),
 	most_recent_class_idx(0),
 	image_filename_index(0),
@@ -788,10 +791,54 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keychar == 'd')
 	{
-		if (selected_mark >= 0)
+		if (selected_mark < 0)
 		{
-			snap_annotation(selected_mark);
+			size_t count = 0;
+			size_t skipped = 0;
+			for (size_t idx = 0; idx < marks.size(); idx ++)
+			{
+				if (marks[idx].is_prediction == false)
+				{
+					const auto adjusted = snap_annotation(idx);
+					if (adjusted)
+					{
+						count ++;
+					}
+					else
+					{
+						skipped ++;
+					}
+				}
+			}
+
+			const auto total = count + skipped;
+			if (total == 0)
+			{
+				show_message("no annotations to snap");
+			}
+			else
+			{
+				show_message("snapped " + std::to_string(count) + " annotation" + (count == 1 ? "" : "s"));
+			}
 		}
+		else
+		{
+			const auto adjusted = snap_annotation(selected_mark);
+			if (adjusted)
+			{
+				show_message("snapped selected annotation");
+			}
+			else
+			{
+				show_message("selected annotation was not snapped");
+			}
+		}
+		return true;
+	}
+	else if (keychar == 'D')
+	{
+		snapping_enabled = not snapping_enabled;
+		show_message("snapping: " + std::string(snapping_enabled ? "enable" : "disable"));
 		return true;
 	}
 	else if (keychar == 'j')
@@ -2302,15 +2349,121 @@ void dm::DMContent::timerCallback()
 }
 
 
-dm::DMContent & dm::DMContent::snap_annotation(int idx)
+dm::DMContent & dm::DMContent::create_threshold_image()
 {
-#if 0
-	bool done = false;
-	auto & m = marks[selected_mark];
-	while (not done)
+	if (black_and_white_image.empty())
 	{
-
+		cv::Mat greyscale;
+		cv::Mat threshold;
+		cv::cvtColor(original_image, greyscale, cv::COLOR_BGR2GRAY);
+		cv::adaptiveThreshold(greyscale, threshold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, black_and_white_threshold_blocksize, black_and_white_threshold_constant);
+		cv::cvtColor(threshold, black_and_white_image, cv::COLOR_GRAY2BGR);
 	}
-#endif
+
 	return *this;
+}
+
+
+bool dm::DMContent::snap_annotation(int idx)
+{
+	create_threshold_image();
+	cv::Mat threshold_image;
+	cv::cvtColor(black_and_white_image, threshold_image, cv::COLOR_BGR2GRAY);
+	cv::Mat inverted_image = ~ threshold_image;
+
+	auto & m = marks[idx];
+	const auto original_rect = m.get_bounding_rect(black_and_white_image.size());
+	auto final_rect = original_rect;
+
+	int attempt = 0;
+
+	while (true)
+	{
+		attempt ++;
+		const auto horizontal_snap_distance	= std::min(attempt, snap_horizontal_tolerance);
+		const auto vertical_snap_distance	= std::min(attempt, snap_vertical_tolerance);
+
+		auto roi = final_rect;
+
+		roi.x		-= 1 * horizontal_snap_distance;
+		roi.y		-= 1 * vertical_snap_distance;
+		roi.width	+= 2 * horizontal_snap_distance;
+		roi.height	+= 2 * vertical_snap_distance;
+
+		if (roi.x < 0)
+		{
+			int delta = 0 - roi.x;
+			roi.x += delta;
+			roi.width -= delta;
+		}
+
+		if (roi.y < 0)
+		{
+			int delta = 0 - roi.y;
+			roi.y += delta;
+			roi.height -= delta;
+		}
+
+		if (roi.x + roi.width > inverted_image.cols)
+		{
+			roi.width = inverted_image.cols - roi.x;
+		}
+
+		if (roi.y + roi.height > inverted_image.rows)
+		{
+			roi.height = inverted_image.rows - roi.y;
+		}
+
+		cv::Mat nonzero;
+		cv::findNonZero(inverted_image(roi), nonzero);
+		auto new_rect = cv::boundingRect(nonzero);
+
+		// note that new_rect is relative to the RoI, so we need to move it back into the full image coordinate space
+		new_rect.x += roi.x;
+		new_rect.y += roi.y;
+
+		if (new_rect == final_rect)
+		{
+			attempt ++;
+
+			if (attempt >= std::max(snap_horizontal_tolerance, snap_vertical_tolerance))
+			{
+				// we found a rectangle size that is no longer growing or shrinking
+				// consider this mark as having snapped into place
+
+				Log("snap idx #" + std::to_string(idx) + ": old mark:"
+					" x=" + std::to_string(original_rect.x		) +
+					" y=" + std::to_string(original_rect.y		) +
+					" w=" + std::to_string(original_rect.width	) +
+					" h=" + std::to_string(original_rect.height	));
+
+				Log("snap idx #" + std::to_string(idx) + ": new mark:"
+				" x=" + std::to_string(new_rect.x		) +
+				" y=" + std::to_string(new_rect.y		) +
+				" w=" + std::to_string(new_rect.width	) +
+				" h=" + std::to_string(new_rect.height	));
+
+				break;
+			}
+		}
+		else
+		{
+			attempt = 0;
+		}
+
+		final_rect = new_rect;
+	}
+
+	bool adjusted = false;
+
+	if (final_rect != original_rect and final_rect.width >= 10 and final_rect.height >= 10)
+	{
+		// modify the annotation with this new rectangle
+		m.set(final_rect);
+		need_to_save = true;
+		rebuild_image_and_repaint();
+		adjusted = true;
+	}
+
+	return adjusted;
 }

@@ -262,6 +262,25 @@ dm::Mark & dm::Mark::set(const ECorner & corner, cv::Point2d new_point)
 }
 
 
+dm::Mark & dm::Mark::set(cv::Rect & r)
+{
+	const double image_width	= static_cast<double>(image_dimensions.width);
+	const double image_height	= static_cast<double>(image_dimensions.height);
+	const double minx			= static_cast<double>(r.x)				/ image_width;
+	const double miny			= static_cast<double>(r.y)				/ image_height;
+	const double maxx			= static_cast<double>(r.x + r.width)	/ image_width;
+	const double maxy			= static_cast<double>(r.y + r.height)	/ image_height;
+
+	normalized_all_points.clear();
+	normalized_all_points.push_back(cv::Point2d(minx, miny));
+	normalized_all_points.push_back(cv::Point2d(maxx, miny));
+	normalized_all_points.push_back(cv::Point2d(maxx, maxy));
+	normalized_all_points.push_back(cv::Point2d(minx, maxy));
+
+	return rebalance();
+}
+
+
 dm::Mark & dm::Mark::rebalance()
 {
 	if (normalized_all_points.size() < 4)

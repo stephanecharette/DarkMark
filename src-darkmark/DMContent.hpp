@@ -136,7 +136,9 @@ namespace dm
 
 			virtual void timerCallback() override;
 
-			DMContent & snap_annotation(int idx);
+			DMContent & create_threshold_image();
+
+			bool snap_annotation(int idx);
 
 			/// The text prefix used to store keys in configuration.  This differs for every project.
 			std::string cfg_prefix;
@@ -217,6 +219,9 @@ namespace dm
 
 			int black_and_white_threshold_blocksize;
 			double black_and_white_threshold_constant;
+			int snap_horizontal_tolerance;
+			int snap_vertical_tolerance;
+			bool snapping_enabled;
 
 			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
 			double scale_factor; ///< @todo can this be removed now? replaced by current_zoom_factor?

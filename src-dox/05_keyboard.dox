@@ -29,6 +29,8 @@ Key							| Saves Modified Marks First	| Description
 @p B (uppercase)			|								| Toggle @em shade mode.  All marked rectangles will be shaded in a semi-transparent colour.
 @p c (lowercase)			|								| Display the 'class' menu (see @p ENTER key).
 @p C (uppercase)			|								| Clear all marks for the current image.
+@p d (lowercase)			|								| Snap the current annotation, or all annotation on the current image if no annotation is selected.
+@p D (uppercase)			|								| Toggle auto-snapping.  Intended for use when annotating objects on a simple background, such as text on light-coloured paper.
 @p e						|								| Miscellaneous settings window.
 @p j						| yes							| Jump to a different image.
 @p l						|								| Cycle between the various label modes (on, off, auto).

@@ -35,6 +35,10 @@ namespace dm
 			Value v_black_and_white_mode_enabled;
 			Value v_black_and_white_threshold_blocksize;
 			Value v_black_and_white_threshold_constant;
+			Value v_snapping_enabled;
+			Value v_snap_horizontal_tolerance;
+			Value v_snap_vertical_tolerance;
+
 			DMContent & content;
 			Component canvas;
 			PropertyPanel pp;

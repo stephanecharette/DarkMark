@@ -93,6 +93,8 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_black_and_white_mode_enabled			= content.black_and_white_mode_enabled;
 	v_black_and_white_threshold_blocksize	= content.black_and_white_threshold_blocksize;
 	v_black_and_white_threshold_constant	= content.black_and_white_threshold_constant;
+	v_snap_horizontal_tolerance				= content.snap_horizontal_tolerance;
+	v_snap_vertical_tolerance				= content.snap_vertical_tolerance;
 
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
@@ -107,6 +109,9 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_black_and_white_mode_enabled				.addListener(this);
 	v_black_and_white_threshold_blocksize		.addListener(this);
 	v_black_and_white_threshold_constant		.addListener(this);
+	v_snapping_enabled							.addListener(this);
+	v_snap_horizontal_tolerance					.addListener(this);
+	v_snap_vertical_tolerance					.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
@@ -176,11 +181,23 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s->setTooltip("Constant subtracted from the mean or weighted mean. The default value is 15.");
 	properties.add(s);
 
+	b = new BooleanPropertyComponent(v_snapping_enabled, "auto-snapping enabled", "auto-snapping enabled");
+	b->setTooltip("New annotations will be snapped. This is mostly intended for objects on a light background, such as text on paper.");
+	properties.add(b);
+
+	s = new SliderPropertyComponent(v_snap_horizontal_tolerance, "snap horizontal tolerance", 1, 99, 1);
+	s->setTooltip("The number of pixels DarkMark will search horizontally when attempting to snap annotations. This is used by the \"snap\" feature when annotating images with text. This may need to be adjusted based on spacing between letters and spacing between words.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_snap_vertical_tolerance, "snap vertical tolerance", 1, 99, 1);
+	s->setTooltip("The number of pixels DarkMark will search vertically when attempting to snap annotations. This is used by the \"snap\" feature when annotating images with text. This may need to be adjusted based on spacing between lines of text.");
+	properties.add(s);
+
 	pp.addSection("black-and-white mode", properties);
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 450);
+	r = r.withSizeKeepingCentre(400, 520);
 	setBounds(r);
 
 	setVisible(true);
@@ -213,6 +230,9 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("black_and_white_mode_enabled"		, v_black_and_white_mode_enabled				.getValue());
 	cfg().setValue("black_and_white_threshold_blocksize", v_black_and_white_threshold_blocksize			.getValue());
 	cfg().setValue("black_and_white_threshold_constant"	, v_black_and_white_threshold_constant			.getValue());
+	cfg().setValue("snapping_enabled"					, v_snapping_enabled							.getValue());
+	cfg().setValue("snap_horizontal_tolerance"			, v_snap_horizontal_tolerance					.getValue());
+	cfg().setValue("snap_vertical_tolerance"			, v_snap_vertical_tolerance						.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -279,6 +299,9 @@ void dm::SettingsWnd::valueChanged(Value & value)
 	content.black_and_white_mode_enabled		= v_black_and_white_mode_enabled		.getValue();
 	content.black_and_white_threshold_blocksize	= v_black_and_white_threshold_blocksize	.getValue();
 	content.black_and_white_threshold_constant	= v_black_and_white_threshold_constant	.getValue();
+	content.snapping_enabled					= v_snapping_enabled					.getValue();
+	content.snap_horizontal_tolerance			= v_snap_horizontal_tolerance			.getValue();
+	content.snap_vertical_tolerance				= v_snap_vertical_tolerance				.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 

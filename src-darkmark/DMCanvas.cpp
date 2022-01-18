@@ -50,14 +50,7 @@ void dm::DMCanvas::rebuild_cache_image()
 
 	if (content.black_and_white_mode_enabled)
 	{
-		if (content.black_and_white_image.empty())
-		{
-			cv::Mat greyscale;
-			cv::Mat threshold;
-			cv::cvtColor(content.original_image, greyscale, cv::COLOR_BGR2GRAY);
-			cv::adaptiveThreshold(greyscale, threshold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, content.black_and_white_threshold_blocksize, content.black_and_white_threshold_constant);
-			cv::cvtColor(threshold, content.black_and_white_image, cv::COLOR_GRAY2BGR);
-		}
+		content.create_threshold_image();
 
 		image_to_use = content.black_and_white_image;
 	}
@@ -510,6 +503,10 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 	content.selected_mark = content.marks.size() - 1;
 	content.need_to_save = true;
 	content.image_is_completely_empty = false;
+	if (content.snapping_enabled)
+	{
+		content.snap_annotation(content.selected_mark);
+	}
 	content.rebuild_image_and_repaint();
 
 	return;
@@ -548,6 +545,10 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 	content.most_recent_size = m.get_normalized_bounding_rect().size();
 	content.need_to_save = true;
 	content.image_is_completely_empty = false;
+	if (content.snapping_enabled)
+	{
+		content.snap_annotation(content.selected_mark);
+	}
 	content.rebuild_image_and_repaint();
 
 	return;
