@@ -839,6 +839,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	{
 		snapping_enabled = not snapping_enabled;
 		show_message("snapping: " + std::string(snapping_enabled ? "enable" : "disable"));
+		cfg().setValue("snapping_enabled", snapping_enabled);
 		return true;
 	}
 	else if (keychar == 'j')
@@ -2438,10 +2439,10 @@ bool dm::DMContent::snap_annotation(int idx)
 					" h=" + std::to_string(original_rect.height	));
 
 				Log("snap idx #" + std::to_string(idx) + ": new mark:"
-				" x=" + std::to_string(new_rect.x		) +
-				" y=" + std::to_string(new_rect.y		) +
-				" w=" + std::to_string(new_rect.width	) +
-				" h=" + std::to_string(new_rect.height	));
+					" x=" + std::to_string(new_rect.x		) +
+					" y=" + std::to_string(new_rect.y		) +
+					" w=" + std::to_string(new_rect.width	) +
+					" h=" + std::to_string(new_rect.height	));
 
 				break;
 			}
