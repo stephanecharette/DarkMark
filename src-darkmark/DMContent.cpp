@@ -1831,6 +1831,12 @@ dm::DMContent & dm::DMContent::erase_all_marks()
 	load_image(image_filename_index);
 	rebuild_image_and_repaint();
 
+	if (scrollfield_width > 0)
+	{
+		scrollfield.update_index(image_filename_index);
+		scrollfield.need_to_rebuild_cache_image = true;
+	}
+
 	return *this;
 }
 
