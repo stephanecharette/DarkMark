@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.6.13-1	| 2022-01-18	| Add support for "snapping" annotations.
 1.6.11.0	| 2022-01-08	| Update JUCE to the latest version (6.1.4).
 1.6.5-1		| 2021-11-29	| Review runs MD5 on images to detect duplicates.
 1.6.3-1		| 2021-11-13	| Added inclusion regex to launcher window.

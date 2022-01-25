@@ -2392,10 +2392,10 @@ bool dm::DMContent::snap_annotation(int idx)
 
 		auto roi = final_rect;
 
-		roi.x		-= 1 * horizontal_snap_distance;
-		roi.y		-= 1 * vertical_snap_distance;
-		roi.width	+= 2 * horizontal_snap_distance;
-		roi.height	+= 2 * vertical_snap_distance;
+		roi.x		-= (1 * horizontal_snap_distance	);
+		roi.y		-= (1 * vertical_snap_distance		);
+		roi.width	+= (2 * horizontal_snap_distance	);
+		roi.height	+= (2 * vertical_snap_distance		);
 
 		if (roi.x < 0)
 		{
