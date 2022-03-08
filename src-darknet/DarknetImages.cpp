@@ -105,6 +105,12 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 
 		// first we create the resized image file
 		cv::Mat mat = cv::imread(original_image);
+		if (mat.empty())
+		{
+			// something has gone *very* wrong if we cannot read the image
+			Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ")");
+			throw std::runtime_error("failed to open or read the image " + original_image);
+		}
 
 		cv::Mat dst;
 		if (mat.cols != desired_image_size.width or mat.rows != desired_image_size.height)
@@ -186,6 +192,12 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 		json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
 
 		cv::Mat mat = cv::imread(original_image);
+		if (mat.empty())
+		{
+			// something has gone *very* wrong if we cannot read the image
+			Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ")");
+			throw std::runtime_error("failed to open or read the image " + original_image);
+		}
 
 		const double horizontal_factor		= static_cast<double>(mat.cols) / static_cast<double>(desired_tile_size.width);
 		const double vertical_factor		= static_cast<double>(mat.rows) / static_cast<double>(desired_tile_size.height);
@@ -389,6 +401,13 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 		progress_window.setProgress(work_done / work_to_do);
 
 		cv::Mat original_mat = cv::imread(original_image);
+		if (original_mat.empty())
+		{
+			// something has gone *very* wrong if we cannot read the image
+			Log(original_image + " (" + std::to_string(original_mat.cols) + "x" + std::to_string(original_mat.rows) + ")");
+			throw std::runtime_error("failed to open or read the image " + original_image);
+		}
+
 		if (original_mat.cols < large_size.width or original_mat.rows < large_size.height)
 		{
 			zoom_txt

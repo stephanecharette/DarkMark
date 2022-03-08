@@ -1154,7 +1154,13 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	{
 		task = "loading image file " + long_filename;
 //		Log("loading image " + long_filename);
-		original_image = cv::imread(image_filenames.at(image_filename_index));
+		original_image = cv::imread(long_filename);
+		if (original_image.empty())
+		{
+			// something has gone *very* wrong if we cannot read the image
+			Log(long_filename + " (" + std::to_string(original_image.cols) + "x" + std::to_string(original_image.rows) + ")");
+			throw std::runtime_error("failed to open or read the image " + long_filename);
+		}
 
 		if (full_load)
 		{
