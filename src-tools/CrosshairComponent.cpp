@@ -70,7 +70,7 @@ void dm::CrosshairComponent::paint(Graphics & g)
 		{
 			cached_image = juce::Image();
 			need_to_rebuild_cache_image = true;
-			Log("Exception caught rebuilding cache image for " + this->getName().toStdString() + ": " + e.what());
+			Log("Exception caught rebuilding cache image for " + this->getName().toStdString() + " (" + content.long_filename + "): " + e.what());
 		}
 	}
 

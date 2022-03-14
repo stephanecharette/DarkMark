@@ -227,7 +227,10 @@ void dm::DMCanvas::rebuild_cache_image()
 #endif
 			// check to see if the label is going to be off-screen, and if so slide it to a better position
 			if (text_rect.x < 0) text_rect.x = r.x;				// first attempt to fix this is to make it left-aligned
+			if (text_rect.x + text_rect.width >= content.scaled_image.cols)	text_rect.x = content.scaled_image.cols - text_rect.width;
 			if (text_rect.x < 0) text_rect.x = 0;				// ...and if that didn't work, slide it to the left edge
+			if (text_rect.x + text_rect.width >= content.scaled_image.cols) text_rect.width = content.scaled_image.cols - text_rect.x;
+
 			if (text_rect.y < 0) text_rect.y = r.y + r.height;	// vertically, we need to place the label underneath instead of above
 
 			// if the mark is from the top of the image to the bottom of the image, then we still haven't

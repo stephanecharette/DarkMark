@@ -1188,7 +1188,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 					darknet_image_processing_time = darkhelp_nn().duration_string();
 					Log("darkhelp processed " + short_filename + " in " + darknet_image_processing_time);
 
-//					std::cout << darkhelp().prediction_results << std::endl;
+//					std::cout << darkhelp_nn().prediction_results << std::endl;
 
 					// convert the predictions into marks
 					task = "converting predictions";
