@@ -278,7 +278,7 @@ private:
             if (auto* handler = getHandler (self))
             {
                 if (handler->getCurrentState().isCheckable())
-                    return handler->getCurrentState().isChecked() ? @(1) : @(0);
+                    return juceStringToNS (handler->getCurrentState().isChecked() ? TRANS ("On") : TRANS ("Off"));
 
                 return getAccessibilityValueFromInterfaces (*handler);
             }
@@ -797,7 +797,8 @@ private:
                         continue;
 
                     if (selector == @selector (accessibilityPerformPress))
-                        return handler->getActions().contains (AccessibilityActionType::press);
+                        return (handler->getCurrentState().isCheckable() && handler->getActions().contains (AccessibilityActionType::toggle))
+                                || handler->getActions().contains (AccessibilityActionType::press);
 
                     if (selector == @selector (accessibilityPerformShowMenu))
                         return handler->getActions().contains (AccessibilityActionType::showMenu);

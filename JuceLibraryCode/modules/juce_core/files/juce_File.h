@@ -381,21 +381,21 @@ public:
     //==============================================================================
     /** Returns the last modification time of this file.
 
-        @returns    the time, or an invalid time if the file doesn't exist.
+        @returns    the time, or the Unix Epoch if the file doesn't exist.
         @see setLastModificationTime, getLastAccessTime, getCreationTime
     */
     Time getLastModificationTime() const;
 
     /** Returns the last time this file was accessed.
 
-        @returns    the time, or an invalid time if the file doesn't exist.
+        @returns    the time, or the Unix Epoch if the file doesn't exist.
         @see setLastAccessTime, getLastModificationTime, getCreationTime
     */
     Time getLastAccessTime() const;
 
     /** Returns the time that this file was created.
 
-        @returns    the time, or an invalid time if the file doesn't exist.
+        @returns    the time, or the Unix Epoch if the file doesn't exist.
         @see getLastModificationTime, getLastAccessTime
     */
     Time getCreationTime() const;
@@ -560,6 +560,23 @@ public:
         ignoreHiddenFiles           = 4     /**< Add this flag to avoid returning any hidden files in the results. */
     };
 
+    enum class FollowSymlinks
+    {
+        /** Requests that a file system traversal should not follow any symbolic links. */
+        no,
+
+        /** Requests that a file system traversal may follow symbolic links, but should attempt to
+            skip any symbolic links to directories that may cause a cycle.
+        */
+        noCycles,
+
+        /** Requests that a file system traversal follow all symbolic links. Use with care, as this
+            may produce inconsistent results, or fail to terminate, if the filesystem contains cycles
+            due to symbolic links.
+        */
+        yes
+    };
+
     /** Searches this directory for files matching a wildcard pattern.
 
         Assuming that this file is a directory, this method will search it
@@ -572,13 +589,15 @@ public:
         @param searchRecursively        if true, all subdirectories will be recursed into to do
                                         an exhaustive search
         @param wildCardPattern          the filename pattern to search for, e.g. "*.txt"
+        @param followSymlinks           the method that should be used to handle symbolic links
         @returns                        the set of files that were found
 
         @see getNumberOfChildFiles, RangedDirectoryIterator
     */
     Array<File> findChildFiles (int whatToLookFor,
                                 bool searchRecursively,
-                                const String& wildCardPattern = "*") const;
+                                const String& wildCardPattern = "*",
+                                FollowSymlinks followSymlinks = FollowSymlinks::yes) const;
 
     /** Searches inside a directory for files matching a wildcard pattern.
         Note that there's a newer, better version of this method which returns the results
@@ -586,7 +605,8 @@ public:
         mainly for legacy code to use.
     */
     int findChildFiles (Array<File>& results, int whatToLookFor,
-                        bool searchRecursively, const String& wildCardPattern = "*") const;
+                        bool searchRecursively, const String& wildCardPattern = "*",
+                        FollowSymlinks followSymlinks = FollowSymlinks::yes) const;
 
     /** Searches inside a directory and counts how many files match a wildcard pattern.
 
@@ -942,7 +962,10 @@ public:
 
             @see globalApplicationsDirectory
         */
-        globalApplicationsDirectoryX86
+        globalApplicationsDirectoryX86,
+
+        /** On a Windows machine returns the %LOCALAPPDATA% folder. */
+        windowsLocalAppData
        #endif
     };
 

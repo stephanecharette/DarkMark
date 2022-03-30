@@ -70,10 +70,56 @@ public:
                                                         performAnyPendingRepaintsNow() method is called. */
         windowIgnoresKeyPresses     = (1 << 10),   /**< Tells the window not to catch any keypresses. This can
                                                         be used for things like plugin windows, to stop them interfering
-                                                        with the host's shortcut keys. This will prevent the window from
-                                                        gaining keyboard focus. */
+                                                        with the host's shortcut keys. */
         windowIsSemiTransparent     = (1 << 30)    /**< Not intended for public use - makes a window transparent. */
 
+    };
+
+    /** Represents the window borders around a window component.
+
+        You must use operator bool() to evaluate the validity of the object before accessing
+        its value.
+
+        Returned by getFrameSizeIfPresent(). A missing value may be returned on Linux for a
+        short time after window creation.
+    */
+    class JUCE_API  OptionalBorderSize final
+    {
+    public:
+        /** Default constructor. Creates an invalid object. */
+        OptionalBorderSize()                               : valid (false)                               {}
+
+        /** Constructor. Creates a valid object containing the provided BorderSize<int>. */
+        explicit OptionalBorderSize (BorderSize<int> size) : valid (true), borderSize (std::move (size)) {}
+
+        /** Returns true if a valid value has been provided. */
+        explicit operator bool() const noexcept { return valid; }
+
+        /** Returns a reference to the value.
+
+            You must not call this function on an invalid object. Use operator bool() to
+            determine validity.
+        */
+        const auto& operator*() const noexcept
+        {
+            jassert (valid);
+            return borderSize;
+        }
+
+        /** Returns a pointer to the value.
+
+            You must not call this function on an invalid object. Use operator bool() to
+            determine validity.
+        */
+        const auto* operator->() const noexcept
+        {
+            jassert (valid);
+            return &borderSize;
+        }
+
+    private:
+        bool valid;
+        BorderSize<int> borderSize;
     };
 
     //==============================================================================
@@ -220,9 +266,24 @@ public:
     virtual bool contains (Point<int> localPos, bool trueIfInAChildWindow) const = 0;
 
     /** Returns the size of the window frame that's around this window.
+
+        Depending on the platform the border size may be invalid for a short transient
+        after creating a new window. Hence the returned value must be checked using
+        operator bool() and the contained value can be accessed using operator*() only
+        if it is present.
+
         Whether or not the window has a normal window frame depends on the flags
         that were set when the window was created by Component::addToDesktop()
     */
+    virtual OptionalBorderSize getFrameSizeIfPresent() const = 0;
+
+    /** Returns the size of the window frame that's around this window.
+        Whether or not the window has a normal window frame depends on the flags
+        that were set when the window was created by Component::addToDesktop()
+    */
+   #if JUCE_LINUX || JUCE_BSD
+    [[deprecated ("Use getFrameSizeIfPresent instead.")]]
+   #endif
     virtual BorderSize<int> getFrameSize() const = 0;
 
     /** This is called when the window's bounds change.
@@ -418,6 +479,34 @@ public:
     */
     virtual void setHasChangedSinceSaved (bool) {}
 
+
+    enum class Style
+    {
+        /** A style that matches the system-wide style. */
+        automatic,
+
+        /** A light style, which will probably use dark text on a light background. */
+        light,
+
+        /** A dark style, which will probably use light text on a dark background. */
+        dark
+    };
+
+    /** On operating systems that support it, this will update the style of this
+        peer as requested.
+
+        Note that this will not update the theme system-wide. This will only
+        update UI elements so that they display appropriately for this peer!
+    */
+    void setAppStyle (Style s)
+    {
+        if (std::exchange (style, s) != style)
+            appStyleChanged();
+    }
+
+    /** Returns the style requested for this app. */
+    Style getAppStyle() const { return style; }
+
 protected:
     //==============================================================================
     static void forceDisplayUpdate();
@@ -428,9 +517,12 @@ protected:
     ComponentBoundsConstrainer* constrainer = nullptr;
     static std::function<ModifierKeys()> getNativeRealtimeModifiers;
     ListenerList<ScaleFactorListener> scaleFactorListeners;
+    Style style = Style::automatic;
 
 private:
     //==============================================================================
+    virtual void appStyleChanged() {}
+
     Component* getTargetForKeyPress();
 
     WeakReference<Component> lastFocusedComponent, dragAndDropTargetComponent;

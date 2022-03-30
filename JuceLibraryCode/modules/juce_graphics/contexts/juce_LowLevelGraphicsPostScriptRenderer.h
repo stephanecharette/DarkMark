@@ -42,8 +42,6 @@ public:
                                         int totalWidth,
                                         int totalHeight);
 
-    ~LowLevelGraphicsPostScriptRenderer() override;
-
     //==============================================================================
     bool isVectorDevice() const override;
     void setOrigin (Point<int>) override;
@@ -95,8 +93,8 @@ protected:
     struct SavedState
     {
         SavedState();
+        SavedState (const SavedState&) = default;
         SavedState& operator= (const SavedState&) = delete;
-        ~SavedState();
 
         RectangleList<int> clip;
         int xOffset, yOffset;
