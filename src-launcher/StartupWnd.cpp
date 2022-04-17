@@ -339,6 +339,19 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 			if (ok)
 			{
+				if (dir == File::getSpecialLocation(File::SpecialLocationType::userHomeDirectory)				or
+					dir == File::getSpecialLocation(File::SpecialLocationType::userDesktopDirectory)			or
+					dir == File::getSpecialLocation(File::SpecialLocationType::userDocumentsDirectory)			or
+					dir == File::getSpecialLocation(File::SpecialLocationType::userApplicationDataDirectory)	or
+					dir == File::getSpecialLocation(File::SpecialLocationType::userPicturesDirectory)			)
+				{
+					AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark Project", "The new project path " + dir.getFullPathName().toStdString() + " is a reserved path and shouldn't be used as a project directory.  Instead, you should create a new subdirectory for your project within this location.\n\nFor examples, please see \"https://www.ccoderun.ca/programming/darknet_faq/#directory_setup\".", "Cancel");
+					ok = false;
+				}
+			}
+
+			if (ok)
+			{
 				const std::string project_name = dir.getFileNameWithoutExtension().toStdString();
 				std::string names = dir.getChildFile(project_name).withFileExtension(".names").getFullPathName().toStdString();
 
