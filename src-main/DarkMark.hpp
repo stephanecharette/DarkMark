@@ -53,6 +53,7 @@ namespace dm
 	class WndCfgTemplates;
 	class StartupWnd;
 	class StartupCanvas;
+	class PdfImportWindow;
 	class VideoImportWindow;
 	class SettingsWnd;
 	class ProjectInfo;
@@ -99,6 +100,7 @@ namespace dm
 #include "CfgHandler.hpp"
 #include "DarknetWnd.hpp"
 #include "WndCfgTemplates.hpp"
+#include "PdfImportWindow.hpp"
 #include "VideoImportWindow.hpp"
 #include "StartupWnd.hpp"
 #include "SettingsWnd.hpp"

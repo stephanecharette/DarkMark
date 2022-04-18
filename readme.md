@@ -32,7 +32,7 @@ DarkMark requires [DarkHelp](https://github.com/stephanecharette/DarkHelp/) to b
 
 Once Darknet and DarkHelp have been built and installed, run the following commands to build DarkMark on Ubuntu:
 
-	sudo apt-get install build-essential cmake libopencv-dev libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev
+	sudo apt-get install build-essential cmake libopencv-dev libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev libpoppler-cpp-dev
 	cd ~/src
 	git clone https://github.com/stephanecharette/DarkMark.git
 	cd DarkMark

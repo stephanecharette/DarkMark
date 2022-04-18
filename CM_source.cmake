@@ -9,17 +9,8 @@ INCLUDE_DIRECTORIES ( BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/JuceLibraryCode )
 INCLUDE_DIRECTORIES ( BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/JuceLibraryCode/modules )
 ADD_SUBDIRECTORY ( src-juce )
 
-IF (WIN32)
-	ADD_COMPILE_OPTIONS ( /W4 )				# warning level (high)
-	ADD_COMPILE_OPTIONS ( /WX )				# treat warnings as errors
-	ADD_COMPILE_OPTIONS ( /permissive- )	# stick to C++ standards (turn off Microsoft-specific extensions)
-	ADD_COMPILE_OPTIONS ( /wd4100 )			# disable "unreferenced formal parameter"
-	ADD_COMPILE_DEFINITIONS ( _CRT_SECURE_NO_WARNINGS )	# don't complain about localtime()
-	SET ( CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" )
-ELSE ()
-	# Would love to also have -Wshadow, but JUCE prevents me from using it.
-	ADD_DEFINITIONS ( "-Wall -Wextra -Werror -Wno-unused-parameter") # -Wshadow" )
-ENDIF ()
+# Would love to also have -Wshadow, but JUCE prevents me from using it.
+ADD_DEFINITIONS ( "-Wall -Wextra -Werror -Wno-unused-parameter") # -Wshadow" )
 
 INCLUDE_DIRECTORIES ( BEFORE src-main		)
 INCLUDE_DIRECTORIES ( BEFORE src-tools		)
