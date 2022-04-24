@@ -93,6 +93,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_black_and_white_mode_enabled			= content.black_and_white_mode_enabled;
 	v_black_and_white_threshold_blocksize	= content.black_and_white_threshold_blocksize;
 	v_black_and_white_threshold_constant	= content.black_and_white_threshold_constant;
+	v_snapping_enabled						= content.snapping_enabled;
 	v_snap_horizontal_tolerance				= content.snap_horizontal_tolerance;
 	v_snap_vertical_tolerance				= content.snap_vertical_tolerance;
 
