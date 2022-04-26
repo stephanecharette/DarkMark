@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.6.23-1	| 2022-04-26	| Update JUCE to latest version (6.1.6). Default font is now hard-coded to "Liberation Sans".  May need to change this if it causes problems.  (See @ref dm::DarkMarkApplication::initialise() for details.)
 1.6.21-1	| 2022-04-18	| PDF files can now be imported as images (new build requirement: libpoppler-cpp-dev)
 1.6.19-1	| 2022-03-30	| Update JUCE to latest version (6.1.6, though "git describe" says 6.0.8?)
 1.6.18-1	| 2022-03-14	| Very long label names would cause DarkMark to fail to draw image (green image).

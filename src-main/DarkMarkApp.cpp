@@ -210,6 +210,17 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	#if DARKNET_GEN_SIMPLIFIED
 		// different default font is needed for Japanese characters; this requires: "sudo apt-get install fonts-ipafont-gothic"
 		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("IPAPGothic");
+	#else
+		/* Until 2022-04, JUCE would default to "Liberation Sans" on Ubuntu.  But at some point in April 2022, JUCE seems to
+		 * have changed the default to an italic version of "DejaVu Sans".  Unfortunately, I don't like how it makes things
+		 * look since it is a heavy font and -- in my opinion! -- italics is a poor choice for the default font in a GUI.
+		 * So I'm now hard-coding the font back to "Liberation Sans".  But I worry this will cause font issues for people
+		 * who want to run DarkMark on systems without that font.  This may need to be revisited.
+		 */
+		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("Liberation Sans");
+//		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("DejaVu Sans");
+//		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("Ubuntu Condensed");
+//		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("Ubuntu");
 	#endif
 
 	cfg.reset(new Cfg);
