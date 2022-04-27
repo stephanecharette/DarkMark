@@ -91,7 +91,10 @@ void dm::DMReviewCanvas::cellDoubleClicked(int rowNumber, int columnId, const Mo
 			idx ++;
 		}
 
-//		dmapp().review_wnd->setMinimised(true);
+		// jump out of "zoom" mode before we switch to the next image
+		dmapp().wnd->content.zoom_point_of_interest = cv::Size(0, 0);
+		dmapp().wnd->content.user_specified_zoom_factor = -1.0;
+
 		dmapp().wnd->content.load_image(idx);
 #if 0
 		// see if the review window is hiding the rectangle we want to highlight
