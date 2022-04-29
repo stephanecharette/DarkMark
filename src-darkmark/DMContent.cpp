@@ -2388,6 +2388,8 @@ bool dm::DMContent::snap_annotation(int idx)
 	const auto original_rect = m.get_bounding_rect(black_and_white_image.size());
 	auto final_rect = original_rect;
 
+	const auto original_area = original_rect.area();
+
 	int attempt = 0;
 
 	while (true)
@@ -2461,7 +2463,19 @@ bool dm::DMContent::snap_annotation(int idx)
 		}
 		else
 		{
+			// rectangle is still changing if we get here
+
 			attempt = 0;
+
+			const auto new_area = new_rect.area();
+			if (new_area > original_area * 3)
+			{
+				// something is wrong, this is growing out of control
+
+				final_rect = original_rect;
+				Log("snap idx #" + std::to_string(idx) + ": aborting due to out-of-control growing");
+				break;
+			}
 		}
 
 		final_rect = new_rect;
