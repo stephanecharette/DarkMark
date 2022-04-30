@@ -686,10 +686,25 @@ void dm::StartupWnd::updateButtons()
 
 	delete_button		.setEnabled(enabled);
 	import_video_button	.setEnabled(enabled);
-	import_pdf_button	.setEnabled(enabled);
 	open_folder_button	.setEnabled(enabled);
 	refresh_button		.setEnabled(enabled);
 	ok_button			.setEnabled(enabled);
+
+	#if POPPLER_VERSION_MAJOR == 0 && POPPLER_VERSION_MINOR < 86
+	/* Older versions of Poppler are a problem.  The call to poppler::page_renderer::set_image_format() does not
+	 * exist, and I have no idea what the image format is that Poppler uses internally to store the images.  For
+	 * now, I'll disable the button.  If people need this functionality in older versions of Ubuntu, please
+	 * contact me and I'll dig into it some more.
+	 *
+	 * Also see dm::PdfImportWindow::run() where Poppler is used.
+	 *
+	 * Stephane Charette, 2022-04-30.
+	 */
+	import_pdf_button	.setEnabled(false);
+	import_pdf_button	.setTooltip("Older version of PDF library \"Poppler\" detected.  PDF import into DarkMark is disabled. Contact Stephane Charette for details.");
+	#else
+	import_pdf_button	.setEnabled(enabled);
+	#endif
 
 	return;
 }

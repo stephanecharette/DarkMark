@@ -364,8 +364,17 @@ void dm::PdfImportWindow::run()
 					continue;
 				}
 
+				#if POPPLER_VERSION_MAJOR > 0 || (POPPLER_VERSION_MAJOR == 0 && POPPLER_VERSION_MINOR > 62)
+				/* I don't know when these calls were introduced, but:
+				 *
+				 * - Ubuntu 18.04 uses Poppler 0.62.0
+				 * - Ubuntu 20.04 uses Poppler 0.86.0
+				 *
+				 * What image format does Poppler use with the older versions prior to the set_image_format() call?
+				 */
 				renderer.set_image_format(poppler::image::format_enum::format_bgr24);
 				renderer.set_line_mode(poppler::page_renderer::line_mode_enum::line_default); // is the default the same as "none"?
+				#endif
 				renderer.set_render_hint(poppler::page_renderer::render_hint::antialiasing		, true);
 				renderer.set_render_hint(poppler::page_renderer::render_hint::text_antialiasing	, true);
 				renderer.set_render_hint(poppler::page_renderer::render_hint::text_hinting		, true);
