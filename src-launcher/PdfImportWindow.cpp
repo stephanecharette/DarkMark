@@ -369,8 +369,6 @@ void dm::PdfImportWindow::run()
 				 *
 				 * - Ubuntu 18.04 uses Poppler 0.62.0
 				 * - Ubuntu 20.04 uses Poppler 0.86.0
-				 *
-				 * What image format does Poppler use with the older versions prior to the set_image_format() call?
 				 */
 				renderer.set_image_format(poppler::image::format_enum::format_bgr24);
 				renderer.set_line_mode(poppler::page_renderer::line_mode_enum::line_default); // is the default the same as "none"?
@@ -388,7 +386,18 @@ void dm::PdfImportWindow::run()
 					continue;
 				}
 
+				#if (POPPLER_VERSION_MAJOR == 0 && POPPLER_VERSION_MINOR <= 62)
+				/* Looks like the old versions of Poppler used 32-bit BGRA as the image
+				 * format.  Though I'm not sure what version we need to use as a check,
+				 * I'll use 0.62 for now until I know better.  This number will need to
+				 * be tweaked.  But with these old versions of Poppler, we need to drop
+				 * the alpha layer and just keep BGR.
+				 */
+				cv::Mat mat(image.height(), image.width(), CV_8UC4, image.data(), image.bytes_per_row());
+				cv::cvtColor(mat, mat, cv::COLOR_BGRA2BGR);
+				#else
 				cv::Mat mat(image.height(), image.width(), CV_8UC3, image.data(), image.bytes_per_row());
+				#endif
 
 				if (resize_page and (mat.cols != new_width or mat.rows != new_height))
 				{
