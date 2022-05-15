@@ -68,7 +68,7 @@ dm::DMWnd::~DMWnd(void)
 	dmapp().review_wnd	.reset(nullptr);
 	dmapp().stats_wnd	.reset(nullptr);
 	dmapp().darknet_wnd	.reset(nullptr);
-	dmapp().darkhelp_nn	.reset(nullptr);
+//	dmapp().darkhelp_nn	.reset(nullptr);
 	dmapp().settings_wnd.reset(nullptr);
 
 	return;
