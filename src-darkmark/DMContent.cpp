@@ -105,28 +105,6 @@ dm::DMContent::DMContent(const std::string & prefix) :
 		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The \"inclusion regex\" or \"exclusion regex\" for this project has caused an error and has been skipped.");
 	}
 
-	if (images_without_json.empty() == false and action != "gen-darknet")
-	{
-		String msg = "1 image file was found with \".txt\" annotations.";
-		if (images_without_json.size() > 1)
-		{
-			msg = String(images_without_json.size()) + " image files were found with \".txt\" annotations.";
-		}
-		Log(msg.toStdString());
-
-		msg += "\n\nWould you like to import the annotations into DarkMark?";
-
-		AlertWindow::showOkCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark", msg, "", "", nullptr,
-				ModalCallbackFunction::create(
-					[=](int result)
-					{
-						if (result == 1)
-						{
-							this->import_text_annotations(images_without_json);
-						}
-					}));
-	}
-
 	if (image_filenames.empty())
 	{
 		// projects without images shouldn't be allowed to load,

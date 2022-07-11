@@ -490,10 +490,12 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 
 void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 {
+#if 0
 	if (content.most_recent_size.width < 0.02 or content.most_recent_size.height < 0.02)
 	{
 		content.most_recent_size = cv::Size2d(0.02, 0.02);
 	}
+#endif
 
 	double x = double(event.x + zoom_image_offset.x) / cached_image.getWidth();
 	double y = double(event.y + zoom_image_offset.y) / cached_image.getHeight();
