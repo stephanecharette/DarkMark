@@ -270,6 +270,7 @@ void dm::DMContent::start_darknet()
 	}
 	else
 	{
+		dmapp().darkhelp_nn.reset(nullptr);
 		Log("skipped loading darknet due to missing or invalid .cfg or .weights filenames");
 #if 0
 		if (show_window)
@@ -488,7 +489,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		if (user_specified_zoom_factor > 0.0)
 		{
 			// jump out of "zoom" mode before we do anything else
-			keyPressed(KeyPress::createFromDescription("spacebar"));
+//			keyPressed(KeyPress::createFromDescription("spacebar"));
 		}
 		if (image_filename_index < image_filenames.size() - 1)
 		{
@@ -501,7 +502,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		if (user_specified_zoom_factor > 0.0)
 		{
 			// jump out of "zoom" mode before we do anything else
-			keyPressed(KeyPress::createFromDescription("spacebar"));
+//			keyPressed(KeyPress::createFromDescription("spacebar"));
 		}
 		if (image_filename_index > 0)
 		{
@@ -514,7 +515,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		if (user_specified_zoom_factor > 0.0)
 		{
 			// jump out of "zoom" mode before we do anything else
-			keyPressed(KeyPress::createFromDescription("spacebar"));
+//			keyPressed(KeyPress::createFromDescription("spacebar"));
 		}
 
 		// go to the previous available image with no marks
@@ -539,7 +540,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		if (user_specified_zoom_factor > 0.0)
 		{
 			// jump out of "zoom" mode before we do anything else
-			keyPressed(KeyPress::createFromDescription("spacebar"));
+//			keyPressed(KeyPress::createFromDescription("spacebar"));
 		}
 
 		// go to the next available image with no marks
