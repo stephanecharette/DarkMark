@@ -48,6 +48,18 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 	// May want to investigate putting this on a thread.
 	content.start_darknet();
 
+	if (content.images_without_json.empty() == false)
+	{
+		String msg = "1 image file was found with \".txt\" annotations.";
+		if (content.images_without_json.size() > 1)
+		{
+			msg = String(content.images_without_json.size()) + " image files were found with \".txt\" annotations.";
+		}
+		Log(msg.toStdString());
+
+		content.import_text_annotations(content.images_without_json);
+	}
+
 	// give the window some time to draw itself, and then we'll reload the first image including passing it through darkhelp
 	startTimer(50); // milliseconds
 
@@ -109,18 +121,6 @@ void dm::DMWnd::timerCallback()
 	else
 	{
 		content.load_image(0);
-	}
-
-	if (content.images_without_json.empty() == false)
-	{
-		String msg = "1 image file was found with \".txt\" annotations.";
-		if (content.images_without_json.size() > 1)
-		{
-			msg = String(content.images_without_json.size()) + " image files were found with \".txt\" annotations.";
-		}
-		Log(msg.toStdString());
-
-		content.import_text_annotations(content.images_without_json);
 	}
 
 	return;
