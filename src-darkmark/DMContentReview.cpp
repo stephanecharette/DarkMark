@@ -291,7 +291,10 @@ void dm::DMContentReview::run()
 	if (not dmapp().review_wnd)
 	{
 		dmapp().review_wnd.reset(new DMReviewWnd(content));
-		dmapp().review_wnd->setAlwaysOnTop(true);
+
+		// start with JUCE 7, setting the always-on-top flag before the window has been fully created and displayed
+		// seems to cause a segfault deep inside JUCE and X
+//		dmapp().review_wnd->setAlwaysOnTop(true);
 	}
 	dmapp().review_wnd->m.swap(m);
 	dmapp().review_wnd->md5s.swap(md5s);

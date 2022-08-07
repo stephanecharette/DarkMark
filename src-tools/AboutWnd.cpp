@@ -23,6 +23,11 @@ dm::AboutCanvas::AboutCanvas()
 	delta_for_swirl		= 0.0f;
 	delta_for_darknet	= 0.0f;
 
+	// with JUCE 7, seems as if every once in a while the window is resized to the
+	// canvas instead of the window telling the canvas how much room it has to draw,
+	// so make sure we give a decent size to the canvas
+	setSize(400, 450);
+
 	startTimer(100); // in milliseconds
 
 	return;
@@ -67,7 +72,7 @@ void dm::AboutCanvas::paint(Graphics & g)
 	g.setColour(Colours::black);
 	g.drawMultiLineText(
 		"C Code Run's DarkMark (C) 2019-2022 Stephane Charette\n"
-		"Application to mark up images for use with Darknet.\n"
+		"Manage your Darknet/YOLO projects with ease!\n"
 		"See https://www.ccoderun.ca/darkmark/ for details.", 0, h + 10, w, Justification::centred);
 
 	return;
@@ -133,7 +138,6 @@ dm::AboutWnd::AboutWnd() :
 	}
 
 	centreWithSize(400, 400 + 50);	// logo needs 400x400, but we also want to print a few lines of text at the bottom
-
 	setVisible(true);
 
 	return;

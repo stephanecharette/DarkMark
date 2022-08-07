@@ -133,6 +133,14 @@ String dm::DMReviewCanvas::getCellTooltip(int rowNumber, int columnId)
 
 void dm::DMReviewCanvas::paintRowBackground(Graphics & g, int rowNumber, int width, int height, bool rowIsSelected)
 {
+	if (rowNumber < 0					or
+		rowNumber >= (int)mri.size()	)
+	{
+		// how did we ever get an invalid row?
+		Log("invalid row detected: " + std::to_string(rowNumber) + "/" + std::to_string(mri.size()));
+		return;
+	}
+
 	Colour colour = Colours::white;
 
 	if (rowNumber >= 0 and

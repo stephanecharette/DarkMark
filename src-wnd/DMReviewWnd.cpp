@@ -4,7 +4,7 @@
 
 
 dm::DMReviewWnd::DMReviewWnd(DMContent & c) :
-	DocumentWindow("DarkMark v" DARKMARK_VERSION " Review", Colours::darkgrey, TitleBarButtons::closeButton),
+	DocumentWindow("DarkMark v" DARKMARK_VERSION " Review", Colours::darkgrey, TitleBarButtons::allButtons),
 	content(c)
 {
 	setContentNonOwned		(&notebook, true);

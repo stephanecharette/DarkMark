@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -167,7 +167,7 @@ int juce_siginterrupt (int sig, int flag)
 //==============================================================================
 namespace
 {
-   #if JUCE_LINUX || (JUCE_IOS && ! __DARWIN_ONLY_64_BIT_INO_T) // (this iOS stuff is to avoid a simulator bug)
+   #if JUCE_LINUX || (JUCE_IOS && (! TARGET_OS_MACCATALYST) && (! __DARWIN_ONLY_64_BIT_INO_T)) // (this iOS stuff is to avoid a simulator bug)
     using juce_statStruct = struct stat64;
     #define JUCE_STAT  stat64
    #else
@@ -286,6 +286,12 @@ bool File::hasWriteAccess() const
         return getParentDirectory().hasWriteAccess();
 
     return false;
+}
+
+bool File::hasReadAccess() const
+{
+    return fullPath.isNotEmpty()
+           && access (fullPath.toUTF8(), R_OK) == 0;
 }
 
 static bool setFileModeFlags (const String& fullPath, mode_t flags, bool shouldSet) noexcept
