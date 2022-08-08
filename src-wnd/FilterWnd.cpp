@@ -37,7 +37,7 @@ class ButtonSelection : public ButtonPropertyComponent
 
 
 dm::FilterWnd::FilterWnd(dm::DMContent & c) :
-	DocumentWindow("DarkMark filters for project \"" + c.project_info.project_name + "\"", Colours::darkgrey, TitleBarButtons::closeButton),
+	DocumentWindow("DarkMark filters for project \"" + c.project_info.project_name + "\"", Colours::darkgrey, TitleBarButtons::allButtons),
 	select_all(nullptr),
 	select_none(nullptr),
 	content(c),
@@ -50,7 +50,6 @@ dm::FilterWnd::FilterWnd(dm::DMContent & c) :
 	setUsingNativeTitleBar	(true			);
 	setResizable			(true, false	);
 	setDropShadowEnabled	(true			);
-	setAlwaysOnTop			(true			);
 
 	canvas.addAndMakeVisible(pp);
 	canvas.addAndMakeVisible(cancel_button);

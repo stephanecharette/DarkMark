@@ -891,6 +891,12 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	}
 	else if (keychar == 'f')
 	{
+		if (need_to_save)
+		{
+			save_json();
+			save_text();
+		}
+
 		if (not dmapp().filter_wnd)
 		{
 			dmapp().filter_wnd.reset(new FilterWnd(*this));
@@ -1994,6 +2000,12 @@ PopupMenu dm::DMContent::create_popup_menu()
 	}));
 	m.addItem("filters...", std::function<void()>( [&]
 	{
+		if (need_to_save)
+		{
+			save_json();
+			save_text();
+		}
+
 		if (not dmapp().filter_wnd)
 		{
 			dmapp().filter_wnd.reset(new FilterWnd(*this));
