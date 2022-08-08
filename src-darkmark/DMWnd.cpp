@@ -36,9 +36,16 @@ dm::DMWnd::DMWnd(const std::string & prefix) :
 
 		if (cfg().containsKey("DMWnd"))
 		{
-			restoreWindowStateFromString( cfg().getValue("DMWnd") );
+//			restoreWindowStateFromString( cfg().getValue("DMWnd") );
+
+			// JUCE v7 still manages to get the size wrong every once in a while,
+			// so set a limit to prevent the window from appearing as a tiny square
+			// just a few pixels in size at the top-left corner of the screen.
+			auto r = getParentMonitorArea();
+			setResizeLimits(r.getWidth() / 4, r.getHeight() / 4, 999999, 999999);
 		}
 
+		setFullScreen(true);
 		setVisible(true);
 	}
 
@@ -82,6 +89,7 @@ dm::DMWnd::~DMWnd(void)
 	dmapp().darknet_wnd	.reset(nullptr);
 //	dmapp().darkhelp_nn	.reset(nullptr);
 	dmapp().settings_wnd.reset(nullptr);
+	dmapp().filter_wnd	.reset(nullptr);
 
 	return;
 }

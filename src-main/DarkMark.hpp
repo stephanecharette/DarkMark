@@ -56,6 +56,7 @@ namespace dm
 	class PdfImportWindow;
 	class VideoImportWindow;
 	class SettingsWnd;
+	class FilterWnd;
 	class ProjectInfo;
 	class DMContentReview;
 	class DMReviewWnd;
@@ -104,6 +105,7 @@ namespace dm
 #include "VideoImportWindow.hpp"
 #include "StartupWnd.hpp"
 #include "SettingsWnd.hpp"
+#include "FilterWnd.hpp"
 #include "StartupCanvas.hpp"
 #include "DMContentImportTxt.hpp"
 #include "DMContentReloadResave.hpp"

@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.7.0-1		| 2022-08-08	| Added filter window.
 1.6.32-1	| 2022-08-07	| Update JUCE to latest version (7.0.1). Some important changes to JUCE, please make sure to let me know if something in the GUI is broken.
 1.6.23-1	| 2022-04-26	| Update JUCE to latest version (6.1.6). Default font is now hard-coded to "Liberation Sans".  May need to change this if it causes problems.  (See @ref dm::DarkMarkApplication::initialise() for details.)
 1.6.21-1	| 2022-04-18	| PDF files can now be imported as images (new build requirement: libpoppler-cpp-dev)

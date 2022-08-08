@@ -889,6 +889,14 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		}
 		dmapp().settings_wnd->toFront(true);
 	}
+	else if (keychar == 'f')
+	{
+		if (not dmapp().filter_wnd)
+		{
+			dmapp().filter_wnd.reset(new FilterWnd(*this));
+		}
+		dmapp().filter_wnd->toFront(true);
+	}
 	else if (keychar == 'z')
 	{
 		zoom_and_review();
@@ -1915,7 +1923,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	view.addItem("show darknet processing time"		, (show_predictions != EToggle::kOff	), (show_processing_time				), std::function<void()>( [&]{ toggle_show_processing_time();			} ));
 	view.addSeparator();
 	view.addItem("display using black-and-white"	, true									, black_and_white_mode_enabled			,  std::function<void()>( [&]{ toggle_black_and_white_mode();			} ));
-	view.addItem("show marks"						, true									, show_marks							,  std::function<void()>( [&]{ toggle_show_marks();						} ));
+	view.addItem("show annotations"					, true									, show_marks							,  std::function<void()>( [&]{ toggle_show_marks();						} ));
 	view.addItem("shade"							, true									, shade_rectangles						,  std::function<void()>( [&]{ toggle_shade_rectangles();				} ));
 
 	const size_t number_of_darknet_marks = [&]
@@ -1961,9 +1969,9 @@ PopupMenu dm::DMContent::create_popup_menu()
 	help.addItem("discord..."			, std::function<void()>( [&]{ juce::URL("https://discord.gg/zSq8rtW"									).launchInDefaultBrowser(); } ));
 
 	PopupMenu review;
-	review.addItem("zoom-and-review"	, std::function<void()>( [&]{ zoom_and_review();	} ));
-	review.addItem("review marks..."	, std::function<void()>( [&]{ review_marks();		} ));
-	review.addItem("gather statistics...",std::function<void()>( [&]{ gather_statistics();	} ));
+	review.addItem("zoom-and-review"		, std::function<void()>( [&]{ zoom_and_review();	} ));
+	review.addItem("review annotations..."	, std::function<void()>( [&]{ review_marks();		} ));
+	review.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();	} ));
 
 	PopupMenu m;
 	m.addSubMenu("class", classMenu, classMenu.containsAnyActiveItems());
@@ -1983,6 +1991,14 @@ PopupMenu dm::DMContent::create_popup_menu()
 			dmapp().settings_wnd.reset(new SettingsWnd(*this));
 		}
 		dmapp().settings_wnd->toFront(true);
+	}));
+	m.addItem("filters...", std::function<void()>( [&]
+	{
+		if (not dmapp().filter_wnd)
+		{
+			dmapp().filter_wnd.reset(new FilterWnd(*this));
+		}
+		dmapp().filter_wnd->toFront(true);
 	}));
 
 	return m;

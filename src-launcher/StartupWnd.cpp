@@ -120,13 +120,27 @@ dm::StartupWnd::StartupWnd() :
 
 		if (cfg().containsKey("StartupWnd"))
 		{
+#if 0
+			// Why does this not work consistently?
+			// Window shrinks since JUCE 6, and sometmes gets resized to [0, 0] since JUCE 7.
 			restoreWindowStateFromString(cfg().getValue("StartupWnd"));
+#else
+			auto r = getParentMonitorArea();
+			r.reduce(50, 50);
+			setBounds(r);
+
+			// JUCE v7 still manages to get the size wrong every once in a while,
+			// so set a limit to prevent the window from appearing as a tiny square
+			// just a few pixels in size at the top-left corner of the screen.
+			setResizeLimits(r.getWidth() / 2, r.getHeight() / 2, 999999, 999999);
+#endif
 		}
 		else
 		{
 			centreWithSize(800, 600);
 		}
 
+		setFullScreen(true);
 		setVisible(true);
 	}
 
