@@ -228,11 +228,11 @@ void dm::FilterWnd::buttonClicked(Button * button)
 
 	if (button == &ok_button or button == &apply_button)
 	{
-		content.image_filenames.swap(filtered_image_filenames);
+		content.scrollfield.field = cv::Mat(); // force the scrollfield to be recalculated
+		content.image_filenames = filtered_image_filenames;
 		content.load_image(0);
-		content.resized();
-		content.scrollfield.field = cv::Mat();
-		content.scrollfield.rebuild_cache_image();
+		content.sort_order = ESort::kInvalid; // force the full sort logic to run
+		content.set_sort_order(ESort::kAlphabetical);
 	}
 
 	if (button != &apply_button)
@@ -453,7 +453,9 @@ void dm::FilterWnd::find_images_on_thread()
 	v_images_after_filters	= String(image_filenames.size());
 	v_usable_images			= String(image_filenames.size());
 
+	std::sort(image_filenames.begin(), image_filenames.end());
 	filtered_image_filenames.swap(image_filenames);
+
 	if (filtered_image_filenames.size() > 0)
 	{
 		// cannot have both inclusion and exclusion regexes set at the same time
