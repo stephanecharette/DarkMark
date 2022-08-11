@@ -54,5 +54,6 @@ namespace dm
 			std::thread worker_thread;
 
 			VStr filtered_image_filenames;
+			SId class_ids_to_include;
 	};
 }

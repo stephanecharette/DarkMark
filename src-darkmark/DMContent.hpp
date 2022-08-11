@@ -251,6 +251,10 @@ namespace dm
 			double current_zoom_factor;			///< Actual zoom value used to resize the image. @todo is this the same as @ref scale_factor
 			cv::Point zoom_point_of_interest;	///< Coordinate of interest when zooming into or out of an image.
 
-			std::set<size_t> zoom_review_marks_remaining;
+			SId zoom_review_marks_remaining;
+
+			/// Keep track of which classes are turned on in the DarkMark filters.  When set, this will impact the zoom-and-review behaviour.
+			SId filter_use_this_subset_of_class_ids;
+
 	};
 }

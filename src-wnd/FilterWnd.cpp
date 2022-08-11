@@ -233,6 +233,7 @@ void dm::FilterWnd::buttonClicked(Button * button)
 		content.load_image(0);
 		content.sort_order = ESort::kInvalid; // force the full sort logic to run
 		content.set_sort_order(ESort::kAlphabetical);
+		content.filter_use_this_subset_of_class_ids = class_ids_to_include;
 	}
 
 	if (button != &apply_button)
@@ -393,11 +394,11 @@ void dm::FilterWnd::find_images_on_thread()
 		v.swap(image_filenames);
 	}
 
+	SId class_ids;
 	if (v_include_all_classes == false)
 	{
 		v_images_after_filters = "filter classes...";
 
-		std::set<int> class_ids;
 		for (size_t idx = 0; idx < value_for_each_class.size(); idx ++)
 		{
 			if (value_for_each_class[idx].getValue())
@@ -450,19 +451,23 @@ void dm::FilterWnd::find_images_on_thread()
 		v.swap(image_filenames);
 	}
 
-	v_images_after_filters	= String(image_filenames.size());
-	v_usable_images			= String(image_filenames.size());
-
-	std::sort(image_filenames.begin(), image_filenames.end());
-	filtered_image_filenames.swap(image_filenames);
-
-	if (filtered_image_filenames.size() > 0)
+	if (not worker_thread_needs_to_end)
 	{
-		// cannot have both inclusion and exclusion regexes set at the same time
-		if (v_inclusion_regex.toString().isEmpty() or v_exclusion_regex.toString().isEmpty())
+		v_images_after_filters	= String(image_filenames.size());
+		v_usable_images			= String(image_filenames.size());
+
+		std::sort(image_filenames.begin(), image_filenames.end());
+		filtered_image_filenames.swap(image_filenames);
+		class_ids_to_include.swap(class_ids);
+
+		if (filtered_image_filenames.size() > 0)
 		{
-			apply_button.setEnabled(true);
-			ok_button	.setEnabled(true);
+			// cannot have both inclusion and exclusion regexes set at the same time
+			if (v_inclusion_regex.toString().isEmpty() or v_exclusion_regex.toString().isEmpty())
+			{
+				apply_button.setEnabled(true);
+				ok_button	.setEnabled(true);
+			}
 		}
 	}
 

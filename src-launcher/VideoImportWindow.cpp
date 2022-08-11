@@ -476,7 +476,7 @@ void dm::VideoImportWindow::run()
 			std::mt19937 rng(rd());
 			std::uniform_int_distribution<size_t> uni(0, number_of_frames - 1);
 
-			std::set<size_t> frames_needed;
+			SId frames_needed;
 			if (extract_sequences)
 			{
 				/* Say the video is this long:

@@ -2063,7 +2063,7 @@ dm::DMContent & dm::DMContent::zoom_and_review()
 	else
 	{
 		// see if we can eliminate any of the existing marks and see what remains
-		std::set<size_t> indexes_to_remove;
+		SId indexes_to_remove;
 
 		const cv::Rect r = cv::Rect(
 			canvas.zoom_image_offset.x,
@@ -2081,6 +2081,14 @@ dm::DMContent & dm::DMContent::zoom_and_review()
 			}
 
 			auto & mark = marks.at(i);
+
+			if (filter_use_this_subset_of_class_ids.size() > 0 and filter_use_this_subset_of_class_ids.count(mark.class_idx) == 0)
+			{
+				// a filter has been set and it doesn't include this class so skip it completely
+				indexes_to_remove.insert(i);
+				continue;
+			}
+
 			const auto bounding_rect = mark.get_bounding_rect(scaled_image_size);
 			if ((r & bounding_rect) == bounding_rect)
 			{
@@ -2141,6 +2149,12 @@ dm::DMContent & dm::DMContent::zoom_and_review()
 				const auto & m = marks.at(idx);
 				if (m.is_prediction)
 				{
+					continue;
+				}
+
+				if (filter_use_this_subset_of_class_ids.size() > 0 and filter_use_this_subset_of_class_ids.count(m.class_idx) == 0)
+				{
+					// a filter has been set and it doesn't include this class so skip it completely
 					continue;
 				}
 
