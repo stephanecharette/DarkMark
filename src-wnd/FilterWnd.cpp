@@ -51,10 +51,10 @@ dm::FilterWnd::FilterWnd(dm::DMContent & c) :
 	setResizable			(true, false	);
 	setDropShadowEnabled	(true			);
 
-	canvas.addAndMakeVisible(pp);
-	canvas.addAndMakeVisible(cancel_button);
-	canvas.addAndMakeVisible(apply_button);
-	canvas.addAndMakeVisible(ok_button);
+	canvas.addAndMakeVisible(pp				);
+	canvas.addAndMakeVisible(cancel_button	);
+	canvas.addAndMakeVisible(apply_button	);
+	canvas.addAndMakeVisible(ok_button		);
 
 	cancel_button.addListener(this);
 	apply_button.addListener(this);
@@ -69,19 +69,22 @@ dm::FilterWnd::FilterWnd(dm::DMContent & c) :
 
 	v_inclusion_regex = cfg().get_str(content.project_info.cfg_prefix + "inclusion_regex").c_str();
 	v_exclusion_regex = cfg().get_str(content.project_info.cfg_prefix + "exclusion_regex").c_str();
+	v_age_of_annotations			= 0;
 	v_include_all_classes			= true;
 	v_include_empty_images			= true;
 	v_include_non_annotated_images	= true;
 
 	v_inclusion_regex				.addListener(this);
 	v_exclusion_regex				.addListener(this);
+	v_age_of_annotations			.addListener(this);
 	v_include_all_classes			.addListener(this);
 	v_include_empty_images			.addListener(this);
 	v_include_non_annotated_images	.addListener(this);
 
 	Array<PropertyComponent*> properties;
-	TextPropertyComponent		* t			= nullptr;
-	BooleanPropertyComponent	* b			= nullptr;
+	TextPropertyComponent		* t = nullptr;
+	BooleanPropertyComponent	* b = nullptr;
+	SliderPropertyComponent		* s = nullptr;
 
 	t = new TextPropertyComponent(v_total_number_of_images, "total number of images", 1000, false, false);
 	properties.add(t);
@@ -105,6 +108,26 @@ dm::FilterWnd::FilterWnd(dm::DMContent & c) :
 
 	pp.addSection("regex", properties);
 	properties.clear();
+
+	s = new SliderPropertyComponent(v_age_of_annotations, "age of annotations", 0.0, 63072000.0, 60.0, 0.1);
+	s->setTooltip(
+		"If annotations are older than this (in seconds) then the image and annotation will be excluded. Set to 0 to completely skip this filter.\n\n"
+		"0=include all\n"
+		"300=5 minutes\n"
+		"600=10 minutes\n"
+		"3600=1 hour\n"
+		"7200=2 hours\n"
+		"86400=1 day\n"
+		"172800=2 days\n"
+		"604800=1 week\n"
+		"1209600=2 weeks\n"
+		"2592000=1 month\n"
+		"5270400=2 months\n"
+		"15811200=6 months\n"
+		"31536000=1 year\n"
+		"63072000=2 years"
+		);
+	properties.add(s);
 
 	b = new BooleanPropertyComponent(v_include_all_classes, "all classes", "all classes");
 	b->setTooltip("Determines whether or not all classes are included or individually filtered. The default value is \"yes\" (include all classes).");
@@ -153,6 +176,7 @@ dm::FilterWnd::FilterWnd(dm::DMContent & c) :
 
 	auto r = dmapp().wnd->getBounds();
 	r = r.withSizeKeepingCentre(400, 400);
+	canvas.setBounds(r);
 	setBounds(r);
 
 	setVisible(true);
@@ -286,189 +310,296 @@ void dm::FilterWnd::timerCallback()
 	worker_thread_needs_to_end = true;
 	if (worker_thread.joinable())
 	{
+		Log("joining with previous worker thread");
 		worker_thread.join();
 	}
 	worker_thread_needs_to_end = false;
-	worker_thread = std::thread(&dm::FilterWnd::find_images_on_thread, this);
+	Log("starting a new worker thread to apply the updated filters");
+	worker_thread = std::thread(&dm::FilterWnd::apply_filters_on_thread, this);
 
 	return;
 }
 
 
-void dm::FilterWnd::find_images_on_thread()
+void dm::FilterWnd::apply_filters_on_thread()
 {
-	VStr image_filenames;
-	VStr json_filenames;
-	VStr images_without_json;
+	DarkMarkApplication::setup_signal_handling();
 
-	v_total_number_of_images	= "finding images...";
-	v_images_after_regex		= "-";
-	v_images_after_filters		= "-";
-	v_usable_images				= "-";
-
-	find_files(File(content.project_info.project_dir), image_filenames, json_filenames, images_without_json, worker_thread_needs_to_end);
-
-	Log("number of images found in " + content.project_info.project_dir + ": " + std::to_string(image_filenames.size()));
-
-	v_total_number_of_images	= String(image_filenames.size());
-	v_images_after_regex		= "applying regex...";
+	std::string last_accessed_filename;
 
 	try
 	{
-		const std::string inclusion_regex = v_inclusion_regex.toString().toStdString();
-		const std::string exclusion_regex = v_exclusion_regex.toString().toStdString();
+		VStr image_filenames;
+		VStr json_filenames;
+		VStr images_without_json;
 
-		const std::regex rx(inclusion_regex + exclusion_regex);
+		v_total_number_of_images	= "finding images...";
+		v_images_after_regex		= "-";
+		v_images_after_filters		= "-";
+		v_usable_images				= "-";
 
-		VStr v;
-		for (auto && fn : image_filenames)
+		find_files(File(content.project_info.project_dir), image_filenames, json_filenames, images_without_json, worker_thread_needs_to_end);
+
+		Log(std::string(__PRETTY_FUNCTION__) + ": number of images found in " + content.project_info.project_dir + ": " + std::to_string(image_filenames.size()));
+		if (worker_thread_needs_to_end)
 		{
-			if (worker_thread_needs_to_end)
-			{
-				break;
-			}
+			Log("cancelling out of worker thread while finding images");
+			return;
+		}
 
-			const bool result = std::regex_search(fn, rx);
-			if (result == exclusion_regex.empty())
+		v_total_number_of_images	= String(image_filenames.size());
+		v_images_after_regex		= "applying regex...";
+
+		const std::string inclusion_regex	= v_inclusion_regex.toString().toStdString();
+		const std::string exclusion_regex	= v_exclusion_regex.toString().toStdString();
+		const std::string regex_to_use		= inclusion_regex + exclusion_regex;
+
+		if (regex_to_use.empty() == false)
+		{
+			Log(std::string(__PRETTY_FUNCTION__) + ": applying regex \"" + regex_to_use + "\"");
+
+			try
 			{
-				v.push_back(fn);
+				const std::regex rx(regex_to_use);
+				VStr v;
+				for (auto && fn : image_filenames)
+				{
+					if (worker_thread_needs_to_end)
+					{
+						Log("cancelling out of worker thread while applying regex");
+						return;
+					}
+
+					last_accessed_filename = fn;
+
+					if (std::regex_search(fn, rx) == exclusion_regex.empty())
+					{
+						v.push_back(fn);
+					}
+				}
+				last_accessed_filename.clear();
+
+
+				if (v.size() != image_filenames.size())
+				{
+					v.swap(image_filenames);
+				}
+				Log(std::string(__PRETTY_FUNCTION__) + ": done applying regex: \"" + regex_to_use + "\"");
+			}
+			catch (...)
+			{
+				AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark Filters", "The \"inclusion regex\" or \"exclusion regex\" has caused an error and has been skipped.");
 			}
 		}
 
-		if (v.size() != image_filenames.size())
+		v_images_after_regex = String(image_filenames.size());
+
+		if (v_include_empty_images == false)
 		{
-			v.swap(image_filenames);
-		}
-	}
-	catch (...)
-	{
-		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark Filters", "The \"inclusion regex\" or \"exclusion regex\" has caused an error and has been skipped.");
-	}
-
-	v_images_after_regex	= String(image_filenames.size());
-
-	if (v_include_empty_images == false)
-	{
-		v_images_after_filters	= "filter empty images...";
-		VStr v;
-		for (auto && fn : image_filenames)
-		{
-			if (worker_thread_needs_to_end)
-			{
-				break;
-			}
-
-			// if we get here then we want to *REMOVE* images which have been marked as empty
-			File file = File(fn).withFileExtension(".txt");
-			if (file.existsAsFile() and file.getSize() == 0)
-			{
-				// the zero size tells us this image is a negative sample
-				continue;
-			}
-
-			v.push_back(fn);
-		}
-
-		v.swap(image_filenames);
-	}
-
-	if (v_include_non_annotated_images == false)
-	{
-		v_images_after_filters	= "filter non annotated images...";
-		VStr v;
-		for (const auto & fn : image_filenames)
-		{
-			if (worker_thread_needs_to_end)
-			{
-				break;
-			}
-
-			// if we get here then we want to *REMOVE* images which have not yet been annotated
-			File file = File(fn).withFileExtension(".txt");
-			if (file.existsAsFile())
-			{
-				v.push_back(fn);
-			}
-		}
-
-		v.swap(image_filenames);
-	}
-
-	SId class_ids;
-	if (v_include_all_classes == false)
-	{
-		v_images_after_filters = "filter classes...";
-
-		for (size_t idx = 0; idx < value_for_each_class.size(); idx ++)
-		{
-			if (value_for_each_class[idx].getValue())
-			{
-				class_ids.insert(idx);
-			}
-		}
-
-		VStr v;
-		for (const auto & fn : image_filenames)
-		{
-			if (worker_thread_needs_to_end)
-			{
-				break;
-			}
-
-			// if this is not annotated, then keep it and move to the next image
-			const auto json_file = File(fn).withFileExtension(".json");
-			if (json_file.existsAsFile() == false)
-			{
-				v.push_back(fn);
-				continue;
-			}
-
-			auto root = json::parse(json_file.loadFileAsString().toStdString());
-
-			// if this is a negative sample, then keep it and move to the next image
-			if (root["completely_empty"])
-			{
-				v.push_back(fn);
-				continue;
-			}
-
-			// otherwise, look through the annotations to see if it includes any of the classes we want
-			for (const auto & j : root["mark"])
+			Log(std::string(__PRETTY_FUNCTION__) + ": filtering empty images");
+			v_images_after_filters	= "filter empty images...";
+			VStr v;
+			for (const auto & fn : image_filenames)
 			{
 				if (worker_thread_needs_to_end)
 				{
-					break;
+					Log("cancelling out of worker thread while filtering empty images");
+					return;
 				}
 
-				if (class_ids.count(j["class_idx"]) > 0)
+				last_accessed_filename = fn;
+
+				// if we get here then we want to *REMOVE* images which have been marked as empty
+				File file = File(fn).withFileExtension(".txt");
+				if (file.existsAsFile() and file.getSize() == 0)
+				{
+					// the zero size tells us this image is a negative sample
+					continue;
+				}
+
+				v.push_back(fn);
+			}
+
+			last_accessed_filename.clear();
+			v.swap(image_filenames);
+		}
+
+		if (v_include_non_annotated_images == false)
+		{
+			Log(std::string(__PRETTY_FUNCTION__) + ": filtering non annotated images");
+			v_images_after_filters	= "filter non annotated images...";
+			VStr v;
+			for (const auto & fn : image_filenames)
+			{
+				if (worker_thread_needs_to_end)
+				{
+					Log("cancelling out of worker thread while filtering non annotated images");
+					return;
+				}
+
+				last_accessed_filename = fn;
+
+				// if we get here then we want to *REMOVE* images which have not yet been annotated
+				File file = File(fn).withFileExtension(".txt");
+				if (file.existsAsFile())
 				{
 					v.push_back(fn);
-					break;
+				}
+			}
+
+			last_accessed_filename.clear();
+			v.swap(image_filenames);
+		}
+
+		double age = v_age_of_annotations.getValue();
+		if (age  > 0.0)
+		{
+			Log(std::string(__PRETTY_FUNCTION__) + ": filtering annotations for age > " + std::to_string(age));
+
+			const std::time_t now				= std::time(nullptr);
+			const std::time_t timestamp_limit	= now - age; // files have to be this timestamp or newer
+
+			VStr v;
+			for (const auto & fn : image_filenames)
+			{
+				if (worker_thread_needs_to_end)
+				{
+					Log("cancelling out of worker thread while filtering for annotation age");
+					return;
+				}
+
+				last_accessed_filename = fn;
+
+				// if this is not annotated, then keep it and move to the next image
+				const auto json_file = File(fn).withFileExtension(".json");
+				if (json_file.existsAsFile() == false)
+				{
+					v.push_back(fn);
+					continue;
+				}
+
+				// if we get here then we know we have some sort of annotation
+
+				last_accessed_filename = json_file.getFullPathName().toStdString();
+				auto root = json::parse(json_file.loadFileAsString().toStdString());
+
+				const time_t timestamp = root.value("timestamp", 0);
+				if (timestamp >= timestamp_limit)
+				{
+					v.push_back(fn);
+				}
+			}
+
+			last_accessed_filename.clear();
+			v.swap(image_filenames);
+		}
+
+		SId class_ids;
+		if (v_include_all_classes == false)
+		{
+			Log(std::string(__PRETTY_FUNCTION__) + ": filtering classes");
+			v_images_after_filters = "filter classes...";
+
+			for (size_t idx = 0; idx < value_for_each_class.size(); idx ++)
+			{
+				if (value_for_each_class[idx].getValue())
+				{
+					class_ids.insert(idx);
+				}
+			}
+
+			VStr v;
+			for (const auto & fn : image_filenames)
+			{
+				if (worker_thread_needs_to_end)
+				{
+					Log("cancelling out of worker thread while filtering classes (looping through images)");
+					return;
+				}
+
+				last_accessed_filename = fn;
+
+				// if this is not annotated, then keep it and move to the next image
+				const auto json_file = File(fn).withFileExtension(".json");
+				if (json_file.existsAsFile() == false)
+				{
+					v.push_back(fn);
+					continue;
+				}
+
+				last_accessed_filename = json_file.getFullPathName().toStdString();
+				auto root = json::parse(json_file.loadFileAsString().toStdString());
+
+				// if this is a negative sample, then keep it and move to the next image
+				if (root.value("completely_empty", false))
+				{
+					v.push_back(fn);
+					continue;
+				}
+
+				// otherwise, look through the annotations to see if it includes any of the classes we want
+				for (const auto & j : root["mark"])
+				{
+					if (worker_thread_needs_to_end)
+					{
+						Log("cancelling out of worker thread while filtering classes (reading marks)");
+						return;
+					}
+
+					if (class_ids.count(j["class_idx"]) > 0)
+					{
+						v.push_back(fn);
+						break;
+					}
+				}
+				last_accessed_filename.clear();
+			}
+
+			v.swap(image_filenames);
+		}
+
+		if (worker_thread_needs_to_end)
+		{
+			Log("cancelling out of worker thread (bottom of function)");
+		}
+		else
+		{
+			const String size(image_filenames.size());
+			Log(std::string(__PRETTY_FUNCTION__) + ": worker thread is ending; filter size=" + size.toStdString());
+
+			v_images_after_filters	= size;
+			v_usable_images			= size;
+
+			std::sort(image_filenames.begin(), image_filenames.end());
+			filtered_image_filenames.swap(image_filenames);
+			class_ids_to_include.swap(class_ids);
+
+			if (filtered_image_filenames.size() > 0)
+			{
+				// cannot have both inclusion and exclusion regexes set at the same time
+				if (v_inclusion_regex.toString().isEmpty() or v_exclusion_regex.toString().isEmpty())
+				{
+					Log(std::string(__PRETTY_FUNCTION__) + ": worker thread is done, enabling buttons");
+					apply_button.setEnabled(true);
+					ok_button	.setEnabled(true);
 				}
 			}
 		}
 
-		v.swap(image_filenames);
+		Log(std::string(__PRETTY_FUNCTION__) + ": worker thread has finished successfully");
+	}
+	catch (const std::exception & e)
+	{
+		Log(std::string(__PRETTY_FUNCTION__) + ": worker thread is ending due to exception: " + e.what());
+	}
+	catch (...)
+	{
+		Log(std::string(__PRETTY_FUNCTION__) + ": worker thread is ending due to unknown exception");
 	}
 
-	if (not worker_thread_needs_to_end)
+	if (last_accessed_filename.empty() == false)
 	{
-		v_images_after_filters	= String(image_filenames.size());
-		v_usable_images			= String(image_filenames.size());
-
-		std::sort(image_filenames.begin(), image_filenames.end());
-		filtered_image_filenames.swap(image_filenames);
-		class_ids_to_include.swap(class_ids);
-
-		if (filtered_image_filenames.size() > 0)
-		{
-			// cannot have both inclusion and exclusion regexes set at the same time
-			if (v_inclusion_regex.toString().isEmpty() or v_exclusion_regex.toString().isEmpty())
-			{
-				apply_button.setEnabled(true);
-				ok_button	.setEnabled(true);
-			}
-		}
+		Log(std::string(__PRETTY_FUNCTION__) + ": last file accessed was " + last_accessed_filename);
 	}
 
 	return;

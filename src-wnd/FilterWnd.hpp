@@ -22,7 +22,7 @@ namespace dm
 			virtual void valueChanged(Value & value) override;
 			virtual void timerCallback() override;
 
-			void find_images_on_thread();
+			void apply_filters_on_thread();
 
 			Value v_total_number_of_images;
 			Value v_images_after_regex;
@@ -31,6 +31,7 @@ namespace dm
 
 			Value v_inclusion_regex;
 			Value v_exclusion_regex;
+			Value v_age_of_annotations;
 			Value v_include_all_classes;
 			Value v_include_empty_images;
 			Value v_include_non_annotated_images;
