@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -74,7 +74,7 @@ public:
         thread has it locked for writing, then this will fail and return false.
 
         @returns true if the lock is successfully gained.
-        @see exitRead, ScopedTryReadLock
+        @see exitRead, ScopedReadLock
     */
     bool tryEnterRead() const noexcept;
 
@@ -106,7 +106,7 @@ public:
         to obtain the lock.
 
         @returns true if the lock is successfully gained.
-        @see enterWrite, ScopedTryWriteLock
+        @see enterWrite
     */
     bool tryEnterWrite() const noexcept;
 

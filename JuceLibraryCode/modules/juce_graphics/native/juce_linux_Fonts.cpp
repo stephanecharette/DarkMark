@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -30,8 +30,7 @@ static std::unique_ptr<XmlElement> findFontsConfFile()
 {
     static const char* pathsToSearch[] = { "/etc/fonts/fonts.conf",
                                            "/usr/share/fonts/fonts.conf",
-                                           "/usr/local/etc/fonts/fonts.conf",
-                                           "/usr/share/defaults/fonts/fonts.conf" };
+                                           "/usr/local/etc/fonts/fonts.conf" };
 
     for (auto* path : pathsToSearch)
         if (auto xml = parseXML (File (path)))
@@ -111,122 +110,87 @@ bool TextLayout::createNativeLayout (const AttributedString&)
 }
 
 //==============================================================================
-struct DefaultFontInfo
+struct DefaultFontNames
 {
-    struct Characteristics
-    {
-        explicit Characteristics (String nameIn) : name (nameIn) {}
-
-        Characteristics withStyle (String styleIn) const
-        {
-            auto copy = *this;
-            copy.style = std::move (styleIn);
-            return copy;
-        }
-
-        String name, style;
-    };
-
-    DefaultFontInfo()
-        : defaultSans  (getDefaultSansSerifFontCharacteristics()),
-          defaultSerif (getDefaultSerifFontCharacteristics()),
-          defaultFixed (getDefaultMonospacedFontCharacteristics())
+    DefaultFontNames()
+        : defaultSans  (getDefaultSansSerifFontName()),
+          defaultSerif (getDefaultSerifFontName()),
+          defaultFixed (getDefaultMonospacedFontName())
     {
     }
 
-    Characteristics getRealFontCharacteristics (const String& faceName) const
+    String getRealFontName (const String& faceName) const
     {
         if (faceName == Font::getDefaultSansSerifFontName())    return defaultSans;
         if (faceName == Font::getDefaultSerifFontName())        return defaultSerif;
         if (faceName == Font::getDefaultMonospacedFontName())   return defaultFixed;
 
-        return Characteristics { faceName };
+        return faceName;
     }
 
-    Characteristics defaultSans, defaultSerif, defaultFixed;
+    String defaultSans, defaultSerif, defaultFixed;
 
 private:
-    template <typename Range>
-    static Characteristics pickBestFont (const StringArray& names, Range&& choicesArray)
+    static String pickBestFont (const StringArray& names, const char* const* choicesArray)
     {
-        for (auto& choice : choicesArray)
-            if (names.contains (choice.name, true))
+        const StringArray choices (choicesArray);
+
+        for (auto& choice : choices)
+            if (names.contains (choice, true))
                 return choice;
 
-        for (auto& choice : choicesArray)
+        for (auto& choice : choices)
             for (auto& name : names)
-                if (name.startsWithIgnoreCase (choice.name))
-                    return Characteristics { name }.withStyle (choice.style);
+                if (name.startsWithIgnoreCase (choice))
+                    return name;
 
-        for (auto& choice : choicesArray)
+        for (auto& choice : choices)
             for (auto& name : names)
-                if (name.containsIgnoreCase (choice.name))
-                    return Characteristics { name }.withStyle (choice.style);
+                if (name.containsIgnoreCase (choice))
+                    return name;
 
-        return Characteristics { names[0] };
+        return names[0];
     }
 
-    static Characteristics getDefaultSansSerifFontCharacteristics()
+    static String getDefaultSansSerifFontName()
     {
         StringArray allFonts;
         FTTypefaceList::getInstance()->getSansSerifNames (allFonts);
 
-        static const Characteristics targets[] { Characteristics { "Verdana" },
-                                                 Characteristics { "Bitstream Vera Sans" }.withStyle ("Roman"),
-                                                 Characteristics { "Luxi Sans" },
-                                                 Characteristics { "Liberation Sans" },
-                                                 Characteristics { "DejaVu Sans" },
-                                                 Characteristics { "Sans" } };
+        static const char* targets[] = { "Verdana", "Bitstream Vera Sans", "Luxi Sans",
+                                         "Liberation Sans", "DejaVu Sans", "Sans", nullptr };
         return pickBestFont (allFonts, targets);
     }
 
-    static Characteristics getDefaultSerifFontCharacteristics()
+    static String getDefaultSerifFontName()
     {
         StringArray allFonts;
         FTTypefaceList::getInstance()->getSerifNames (allFonts);
 
-        static const Characteristics targets[] { Characteristics { "Bitstream Vera Serif" }.withStyle ("Roman"),
-                                                 Characteristics { "Times" },
-                                                 Characteristics { "Nimbus Roman" },
-                                                 Characteristics { "Liberation Serif" },
-                                                 Characteristics { "DejaVu Serif" },
-                                                 Characteristics { "Serif" } };
+        static const char* targets[] = { "Bitstream Vera Serif", "Times", "Nimbus Roman",
+                                         "Liberation Serif", "DejaVu Serif", "Serif", nullptr };
         return pickBestFont (allFonts, targets);
     }
 
-    static Characteristics getDefaultMonospacedFontCharacteristics()
+    static String getDefaultMonospacedFontName()
     {
         StringArray allFonts;
         FTTypefaceList::getInstance()->getMonospacedNames (allFonts);
 
-        static const Characteristics targets[] { Characteristics { "DejaVu Sans Mono" },
-                                                 Characteristics { "Bitstream Vera Sans Mono" }.withStyle ("Roman"),
-                                                 Characteristics { "Sans Mono" },
-                                                 Characteristics { "Liberation Mono" },
-                                                 Characteristics { "Courier" },
-                                                 Characteristics { "DejaVu Mono" },
-                                                 Characteristics { "Mono" } };
+        static const char* targets[] = { "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Sans Mono",
+                                         "Liberation Mono", "Courier", "DejaVu Mono", "Mono", nullptr };
         return pickBestFont (allFonts, targets);
     }
 
-    JUCE_DECLARE_NON_COPYABLE (DefaultFontInfo)
+    JUCE_DECLARE_NON_COPYABLE (DefaultFontNames)
 };
 
 Typeface::Ptr Font::getDefaultTypefaceForFont (const Font& font)
 {
-    static const DefaultFontInfo defaultInfo;
+    static DefaultFontNames defaultNames;
 
     Font f (font);
-
-    const auto name = font.getTypefaceName();
-    const auto characteristics = defaultInfo.getRealFontCharacteristics (name);
-    f.setTypefaceName (characteristics.name);
-
-    const auto styles = findAllTypefaceStyles (name);
-
-    if (! styles.contains (font.getTypefaceStyle()))
-        f.setTypefaceStyle (characteristics.style);
-
+    f.setTypefaceName (defaultNames.getRealFontName (font.getTypefaceName()));
     return Typeface::createSystemTypefaceFor (f);
 }
 

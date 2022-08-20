@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -829,10 +829,9 @@ public:
         If the item isn't found, no action is taken.
 
         @param valueToRemove   the object to try to remove
-        @returns               the index of the removed item, or -1 if the item isn't found
         @see remove, removeRange, removeIf
     */
-    int removeFirstMatchingValue (ParameterType valueToRemove)
+    void removeFirstMatchingValue (ParameterType valueToRemove)
     {
         const ScopedLockType lock (getLock());
         auto* e = values.begin();
@@ -842,11 +841,9 @@ public:
             if (valueToRemove == e[i])
             {
                 removeInternal (i);
-                return i;
+                break;
             }
         }
-
-        return -1;
     }
 
     /** Removes items from the array.

@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -206,14 +206,10 @@ void AccessibilityHandler::notifyAccessibilityEvent (AccessibilityEvent eventTyp
     {
         if (auto* valueInterface = getValueInterface())
         {
-            const auto propertyType = getRole() == AccessibilityRole::slider ? UIA_RangeValueValuePropertyId
-                                                                             : UIA_ValueValuePropertyId;
+            VARIANT newValue;
+            VariantHelpers::setString (valueInterface->getCurrentValueAsString(), &newValue);
 
-            const auto value = getRole() == AccessibilityRole::slider
-                               ? VariantHelpers::getWithValue (valueInterface->getCurrentValue())
-                               : VariantHelpers::getWithValue (valueInterface->getCurrentValueAsString());
-
-            sendAccessibilityPropertyChangedEvent (*this, propertyType, value);
+            sendAccessibilityPropertyChangedEvent (*this, UIA_ValueValuePropertyId, newValue);
         }
 
         return;
@@ -288,12 +284,12 @@ void AccessibilityHandler::postAnnouncement (const String& announcementString, A
 //==============================================================================
 namespace WindowsAccessibility
 {
-    static long getUiaRootObjectId()
+    long getUiaRootObjectId()
     {
         return static_cast<long> (UiaRootObjectId);
     }
 
-    static bool handleWmGetObject (AccessibilityHandler* handler, WPARAM wParam, LPARAM lParam, LRESULT* res)
+    bool handleWmGetObject (AccessibilityHandler* handler, WPARAM wParam, LPARAM lParam, LRESULT* res)
     {
         if (isStartingUpOrShuttingDown() || (handler == nullptr || ! isHandlerValid (*handler)))
             return false;
@@ -312,7 +308,7 @@ namespace WindowsAccessibility
         return false;
     }
 
-    static void revokeUIAMapEntriesForWindow (HWND hwnd)
+    void revokeUIAMapEntriesForWindow (HWND hwnd)
     {
         if (auto* uiaWrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
             uiaWrapper->returnRawElementProvider (hwnd, 0, 0, nullptr);

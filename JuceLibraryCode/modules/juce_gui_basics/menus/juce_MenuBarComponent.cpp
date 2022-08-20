@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -223,47 +223,41 @@ void MenuBarComponent::updateItemUnderMouse (Point<int> p)
 
 void MenuBarComponent::showMenu (int index)
 {
-    if (index == currentPopupIndex)
-        return;
-
-    const auto needToOpenNewSubMenu = isPositiveAndBelow (index, (int) itemComponents.size());
-
-    if (needToOpenNewSubMenu)
-        ++numActiveMenus;
-
-    PopupMenu::dismissAllActiveMenus();
-    menuBarItemsChanged (nullptr);
-
-    setOpenItem (index);
-    setItemUnderMouse (index);
-
-    if (needToOpenNewSubMenu)
+    if (index != currentPopupIndex)
     {
-        const auto& itemComponent = itemComponents[(size_t) index];
-        auto m = model->getMenuForIndex (itemUnderMouse, itemComponent->getName());
+        PopupMenu::dismissAllActiveMenus();
+        menuBarItemsChanged (nullptr);
 
-        if (m.lookAndFeel == nullptr)
-            m.setLookAndFeel (&getLookAndFeel());
+        setOpenItem (index);
+        setItemUnderMouse (index);
 
-        auto itemBounds = itemComponent->getBounds();
-
-        const auto callback = [ref = SafePointer<MenuBarComponent> (this), index] (int result)
+        if (isPositiveAndBelow (index, (int) itemComponents.size()))
         {
-            if (ref != nullptr)
-                ref->menuDismissed (index, result);
-        };
+            const auto& itemComponent = itemComponents[(size_t) index];
+            auto m = model->getMenuForIndex (itemUnderMouse, itemComponent->getName());
 
-        m.showMenuAsync (PopupMenu::Options().withTargetComponent (this)
-                                             .withTargetScreenArea (localAreaToGlobal (itemBounds))
-                                             .withMinimumWidth (itemBounds.getWidth()),
-                         callback);
+            if (m.lookAndFeel == nullptr)
+                m.setLookAndFeel (&getLookAndFeel());
+
+            auto itemBounds = itemComponent->getBounds();
+
+            const auto callback = [ref = SafePointer<MenuBarComponent> (this), index] (int result)
+            {
+                if (ref != nullptr)
+                    ref->menuDismissed (index, result);
+            };
+
+            m.showMenuAsync (PopupMenu::Options().withTargetComponent (this)
+                                                 .withTargetScreenArea (localAreaToGlobal (itemBounds))
+                                                 .withMinimumWidth (itemBounds.getWidth()),
+                             callback);
+        }
     }
 }
 
 void MenuBarComponent::menuDismissed (int topLevelIndex, int itemId)
 {
-    topLevelIndexDismissed = topLevelIndex;
-    --numActiveMenus;
+    topLevelIndexClicked = topLevelIndex;
     postCommandMessage (itemId);
 }
 
@@ -271,11 +265,11 @@ void MenuBarComponent::handleCommandMessage (int commandId)
 {
     updateItemUnderMouse (getMouseXYRelative());
 
-    if (numActiveMenus == 0)
+    if (currentPopupIndex == topLevelIndexClicked)
         setOpenItem (-1);
 
     if (commandId != 0 && model != nullptr)
-        model->menuItemSelected (commandId, topLevelIndexDismissed);
+        model->menuItemSelected (commandId, topLevelIndexClicked);
 }
 
 //==============================================================================

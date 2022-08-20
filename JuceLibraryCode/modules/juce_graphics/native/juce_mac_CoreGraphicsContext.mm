@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -41,10 +41,12 @@ public:
 
         auto numComponents = (size_t) lineStride * (size_t) jmax (1, height);
 
-        // SDK version 10.14+ intermittently requires a bit of extra space
+       # if JUCE_MAC && defined (MAC_OS_X_VERSION_10_14) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+        // This version of the SDK intermittently requires a bit of extra space
         // at the end of the image data. This feels like something has gone
         // wrong in Apple's code.
         numComponents += (size_t) lineStride;
+       #endif
 
         imageData->data.allocate (numComponents, clearImage);
 
@@ -122,18 +124,19 @@ public:
                                                                                [] (void * __nullable info, const void*, size_t) { delete (ImageDataContainer::Ptr*) info; }) };
             }
 
-            const auto usableSize = jmin ((size_t) srcData.lineStride * (size_t) srcData.height, srcData.size);
-            CFUniquePtr<CFDataRef> data (CFDataCreate (nullptr, (const UInt8*) srcData.data, (CFIndex) usableSize));
+            CFUniquePtr<CFDataRef> data (CFDataCreate (nullptr, (const UInt8*) srcData.data, (CFIndex) srcData.size));
             return detail::DataProviderPtr { CGDataProviderCreateWithCFData (data.get()) };
         }();
 
-        return CGImageCreate ((size_t) srcData.width,
-                              (size_t) srcData.height,
-                              8,
-                              (size_t) srcData.pixelStride * 8,
-                              (size_t) srcData.lineStride,
-                              colourSpace, getCGImageFlags (juceImage.getFormat()), provider.get(),
-                              nullptr, true, kCGRenderingIntentDefault);
+        CGImageRef imageRef = CGImageCreate ((size_t) srcData.width,
+                                             (size_t) srcData.height,
+                                             8,
+                                             (size_t) srcData.pixelStride * 8,
+                                             (size_t) srcData.lineStride,
+                                             colourSpace, getCGImageFlags (juceImage.getFormat()), provider.get(),
+                                             nullptr, true, kCGRenderingIntentDefault);
+
+        return imageRef;
     }
 
     //==============================================================================

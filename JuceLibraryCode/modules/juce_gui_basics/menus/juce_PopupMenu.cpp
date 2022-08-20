@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -87,7 +87,7 @@ struct HeaderItemComponent  : public PopupMenu::CustomComponent
 
     std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override
     {
-        return createIgnoredAccessibilityHandler (*this);
+        return nullptr;
     }
 
     const Options& options;
@@ -187,6 +187,29 @@ struct ItemComponent  : public Component
     PopupMenu::Item item;
 
 private:
+    class ValueInterface  : public AccessibilityValueInterface
+    {
+    public:
+        ValueInterface() = default;
+
+        bool isReadOnly() const override  { return true; }
+
+        double getCurrentValue() const override
+        {
+            return 1.0;
+        }
+
+        String getCurrentValueAsString() const override
+        {
+            return TRANS ("Checked");
+        }
+
+        void setValue (double) override {}
+        void setValueAsString (const String&) override  {}
+
+        AccessibleValueRange getRange() const override { return {}; }
+    };
+
     //==============================================================================
     class ItemAccessibilityHandler  : public AccessibilityHandler
     {
@@ -195,7 +218,9 @@ private:
             : AccessibilityHandler (itemComponentToWrap,
                                     isAccessibilityHandlerRequired (itemComponentToWrap.item) ? AccessibilityRole::menuItem
                                                                                               : AccessibilityRole::ignored,
-                                    getAccessibilityActions (*this, itemComponentToWrap)),
+                                    getAccessibilityActions (*this, itemComponentToWrap),
+                                    AccessibilityHandler::Interfaces { itemComponentToWrap.item.isTicked ? std::make_unique<ValueInterface>()
+                                                                                                         : nullptr }),
               itemComponent (itemComponentToWrap)
         {
         }
@@ -217,7 +242,7 @@ private:
             }
 
             if (itemComponent.item.isTicked)
-                state = state.withCheckable().withChecked();
+                state = state.withChecked();
 
             return state.isFocused() ? state.withSelected() : state;
         }
@@ -275,8 +300,7 @@ private:
 
     std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override
     {
-        return item.isSeparator ? createIgnoredAccessibilityHandler (*this)
-                                : std::make_unique<ItemAccessibilityHandler> (*this);
+        return item.isSeparator ? nullptr : std::make_unique<ItemAccessibilityHandler> (*this);
     }
 
     //==============================================================================
@@ -517,14 +541,10 @@ struct MenuWindow  : public Component
             auto resultID = options.hasWatchedComponentBeenDeleted() ? 0 : getResultItemID (item);
 
             exitModalState (resultID);
+            exitingModalState = true;
 
-            if (deletionChecker != nullptr)
-            {
-                exitingModalState = true;
-
-                if (makeInvisible)
-                    setVisible (false);
-            }
+            if (makeInvisible && deletionChecker != nullptr)
+                setVisible (false);
 
             if (resultID != 0
                  && item != nullptr
@@ -2029,17 +2049,6 @@ PopupMenu::Options PopupMenu::Options::withInitiallySelectedItem (int idOfItemTo
 Component* PopupMenu::createWindow (const Options& options,
                                     ApplicationCommandManager** managerOfChosenCommand) const
 {
-   #if JUCE_WINDOWS
-    const auto scope = [&]() -> std::unique_ptr<ScopedThreadDPIAwarenessSetter>
-    {
-        if (auto* target = options.getTargetComponent())
-            if (auto* handle = target->getWindowHandle())
-                return std::make_unique<ScopedThreadDPIAwarenessSetter> (handle);
-
-        return nullptr;
-    }();
-   #endif
-
     return items.isEmpty() ? nullptr
                            : new HelperClasses::MenuWindow (*this, nullptr, options,
                                                             ! options.getTargetScreenArea().isEmpty(),

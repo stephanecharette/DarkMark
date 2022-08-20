@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -56,19 +56,19 @@ void MultiDocumentPanelWindow::closeButtonPressed()
 void MultiDocumentPanelWindow::activeWindowStatusChanged()
 {
     DocumentWindow::activeWindowStatusChanged();
-    updateActiveDocument();
+    updateOrder();
 }
 
 void MultiDocumentPanelWindow::broughtToFront()
 {
     DocumentWindow::broughtToFront();
-    updateActiveDocument();
+    updateOrder();
 }
 
-void MultiDocumentPanelWindow::updateActiveDocument()
+void MultiDocumentPanelWindow::updateOrder()
 {
     if (auto* owner = getOwner())
-        owner->updateActiveDocumentFromUIState();
+        owner->updateOrder();
 }
 
 MultiDocumentPanel* MultiDocumentPanelWindow::getOwner() const noexcept
@@ -84,7 +84,7 @@ struct MultiDocumentPanel::TabbedComponentInternal   : public TabbedComponent
     void currentTabChanged (int, const String&) override
     {
         if (auto* owner = findParentComponentOfClass<MultiDocumentPanel>())
-            owner->updateActiveDocumentFromUIState();
+            owner->updateOrder();
     }
 };
 
@@ -262,84 +262,21 @@ bool MultiDocumentPanel::addDocument (Component* const component,
     }
 
     resized();
-    updateActiveDocument (component);
+    activeDocumentChanged();
     return true;
 }
 
-void MultiDocumentPanel::recreateLayout()
-{
-    tabComponent.reset();
-
-    for (int i = getNumChildComponents(); --i >= 0;)
-    {
-        std::unique_ptr<MultiDocumentPanelWindow> dw (dynamic_cast<MultiDocumentPanelWindow*> (getChildComponent (i)));
-
-        if (dw != nullptr)
-        {
-            dw->getContentComponent()->getProperties().set ("mdiDocumentPos_", dw->getWindowStateAsString());
-            dw->clearContentComponent();
-        }
-    }
-
-    resized();
-
-    auto tempComps = components;
-    components.clear();
-
-    {
-        // We want to preserve the activeComponent, so we are blocking the changes originating
-        // from addDocument()
-        const ScopedValueSetter<bool> scope { isLayoutBeingChanged, true };
-
-        for (auto* c : tempComps)
-            addDocument (c,
-                         Colour ((uint32) static_cast<int> (c->getProperties().getWithDefault ("mdiDocumentBkg_",
-                                                                                               (int) Colours::white.getARGB()))),
-                         MultiDocHelpers::shouldDeleteComp (c));
-    }
-
-    if (activeComponent != nullptr)
-        setActiveDocument (activeComponent);
-
-    updateActiveDocumentFromUIState();
-}
-
-void MultiDocumentPanel::closeDocumentInternal (Component* componentToClose)
+void MultiDocumentPanel::closeDocumentInternal (Component* component)
 {
     // Intellisense warns about component being uninitialised.
     // I'm not sure how a function argument could be uninitialised.
     JUCE_BEGIN_IGNORE_WARNINGS_MSVC (6001)
 
-    const OptionalScopedPointer<Component> component { componentToClose,
-                                                       MultiDocHelpers::shouldDeleteComp (componentToClose) };
-
     component->removeComponentListener (this);
 
+    const bool shouldDelete = MultiDocHelpers::shouldDeleteComp (component);
     component->getProperties().remove ("mdiDocumentDelete_");
     component->getProperties().remove ("mdiDocumentBkg_");
-
-    const auto removedIndex = components.indexOf (component);
-
-    if (removedIndex < 0)
-    {
-        jassertfalse;
-        return;
-    }
-
-    components.remove (removedIndex);
-
-    // See if the active document needs to change because of closing a document. It should only
-    // change if we closed the active document. If so, the next active document should be the
-    // subsequent one.
-    if (component == activeComponent)
-    {
-        auto* newActiveComponent = components[jmin (removedIndex, components.size() - 1)];
-        updateActiveDocument (newActiveComponent);
-    }
-
-    // We update the UI to reflect the new state, but we want to prevent the UI state callback
-    // to change the active document.
-    const ScopedValueSetter<bool> scope { isLayoutBeingChanged, true };
 
     if (mode == FloatingWindows)
     {
@@ -355,6 +292,11 @@ void MultiDocumentPanel::closeDocumentInternal (Component* componentToClose)
             }
         }
 
+        if (shouldDelete)
+            delete component;
+
+        components.removeFirstMatchingValue (component);
+
         if (isFullscreenWhenOneDocument() && components.size() == 1)
         {
             for (int i = getNumChildComponents(); --i >= 0;)
@@ -365,11 +307,13 @@ void MultiDocumentPanel::closeDocumentInternal (Component* componentToClose)
                     dw->clearContentComponent();
             }
 
-            addAndMakeVisible (getActiveDocument());
+            addAndMakeVisible (components.getFirst());
         }
     }
     else
     {
+        jassert (components.indexOf (component) >= 0);
+
         if (tabComponent != nullptr)
         {
             for (int i = tabComponent->getNumTabs(); --i >= 0;)
@@ -381,18 +325,25 @@ void MultiDocumentPanel::closeDocumentInternal (Component* componentToClose)
             removeChildComponent (component);
         }
 
-        if (components.size() <= numDocsBeforeTabsUsed && getActiveDocument() != nullptr)
-        {
+        if (shouldDelete)
+            delete component;
+
+        if (tabComponent != nullptr && tabComponent->getNumTabs() <= numDocsBeforeTabsUsed)
             tabComponent.reset();
-            addAndMakeVisible (getActiveDocument());
-        }
+
+        components.removeFirstMatchingValue (component);
+
+        if (components.size() > 0 && tabComponent == nullptr)
+            addAndMakeVisible (components.getFirst());
     }
 
     resized();
 
     // This ensures that the active tab is painted properly when a tab is closed!
-    if (auto* activeDocument = getActiveDocument())
-        setActiveDocument (activeDocument);
+    if (auto* activeComponent = getActiveDocument())
+        setActiveDocument (activeComponent);
+
+    activeDocumentChanged();
 
     JUCE_END_IGNORE_WARNINGS_MSVC
 }
@@ -487,7 +438,15 @@ Component* MultiDocumentPanel::getDocument (const int index) const noexcept
 
 Component* MultiDocumentPanel::getActiveDocument() const noexcept
 {
-    return activeComponent;
+    if (mode == FloatingWindows)
+    {
+        for (auto* child : getChildren())
+            if (auto* dw = dynamic_cast<MultiDocumentPanelWindow*> (child))
+                if (dw->isActiveWindow())
+                    return dw->getContentComponent();
+    }
+
+    return components.getLast();
 }
 
 void MultiDocumentPanel::setActiveDocument (Component* component)
@@ -531,10 +490,7 @@ void MultiDocumentPanel::setMaximumNumDocuments (const int newNumber)
 
 void MultiDocumentPanel::useFullscreenWhenOneDocument (const bool shouldUseTabs)
 {
-    const auto newNumDocsBeforeTabsUsed = shouldUseTabs ? 1 : 0;
-
-    if (std::exchange (numDocsBeforeTabsUsed, newNumDocsBeforeTabsUsed) != newNumDocsBeforeTabsUsed)
-        recreateLayout();
+    numDocsBeforeTabsUsed = shouldUseTabs ? 1 : 0;
 }
 
 bool MultiDocumentPanel::isFullscreenWhenOneDocument() const noexcept
@@ -545,8 +501,38 @@ bool MultiDocumentPanel::isFullscreenWhenOneDocument() const noexcept
 //==============================================================================
 void MultiDocumentPanel::setLayoutMode (const LayoutMode newLayoutMode)
 {
-    if (std::exchange (mode, newLayoutMode) != newLayoutMode)
-        recreateLayout();
+    if (mode != newLayoutMode)
+    {
+        mode = newLayoutMode;
+
+        if (mode == FloatingWindows)
+        {
+            tabComponent.reset();
+        }
+        else
+        {
+            for (int i = getNumChildComponents(); --i >= 0;)
+            {
+                std::unique_ptr<MultiDocumentPanelWindow> dw (dynamic_cast<MultiDocumentPanelWindow*> (getChildComponent (i)));
+
+                if (dw != nullptr)
+                {
+                    dw->getContentComponent()->getProperties().set ("mdiDocumentPos_", dw->getWindowStateAsString());
+                    dw->clearContentComponent();
+                }
+            }
+        }
+
+        resized();
+
+        auto tempComps = components;
+        components.clear();
+
+        for (auto* c : tempComps)
+            addDocument (c,
+                         Colour ((uint32) static_cast<int> (c->getProperties().getWithDefault ("mdiDocumentBkg_", (int) Colours::white.getARGB()))),
+                         MultiDocHelpers::shouldDeleteComp (c));
+    }
 }
 
 void MultiDocumentPanel::setBackgroundColour (Colour newBackgroundColour)
@@ -604,36 +590,31 @@ void MultiDocumentPanel::componentNameChanged (Component&)
     }
 }
 
-void MultiDocumentPanel::updateActiveDocumentFromUIState()
+void MultiDocumentPanel::updateOrder()
 {
-    auto* newActiveComponent = [&]() -> Component*
+    auto oldList = components;
+
+    if (mode == FloatingWindows)
     {
-        if (mode == FloatingWindows)
+        components.clear();
+
+        for (auto* child : getChildren())
+            if (auto* dw = dynamic_cast<MultiDocumentPanelWindow*> (child))
+                components.add (dw->getContentComponent());
+    }
+    else
+    {
+        if (tabComponent != nullptr)
         {
-            for (auto* c : components)
+            if (auto* current = tabComponent->getCurrentContentComponent())
             {
-                if (auto* window = static_cast<MultiDocumentPanelWindow*> (c->getParentComponent()))
-                    if (window->isActiveWindow())
-                        return c;
+                components.removeFirstMatchingValue (current);
+                components.add (current);
             }
         }
+    }
 
-        if (tabComponent != nullptr)
-            if (auto* current = tabComponent->getCurrentContentComponent())
-                return current;
-
-        return activeComponent;
-    }();
-
-    updateActiveDocument (newActiveComponent);
-}
-
-void MultiDocumentPanel::updateActiveDocument (Component* component)
-{
-    if (isLayoutBeingChanged)
-        return;
-
-    if (std::exchange (activeComponent, component) != component)
+    if (components != oldList)
         activeDocumentChanged();
 }
 

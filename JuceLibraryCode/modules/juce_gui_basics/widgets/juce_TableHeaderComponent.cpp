@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -38,7 +38,7 @@ public:
 
     void paint (Graphics& g) override
     {
-        g.drawImage (image, getLocalBounds().toFloat());
+        g.drawImageAt (image, 0, 0);
     }
 
     Image image;
@@ -50,7 +50,6 @@ public:
 //==============================================================================
 TableHeaderComponent::TableHeaderComponent()
 {
-    setFocusContainerType (FocusContainerType::focusContainer);
 }
 
 TableHeaderComponent::~TableHeaderComponent()
@@ -87,7 +86,7 @@ int TableHeaderComponent::getNumColumns (const bool onlyCountVisibleColumns) con
 String TableHeaderComponent::getColumnName (const int columnId) const
 {
     if (auto* ci = getInfoForId (columnId))
-        return ci->getTitle();
+        return ci->name;
 
     return {};
 }
@@ -96,9 +95,9 @@ void TableHeaderComponent::setColumnName (const int columnId, const String& newN
 {
     if (auto* ci = getInfoForId (columnId))
     {
-        if (ci->getTitle() != newName)
+        if (ci->name != newName)
         {
-            ci->setTitle (newName);
+            ci->name = newName;
             sendColumnsChanged();
         }
     }
@@ -117,7 +116,7 @@ void TableHeaderComponent::addColumn (const String& columnName,
     jassert (width > 0);
 
     auto ci = new ColumnInfo();
-    ci->setTitle (columnName);
+    ci->name = columnName;
     ci->id = columnId;
     ci->width = width;
     ci->lastDeliberateWidth = width;
@@ -126,11 +125,7 @@ void TableHeaderComponent::addColumn (const String& columnName,
     jassert (ci->maximumWidth >= ci->minimumWidth);
     ci->propertyFlags = propertyFlags;
 
-    auto* added = columns.insert (insertIndex, ci);
-    addChildComponent (added);
-    added->setVisible ((propertyFlags & visible) != 0);
-
-    resized();
+    columns.insert (insertIndex, ci);
     sendColumnsChanged();
 }
 
@@ -202,7 +197,6 @@ void TableHeaderComponent::setColumnWidth (const int columnId, const int newWidt
                 }
             }
 
-            resized();
             repaint();
             columnsResized = true;
             triggerAsyncUpdate();
@@ -346,7 +340,6 @@ void TableHeaderComponent::resizeColumnsToFit (int firstColumnIndex, int targetT
             if (newWidth != ci->width)
             {
                 ci->width = newWidth;
-                resized();
                 repaint();
                 columnsResized = true;
                 triggerAsyncUpdate();
@@ -361,7 +354,11 @@ void TableHeaderComponent::setColumnVisible (const int columnId, const bool shou
     {
         if (shouldBeVisible != ci->isVisible())
         {
-            ci->setVisible (shouldBeVisible);
+            if (shouldBeVisible)
+                ci->propertyFlags |= visible;
+            else
+                ci->propertyFlags &= ~visible;
+
             sendColumnsChanged();
             resized();
         }
@@ -412,7 +409,6 @@ bool TableHeaderComponent::isSortedForwards() const
 void TableHeaderComponent::reSortTable()
 {
     sortChanged = true;
-    resized();
     repaint();
     triggerAsyncUpdate();
 }
@@ -489,7 +485,7 @@ void TableHeaderComponent::addMenuItems (PopupMenu& menu, const int /*columnIdCl
 {
     for (auto* ci : columns)
         if ((ci->propertyFlags & appearsOnColumnMenu) != 0)
-            menu.addItem (ci->id, ci->getTitle(),
+            menu.addItem (ci->id, ci->name,
                           (ci->propertyFlags & (sortedForwards | sortedBackwards)) == 0,
                           isColumnVisible (ci->id));
 }
@@ -506,42 +502,28 @@ void TableHeaderComponent::paint (Graphics& g)
 
     lf.drawTableHeaderBackground (g, *this);
 
-    for (auto* ci : columns)
-    {
-        if (ci->isVisible() && ci->getWidth() > 0)
-        {
-            Graphics::ScopedSaveState ss (g);
-
-            g.setOrigin (ci->getX(), ci->getY());
-            g.reduceClipRegion (0, 0, ci->getWidth(), ci->getHeight());
-
-            lf.drawTableHeaderColumn (g, *this, ci->getTitle(), ci->id, ci->width, getHeight(),
-                                      ci->id == columnIdUnderMouse,
-                                      ci->id == columnIdUnderMouse && isMouseButtonDown(),
-                                      ci->propertyFlags);
-        }
-    }
-}
-
-void TableHeaderComponent::resized()
-{
-    auto clip = getBounds();
+    auto clip = g.getClipBounds();
 
     int x = 0;
-
-    for (auto* ci : columns)
-        ci->setBounds (0, 0, 0, 0);
 
     for (auto* ci : columns)
     {
         if (ci->isVisible())
         {
             if (x + ci->width > clip.getX()
-                && (ci->id != columnIdBeingDragged
-                    || dragOverlayComp == nullptr
-                    || ! dragOverlayComp->isVisible()))
+                 && (ci->id != columnIdBeingDragged
+                      || dragOverlayComp == nullptr
+                      || ! dragOverlayComp->isVisible()))
             {
-                ci->setBounds (x, 0, ci->width, getHeight());
+                Graphics::ScopedSaveState ss (g);
+
+                g.setOrigin (x, 0);
+                g.reduceClipRegion (0, 0, ci->width, getHeight());
+
+                lf.drawTableHeaderColumn (g, *this, ci->name, ci->id, ci->width, getHeight(),
+                                          ci->id == columnIdUnderMouse,
+                                          ci->id == columnIdUnderMouse && isMouseButtonDown(),
+                                          ci->propertyFlags);
             }
 
             x += ci->width;
@@ -558,7 +540,6 @@ void TableHeaderComponent::mouseExit  (const MouseEvent&)    { setColumnUnderMou
 
 void TableHeaderComponent::mouseDown (const MouseEvent& e)
 {
-    resized();
     repaint();
     columnIdBeingResized = 0;
     columnIdBeingDragged = 0;
@@ -713,7 +694,7 @@ void TableHeaderComponent::beginDrag (const MouseEvent& e)
             auto temp = columnIdBeingDragged;
             columnIdBeingDragged = 0;
 
-            dragOverlayComp.reset (new DragOverlayComp (createComponentSnapshot (columnRect, false, 2.0f)));
+            dragOverlayComp.reset (new DragOverlayComp (createComponentSnapshot (columnRect, false)));
             addAndMakeVisible (dragOverlayComp.get());
             columnIdBeingDragged = temp;
 
@@ -735,7 +716,6 @@ void TableHeaderComponent::endDrag (const int finalIndex)
         moveColumn (columnIdBeingDragged, finalIndex);
 
         columnIdBeingDragged = 0;
-        resized();
         repaint();
 
         for (int i = listeners.size(); --i >= 0;)
@@ -755,7 +735,6 @@ void TableHeaderComponent::mouseUp (const MouseEvent& e)
             c->lastDeliberateWidth = c->width;
 
     columnIdBeingResized = 0;
-    resized();
     repaint();
 
     endDrag (getIndexOfColumnId (columnIdBeingDragged, true));
@@ -777,6 +756,10 @@ MouseCursor TableHeaderComponent::getMouseCursor()
 }
 
 //==============================================================================
+bool TableHeaderComponent::ColumnInfo::isVisible() const
+{
+    return (propertyFlags & TableHeaderComponent::visible) != 0;
+}
 
 TableHeaderComponent::ColumnInfo* TableHeaderComponent::getInfoForId (int id) const
 {
@@ -810,7 +793,6 @@ void TableHeaderComponent::sendColumnsChanged()
     if (stretchToFit && lastDeliberateWidth > 0)
         resizeAllColumnsToFit (lastDeliberateWidth);
 
-    resized();
     repaint();
     columnsChanged = true;
     triggerAsyncUpdate();
@@ -917,11 +899,6 @@ void TableHeaderComponent::Listener::tableColumnDraggingChanged (TableHeaderComp
 
 //==============================================================================
 std::unique_ptr<AccessibilityHandler> TableHeaderComponent::createAccessibilityHandler()
-{
-    return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::tableHeader);
-}
-
-std::unique_ptr<AccessibilityHandler> TableHeaderComponent::ColumnInfo::createAccessibilityHandler()
 {
     return std::make_unique<AccessibilityHandler> (*this, AccessibilityRole::tableHeader);
 }

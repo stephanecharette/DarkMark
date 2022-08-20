@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -28,21 +28,12 @@ namespace juce
 class ScopedLowPowerModeDisabler::Pimpl
 {
 public:
-    Pimpl()
-    {
-        if (@available (macOS 10.9, *))
-            activity = [[NSProcessInfo processInfo] beginActivityWithOptions: NSActivityUserInitiatedAllowingIdleSystemSleep
-                                                                      reason: @"App must remain in high-power mode"];
-    }
-
-    ~Pimpl()
-    {
-        if (@available (macOS 10.9, *))
-            [[NSProcessInfo processInfo] endActivity: activity];
-    }
+    Pimpl() = default;
+    ~Pimpl() { [[NSProcessInfo processInfo] endActivity: activity]; }
 
 private:
-    id activity;
+    id activity { [[NSProcessInfo processInfo] beginActivityWithOptions: NSActivityUserInitiatedAllowingIdleSystemSleep
+                                                                 reason: @"App must remain in high-power mode"] };
 
     JUCE_DECLARE_NON_COPYABLE (Pimpl)
     JUCE_DECLARE_NON_MOVEABLE (Pimpl)

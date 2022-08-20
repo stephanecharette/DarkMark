@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -229,7 +229,7 @@ namespace DirectWriteTypeLayout
         return dwFontMetrics.designUnitsPerEm / totalHeight;
     }
 
-    static void setTextFormatProperties (const AttributedString& text, IDWriteTextFormat& format)
+    void setTextFormatProperties (const AttributedString& text, IDWriteTextFormat& format)
     {
         DWRITE_TEXT_ALIGNMENT alignment = DWRITE_TEXT_ALIGNMENT_LEADING;
         DWRITE_WORD_WRAPPING wrapType = DWRITE_WORD_WRAPPING_WRAP;
@@ -271,13 +271,13 @@ namespace DirectWriteTypeLayout
         format.SetWordWrapping (wrapType);
     }
 
-    static void addAttributedRange (const AttributedString::Attribute& attr,
-                                    IDWriteTextLayout& textLayout,
-                                    CharPointer_UTF16 begin,
-                                    CharPointer_UTF16 textPointer,
-                                    const UINT32 textLen,
-                                    ID2D1RenderTarget& renderTarget,
-                                    IDWriteFontCollection& fontCollection)
+    void addAttributedRange (const AttributedString::Attribute& attr,
+                             IDWriteTextLayout& textLayout,
+                             CharPointer_UTF16 begin,
+                             CharPointer_UTF16 textPointer,
+                             const UINT32 textLen,
+                             ID2D1RenderTarget& renderTarget,
+                             IDWriteFontCollection& fontCollection)
     {
         DWRITE_TEXT_RANGE range;
         range.startPosition = (UINT32) (textPointer.getAddress() - begin.getAddress());
@@ -337,13 +337,9 @@ namespace DirectWriteTypeLayout
         }
     }
 
-    static bool setupLayout (const AttributedString& text,
-                             float maxWidth,
-                             float maxHeight,
-                             ID2D1RenderTarget& renderTarget,
-                             IDWriteFactory& directWriteFactory,
-                             IDWriteFontCollection& fontCollection,
-                             ComSmartPtr<IDWriteTextLayout>& textLayout)
+    bool setupLayout (const AttributedString& text, float maxWidth, float maxHeight,
+                      ID2D1RenderTarget& renderTarget, IDWriteFactory& directWriteFactory,
+                      IDWriteFontCollection& fontCollection, ComSmartPtr<IDWriteTextLayout>& textLayout)
     {
         // To add color to text, we need to create a D2D render target
         // Since we are not actually rendering to a D2D context we create a temporary GDI render target
@@ -407,11 +403,10 @@ namespace DirectWriteTypeLayout
         return true;
     }
 
-    static void createLayout (TextLayout& layout,
-                              const AttributedString& text,
-                              IDWriteFactory& directWriteFactory,
-                              IDWriteFontCollection& fontCollection,
-                              ID2D1DCRenderTarget& renderTarget)
+    void createLayout (TextLayout& layout, const AttributedString& text,
+                       IDWriteFactory& directWriteFactory,
+                       IDWriteFontCollection& fontCollection,
+                       ID2D1DCRenderTarget& renderTarget)
     {
         ComSmartPtr<IDWriteTextLayout> dwTextLayout;
 
@@ -447,11 +442,8 @@ namespace DirectWriteTypeLayout
         }
     }
 
-    static inline void drawToD2DContext (const AttributedString& text,
-                                         const Rectangle<float>& area,
-                                         ID2D1RenderTarget& renderTarget,
-                                         IDWriteFactory& directWriteFactory,
-                                         IDWriteFontCollection& fontCollection)
+    void drawToD2DContext (const AttributedString& text, const Rectangle<float>& area, ID2D1RenderTarget& renderTarget,
+                           IDWriteFactory& directWriteFactory, IDWriteFontCollection& fontCollection)
     {
         ComSmartPtr<IDWriteTextLayout> dwTextLayout;
 

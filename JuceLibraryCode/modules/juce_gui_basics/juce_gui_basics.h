@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2022 - Raw Material Software Limited
+   Copyright (c) 2020 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
-   Agreement and JUCE Privacy Policy.
+   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
+   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
 
-   End User License Agreement: www.juce.com/juce-7-licence
+   End User License Agreement: www.juce.com/juce-6-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -35,7 +35,7 @@
 
   ID:                 juce_gui_basics
   vendor:             juce
-  version:            7.0.1
+  version:            6.1.6
   name:               JUCE GUI core classes
   description:        Basic user-interface components and related classes.
   website:            http://www.juce.com/juce
@@ -43,11 +43,8 @@
   minimumCppStandard: 14
 
   dependencies:       juce_graphics juce_data_structures
-  OSXFrameworks:      Cocoa QuartzCore
-  WeakOSXFrameworks:  Metal MetalKit
-  iOSFrameworks:      CoreServices UIKit
-  WeakiOSFrameworks:  Metal MetalKit
-  mingwLibs:          dxgi
+  OSXFrameworks:      Cocoa Carbon QuartzCore
+  iOSFrameworks:      UIKit CoreServices
 
  END_JUCE_MODULE_DECLARATION
 
