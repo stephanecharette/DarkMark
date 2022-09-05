@@ -44,7 +44,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	}
 
 	insert_if_not_exist("darknet_dir"					, home + "/darknet"									);
-	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:gif))$"	);
+	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:gif))$");
 	insert_if_not_exist("sort_order"					, static_cast<int>(ESort::kAlphabetical)			);
 	insert_if_not_exist("show_labels"					, static_cast<int>(EToggle::kAuto)					);
 	insert_if_not_exist("show_predictions"				, static_cast<int>(EToggle::kAuto)					);
@@ -108,6 +108,12 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		setValue("darknet_threshold"			, "50");
 		setValue("darknet_hierarchy_threshold"	, "50");
 		setValue("darknet_nms_threshold"		, "45");
+	}
+
+	// update the image extension list to include webp files which had previously been missed (2022-09-03)
+	if (get_str("image_regex") == "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:gif))$") // the old value
+	{
+		setValue("image_regex", "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:gif))$");
 	}
 
 	// see if the darknet directory exists, and if not, see if we can quickly find it
