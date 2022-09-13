@@ -18,7 +18,7 @@ int toInt(const std::string & str)
 }
 
 
-bool toFloat(const std::string & str)
+float toFloat(const std::string & str)
 {
 	float f = 0.0f;
 	try
