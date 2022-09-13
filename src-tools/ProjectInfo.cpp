@@ -101,6 +101,15 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("yolo_anchors"		))	recalculate_anchors		= toBool(options.at("yolo_anchors"			));
 	if (options.count("learning_rate"		))	learning_rate			= toFloat(options.at("learning_rate"		));
 
+	if (options.count("resize_images") and toBool(options.at("resize_images")) == true)
+	{
+		do_not_resize_images = false;
+	}
+	else if (options.count("do_not_resize_images") and toBool(options.at("do_not_resize_images")) == true)
+	{
+		resize_images = false;
+	}
+
 	// handle the special restrictions between the 3 "image resizing" modes since they're all related
 	if (do_not_resize_images == false and resize_images == false and tile_images == false and zoom_images == false)
 	{
