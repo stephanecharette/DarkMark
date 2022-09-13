@@ -18,6 +18,21 @@ int toInt(const std::string & str)
 }
 
 
+bool toFloat(const std::string & str)
+{
+	float f = 0.0f;
+	try
+	{
+		f = std::stof(str);
+	}
+	catch (...)
+	{
+	}
+
+	return f;
+}
+
+
 bool toBool(const std::string & str)
 {
 	if (str == "true"	||
@@ -84,6 +99,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("zoom_images"			))	zoom_images				= toBool(options.at("zoom_images"			));
 	if (options.count("limit_neg_samples"	))	limit_negative_samples	= toBool(options.at("limit_neg_samples"		));
 	if (options.count("yolo_anchors"		))	recalculate_anchors		= toBool(options.at("yolo_anchors"			));
+	if (options.count("learning_rate"		))	learning_rate			= toFloat(options.at("learning_rate"		));
 
 	// handle the special restrictions between the 3 "image resizing" modes since they're all related
 	if (do_not_resize_images == false and resize_images == false and tile_images == false and zoom_images == false)

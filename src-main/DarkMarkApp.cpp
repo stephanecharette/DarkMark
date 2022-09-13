@@ -169,6 +169,26 @@ bool validPositiveInt(const std::string & str)
 }
 
 
+bool validPositiveFloat(const std::string & str)
+{
+	try
+	{
+		size_t pos = 0;
+		const auto f = std::stof(str, &pos);
+
+		if (pos == str.size() and f > 0.0f)
+		{
+			return true;
+		}
+	}
+	catch (...)
+	{
+	}
+
+	return false;
+}
+
+
 bool validBool(const std::string & str)
 {
 	if (str == "true"	||
@@ -411,6 +431,12 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				key == "zoom_images"			or
 				key == "limit_neg_samples"		or
 				key == "yolo_anchors"			))
+		{
+			// no further validation performed here
+		}
+		else if (
+			validPositiveFloat(val) and (
+				key == "learning_rate"			))
 		{
 			// no further validation performed here
 		}

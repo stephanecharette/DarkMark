@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.7.7-1		| 2022-09-12	| Added @p learning_rate to @ref CLI.
 1.7.5-1		| 2002-08-20	| Revert JUCE back to version 6.1.6 due to problems with JUCE 7 in Linux.
 1.7.0-1		| 2022-08-08	| Added filter window.
 1.6.32-1	| 2022-08-07	| Update JUCE to latest version (7.0.1). Some important changes to JUCE, please make sure to let me know if something in the GUI is broken.
