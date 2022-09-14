@@ -419,6 +419,7 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				key == "width"					or
 				key == "height"					or
 				key == "max_batches"			or
+				key == "batch_size"				or
 				key == "subdivisions"			))
 		{
 			// no further validation performed here
@@ -430,7 +431,8 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				key == "tile_images"			or
 				key == "zoom_images"			or
 				key == "limit_neg_samples"		or
-				key == "yolo_anchors"			))
+				key == "yolo_anchors"			or
+				key == "class_imbalance"		))
 		{
 			// no further validation performed here
 		}

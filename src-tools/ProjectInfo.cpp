@@ -92,6 +92,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("width"				))	image_width				= toInt(options.at("width"					));
 	if (options.count("height"				))	image_height			= toInt(options.at("height"					));
 	if (options.count("max_batches"			))	iterations				= toInt(options.at("max_batches"			));
+	if (options.count("batch_size"			))	batch_size				= toInt(options.at("batch_size"				));
 	if (options.count("subdivisions"		))	subdivisions			= toInt(options.at("subdivisions"			));
 	if (options.count("do_not_resize_images"))	do_not_resize_images	= toBool(options.at("do_not_resize_images"	));
 	if (options.count("resize_images"		))	resize_images			= toBool(options.at("resize_images"			));
@@ -100,6 +101,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("limit_neg_samples"	))	limit_negative_samples	= toBool(options.at("limit_neg_samples"		));
 	if (options.count("yolo_anchors"		))	recalculate_anchors		= toBool(options.at("yolo_anchors"			));
 	if (options.count("learning_rate"		))	learning_rate			= toFloat(options.at("learning_rate"		));
+	if (options.count("class_imbalance"		))	class_imbalance			= toBool(options.at("class_imbalance"		));
 
 	if (options.count("resize_images") and toBool(options.at("resize_images")) == true)
 	{

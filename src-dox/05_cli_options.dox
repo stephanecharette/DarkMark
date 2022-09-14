@@ -15,7 +15,9 @@ Command									| Examples																	| Description
 @p max_batches=&lt;number&gt;			| @p max_batches=20000														| The number of iterations to use when generating the Darknet .cfg file.
 @p learning_rate=&lt;number&gt;			| @p learning_rate=0.001													| The learning rate to use when generating the Darknet .cfg file.
 @p resize_images=&lt;bool&gt;			| @p resize_images=true														| Determines if images are resized to match the network dimensions.  See @ref resize_images.
+@p batch_size=&lt;number&gt;			| @p batch_size=64															| The batch size to use when generating the Darknet .cfg file.
 @p subdivisions=&lt;number&gt;			| @p subdivisions=2															| The number of subdivisions to use when generating the Darknet .cfg file.
+@p class_imbalance=&lt;bool&gt;			| @p class_imbalance=false													| Toggles the @p counter_per_class setting when generating the Darknet .cfg file.
 @p template=&lt;filename&gt;			| @p template=/home/bob/src/darknet/cfg/yolov4-tiny.cfg						| Configuration template to use when combined with @p load=...
 @p tile_images=&lt;bool&gt;				| @p tile_images=true														| Determines if image tiling should be enabled.  See @ref tile_images.
 @p width=&lt;number&gt;					| @p width=416																| Network dimensions to use when generating the Darknet .cfg file.
