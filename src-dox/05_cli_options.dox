@@ -11,6 +11,7 @@ Command									| Examples																	| Description
 @p editor=&lt;name&gt;					| @p editor=gen-darknet														| Action to perform from the main editor window.  Only value supported is @p gen-darknet.
 @p height=&lt;number&gt;				| @p height=416																| Network dimensions to use when generating the Darknet .cfg file.
 @p limit_neg_samples=&lt;bool&gt;		| @p limit_neg_samples=true													| Determines if negative samples should be limited.
+@p limit_validation_images=&lt;bool&gt;	| @p limit_validation_images=true											| Determines if validation images should be limited.
 @p load=&lt;name&gt;					| @p load=cars <br/> @p load=123456 <br/> @p load=/home/username/nn/cars	| Hide the DarkMark Launcher and use the given project instead.  Can use the project name, the project key, or the directory.  The project must already exist in DarkMark.
 @p max_batches=&lt;number&gt;			| @p max_batches=20000														| The number of iterations to use when generating the Darknet .cfg file.
 @p learning_rate=&lt;number&gt;			| @p learning_rate=0.001													| The learning rate to use when generating the Darknet .cfg file.

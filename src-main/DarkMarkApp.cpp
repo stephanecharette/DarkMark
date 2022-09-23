@@ -426,13 +426,14 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 		}
 		else if (
 			validBool(val) and (
-				key == "do_not_resize_images"	or
-				key == "resize_images"			or
-				key == "tile_images"			or
-				key == "zoom_images"			or
-				key == "limit_neg_samples"		or
-				key == "yolo_anchors"			or
-				key == "class_imbalance"		))
+				key == "do_not_resize_images"		or
+				key == "resize_images"				or
+				key == "tile_images"				or
+				key == "zoom_images"				or
+				key == "limit_neg_samples"			or
+				key == "limit_validation_images"	or
+				key == "yolo_anchors"				or
+				key == "class_imbalance"			))
 		{
 			// no further validation performed here
 		}
