@@ -103,6 +103,10 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("yolo_anchors"			))	recalculate_anchors		= toBool(options.at("yolo_anchors"				));
 	if (options.count("learning_rate"			))	learning_rate			= toFloat(options.at("learning_rate"			));
 	if (options.count("class_imbalance"			))	class_imbalance			= toBool(options.at("class_imbalance"			));
+	if (options.count("mosaic"					))	enable_mosaic			= toBool(options.at("mosaic"					));
+	if (options.count("cutmix"					))	enable_cutmix			= toBool(options.at("cutmix"					));
+	if (options.count("mixup"					))	enable_mixup			= toBool(options.at("mixup"						));
+	if (options.count("flip"					))	enable_flip				= toBool(options.at("flip"						));
 
 	if (options.count("resize_images") and toBool(options.at("resize_images")) == true)
 	{

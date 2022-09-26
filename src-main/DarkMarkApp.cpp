@@ -433,7 +433,11 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				key == "limit_neg_samples"			or
 				key == "limit_validation_images"	or
 				key == "yolo_anchors"				or
-				key == "class_imbalance"			))
+				key == "class_imbalance"			or
+				key == "mosaic"						or
+				key == "cutmix"						or
+				key == "mixup"						or
+				key == "flip"						))
 		{
 			// no further validation performed here
 		}
