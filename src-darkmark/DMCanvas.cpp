@@ -103,11 +103,13 @@ void dm::DMCanvas::rebuild_cache_image()
 		}
 	}
 
+	bool mouse_drag_is_active = false;
 	if (mouse_drag_rectangle != invalid_rectangle)
 	{
 		// user is dragging the mouse to create a point, so hide predictions
 //		Log("dragging detected, turning off predictons in image cache");
 		content.predictions_are_shown = false;
+		mouse_drag_is_active = true;
 	}
 
 	if (content.number_of_marks == 0 and content.image_is_completely_empty == false)
@@ -147,7 +149,7 @@ void dm::DMCanvas::rebuild_cache_image()
 		const std::string name	= m.description;
 		const cv::Rect r		= m.get_bounding_rect(content.scaled_image.size());
 		const cv::Scalar colour	= m.get_colour();
-		const int thickness		= (is_selected or content.all_marks_are_bold ? 2 : 1);
+		const int thickness		= (mouse_drag_is_active == false and (is_selected or content.all_marks_are_bold) ? 2 : 1);
 
 		cv::Mat tmp = content.scaled_image(r).clone();
 
@@ -169,12 +171,12 @@ void dm::DMCanvas::rebuild_cache_image()
 			cv::line(tmp, cv::Point(0, tmp.rows), cv::Point(tmp.cols, 0), colour, 1, cv::LINE_8);
 		}
 
-		const double alpha = (is_selected or content.all_marks_are_bold ? 1.0 : content.alpha_blend_percentage);
+		const double alpha = (mouse_drag_is_active == false and (is_selected or content.all_marks_are_bold) ? 1.0 : content.alpha_blend_percentage);
 		const double beta = 1.0 - alpha;
 		cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
 		// draw the drag corners (only if the annotation is large enough to accomodate them)
-		if (is_selected and tmp.cols > content.corner_size * 2 and tmp.rows > content.corner_size * 2)
+		if (mouse_drag_is_active == false and is_selected and tmp.cols > content.corner_size * 2 and tmp.rows > content.corner_size * 2)
 		{
 			tmp = content.scaled_image(r);
 			cv::circle(tmp, cv::Point(0				, 0				), content.corner_size, colour, CV_FILLED, cv::LINE_AA);
@@ -190,14 +192,15 @@ void dm::DMCanvas::rebuild_cache_image()
 		const auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
 
 		// draw the label (if the area is large enough to warrant a label)
-		if	(content.show_labels == EToggle::kOn	or
-			(content.show_labels == EToggle::kAuto	and
-				(is_selected or
-					(	text_size.width		<= tmp.cols and
-						text_size.height	<= tmp.rows
+		if	(mouse_drag_is_active == false and
+				(content.show_labels == EToggle::kOn	or
+				(content.show_labels == EToggle::kAuto	and
+					(is_selected or
+						(	text_size.width		<= tmp.cols and
+							text_size.height	<= tmp.rows
+						)
 					)
-				)
-			))
+				)))
 		{
 			// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
 			const int x_offset = r.width - text_size.width - 2;
