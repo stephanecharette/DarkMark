@@ -21,6 +21,7 @@ Key							| Saves Modified Marks First	| Description
 @p TAB						|								| Move focus to the next marking.
 @p SHIFT + @p TAB			|								| Move focus to the previous marking.
 @p +						|								| Zoom image +10%.  Can be pressed repeatedly.
+@p SHIFT + @p +				|								| Zoom image 500%.
 @p -						|								| Zoom image -10%.  Can be pressed repeatedly.
 @p SPACE					|								| Toggle between automatic zoom and manual zoom (see @p '-', @p '+', and @p 'ESC' keys).
 @p a (lowercase)			|								| Accept all Darknet predictions (if any) for the current image as actual markings.

@@ -650,10 +650,17 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		zoom_point_of_interest.y = std::round((point.y + canvas.zoom_image_offset.y) / current_zoom_factor);
 		Log("zoom point of interest now: x=" + std::to_string(zoom_point_of_interest.x) + " y=" + std::to_string(zoom_point_of_interest.y));
 
-		user_specified_zoom_factor = std::round(current_zoom_factor * 10.0 + 1.0) / 10.0;
-		if (user_specified_zoom_factor > 5.0)
+		if (key.getModifiers().isShiftDown()) // with SHIFT we immediately skip to 500%
 		{
 			user_specified_zoom_factor = 5.0;
+		}
+		else
+		{
+			user_specified_zoom_factor = std::round(current_zoom_factor * 10.0 + 1.0) / 10.0;
+			if (user_specified_zoom_factor > 5.0)
+			{
+				user_specified_zoom_factor = 5.0;
+			}
 		}
 		Log("zoom factor now: " + std::to_string(user_specified_zoom_factor));
 
