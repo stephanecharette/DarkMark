@@ -367,10 +367,8 @@ void dm::StartupCanvas::find_all_darknet_files()
 		}
 	}
 
-	/* Sort by type, then within each type sort by timestamp so the newest files appear at the top.  If the type and
-	 * timestamps are the same (e.g., maybe the files were rsync'd without times being maintained) then compare the
-	 * names of the files themselves alphabetically so that yolov3-tiny_39000.weights appears prior to
-	 * yolov3-tiny_38000.weights.
+	/* Sort by type, then within each type sort by timestamp.
+	 * ...except if the name contains "_best.weights" in which case we want that to appear first!
 	 */
 	std::sort(v.begin(), v.end(),
 			[](const DarknetFileInfo & lhs, const DarknetFileInfo & rhs)
@@ -381,6 +379,15 @@ void dm::StartupCanvas::find_all_darknet_files()
 				}
 				if (lhs.type == rhs.type)
 				{
+					if (lhs.short_name.find("_best.weights") != std::string::npos)
+					{
+						return true;
+					}
+					if (rhs.short_name.find("_best.weights") != std::string::npos)
+					{
+						return false;
+					}
+
 					// reverse this test so the NEWER files appear at the top prior to the older files
 					if (rhs.timestamp < lhs.timestamp)
 					{
