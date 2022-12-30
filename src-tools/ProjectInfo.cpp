@@ -107,6 +107,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("cutmix"					))	enable_cutmix			= toBool(options.at("cutmix"					));
 	if (options.count("mixup"					))	enable_mixup			= toBool(options.at("mixup"						));
 	if (options.count("flip"					))	enable_flip				= toBool(options.at("flip"						));
+	if (options.count("restart_training"		))	restart_training		= toBool(options.at("restart_training"			));
 
 	if (options.count("resize_images") and toBool(options.at("resize_images")) == true)
 	{

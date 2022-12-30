@@ -437,7 +437,8 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				key == "mosaic"						or
 				key == "cutmix"						or
 				key == "mixup"						or
-				key == "flip"						))
+				key == "flip"						or
+				key == "restart_training"			))
 		{
 			// no further validation performed here
 		}

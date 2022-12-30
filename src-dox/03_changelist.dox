@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.7.16-1	| 2022-12-29	| Added @p restart_training to @ref CLI.
 1.7.11-1	| 2022-09-23	| Added @p limit_validation_images to @ref CLI.
 1.7.10-1	| 2022-09-13	| Added @p batch_size and @p class_imbalance to @ref CLI.
 1.7.7-1		| 2022-09-12	| Added @p learning_rate to @ref CLI.

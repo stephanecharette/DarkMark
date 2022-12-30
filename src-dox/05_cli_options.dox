@@ -22,6 +22,7 @@ Command									| Examples																	| Description
 @p mixup=&lt;bool&gt;					| @p mixup=false															| Determines if image mixup is enabled.
 @p mosaic=&lt;bool&gt;					| @p mosaic=false															| Determines if image mosaic is enabled.
 @p resize_images=&lt;bool&gt;			| @p resize_images=true														| Determines if images are resized to match the network dimensions.  See @ref resize_images.
+@p restart_training=&lt;bool&gt;		| @p restart_training=false													| Determines if training should restart with the previous existing weights (when set to @p true) or start from scratch (when set to @p false).
 @p subdivisions=&lt;number&gt;			| @p subdivisions=2															| The number of subdivisions to use when generating the Darknet .cfg file.
 @p template=&lt;filename&gt;			| @p template=/home/bob/src/darknet/cfg/yolov4-tiny.cfg						| Configuration template to use when combined with @p load=...
 @p tile_images=&lt;bool&gt;				| @p tile_images=true														| Determines if image tiling should be enabled.  See @ref tile_images.
