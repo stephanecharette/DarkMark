@@ -34,4 +34,9 @@ make package
 
 Once the @p .deb package has been created, install it with @p "sudo dpkg -i darkmark*.deb".  Then run the command @p DarkMark.
 
+@note If you are using WSL2, Docker, or a Linux distro that does not come with the default fonts typically found on Ubuntu, you'll also need to install this:
+~~~~{.sh}
+sudo apt-get install fonts-liberation
+~~~~
+
 */
