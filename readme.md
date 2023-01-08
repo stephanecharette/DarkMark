@@ -43,6 +43,10 @@ Once Darknet and DarkHelp have been built and installed, run the following comma
 	make package
 	sudo dpkg -i darkmark*.deb
 
+If you are using WSL2, Docker, or a Linux distro that does not come with the default fonts typically found on Ubuntu, you'll also need to install this:
+
+    sudo apt-get install fonts-liberation
+
 # Doxygen Output
 
 The official DarkMark documentation and web site is at <https://www.ccoderun.ca/darkmark/>.
