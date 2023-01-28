@@ -5,7 +5,10 @@ SET ( CMAKE_CXX_STANDARD 17 )
 SET ( CMAKE_CXX_STANDARD_REQUIRED ON )
 
 # cannot add the other flags until JUCE has been built
-ADD_DEFINITIONS ( "-Wall" ) # -Wextra -Werror -Wno-unused-parameter" )
+IF (!WIN32)
+	ADD_DEFINITIONS ( "-Wall" ) # -Wextra -Werror -Wno-unused-parameter" )
+ENDIF()
+
 SET ( CMAKE_ENABLE_EXPORTS TRUE )		# equivalent to -rdynamic (to get the backtrace when something goes wrong)
 
 IF (FALSE)
