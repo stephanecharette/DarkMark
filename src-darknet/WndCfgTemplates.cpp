@@ -206,7 +206,7 @@ std::string get_command_output(const std::string & cmd)
 	std::string output;
 
 	// loosely based on https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
-	std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+	std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd.c_str(), "r"), _pclose);
 	if (pipe == nullptr)
 	{
 		throw std::runtime_error("file to open a pipe to run " + cmd);

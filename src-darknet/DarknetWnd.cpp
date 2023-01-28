@@ -2,6 +2,7 @@
 
 #include "DarkMark.hpp"
 #include "yolo_anchors.hpp"
+#include <random>
 
 
 // Sponsored change:  simplified interface + Japanese translation.
@@ -1037,7 +1038,11 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		Log("number of crop+zoom images created ....... " + std::to_string(number_of_zooms_created));
 	}
 
-	std::random_shuffle(all_output_images.begin(), all_output_images.end());
+	//Create random device and generator
+	std::random_device rd;
+	std::mt19937 g(rd());
+
+	std::shuffle(all_output_images.begin(), all_output_images.end(),g);
 
 	if (info.limit_negative_samples)
 	{
@@ -1076,7 +1081,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 			number_of_empty_images = negative_samples.size();
 			all_output_images.swap(negative_samples);
 			all_output_images.insert(all_output_images.end(), annotated_images.begin(), annotated_images.end());
-			std::random_shuffle(all_output_images.begin(), all_output_images.end());
+			std::shuffle(all_output_images.begin(), all_output_images.end(),g);
 		}
 	}
 

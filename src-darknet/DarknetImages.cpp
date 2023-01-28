@@ -48,7 +48,11 @@ void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progre
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage(getText("Listing skipped images..."));
 
-	std::random_shuffle(skipped_images.begin(), skipped_images.end());
+	//Create random device and generator
+	std::random_device rd;
+	std::mt19937 g(rd());
+
+	std::shuffle(skipped_images.begin(), skipped_images.end(),g);
 	const std::string fn = File(info.project_dir).getChildFile("skipped_images.txt").getFullPathName().toStdString();
 	std::ofstream fs_skipped(fn);
 	for (const auto & image_filename : skipped_images)
