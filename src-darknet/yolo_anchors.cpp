@@ -36,7 +36,7 @@ struct matrix
 	{
 		rows = r;
 		cols = c;
-		vals = VFloat(std::max(1lu, r * c), 0.0f);
+		vals = VFloat(std::max<size_t>(1lu, r * c), 0.0f);
 		return;
 	}
 
