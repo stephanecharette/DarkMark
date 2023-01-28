@@ -112,6 +112,20 @@ dm::VStr get_backtrace()
 	return v;
 }
 
+#else
+dm::VStr get_backtrace()
+{
+	dm::VStr v;
+	v.push_back("Not implemented in Windows yet!");
+	return v;
+}
+
+std::string strsignal(int sig)
+{
+	return std::to_string(sig);
+}
+#endif // !WIN32
+
 
 void dm::DarkMarkApplication::signal_handler(int signal_number)
 {
@@ -136,7 +150,6 @@ void dm::DarkMarkApplication::signal_handler(int signal_number)
 	return;
 }
 
-#endif // !WIN32
 
 
 
