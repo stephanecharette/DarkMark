@@ -5,6 +5,10 @@
 using json = nlohmann::json;
 
 
+#ifdef WIN32
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
+
 class ButtonSelection : public ButtonPropertyComponent
 {
 	public:
