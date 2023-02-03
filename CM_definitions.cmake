@@ -5,7 +5,11 @@ SET ( CMAKE_CXX_STANDARD 17 )
 SET ( CMAKE_CXX_STANDARD_REQUIRED ON )
 
 # cannot add the other flags until JUCE has been built
-IF (!WIN32)
+# below flags are set before juce is built and later the rest of the app
+IF (WIN32)
+	ADD_COMPILE_OPTIONS ( /bigobj )	 # number of sections exceeded object file format limit: compile with /bigobj - debug fix
+																	 # /bigobj can be completely removed/commented out if only release is being built
+ELSE()
 	ADD_DEFINITIONS ( "-Wall" ) # -Wextra -Werror -Wno-unused-parameter" )
 ENDIF()
 
