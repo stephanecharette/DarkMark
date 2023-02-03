@@ -20,6 +20,8 @@ if(WIN32)
 	ADD_COMPILE_OPTIONS ( /wd4267 )			# disable conversion from size_t to int - possible loss of data
 	ADD_COMPILE_OPTIONS ( /wd4458 )			# disable hide class member warning
 	ADD_COMPILE_OPTIONS ( /wd4251 )			# disable POTENTIALLY IMPORTANT warning about poppler-page.h
+	ADD_COMPILE_OPTIONS ( /wd4127 )			# disable unknown warning conditional expression is constant for types.hpp - debug fix
+	ADD_COMPILE_OPTIONS ( /bigobj )			# number of sections exceeded object file format limit: compile with /bigobj - debug fix
 	add_link_options ( /ENTRY:WinMainCRTStartup )			# Attempt to fix "__scrt_common_main_seh(void)" linker juice error
 	ADD_COMPILE_DEFINITIONS ( _CRT_SECURE_NO_WARNINGS )	# don't complain about localtime()
 	SET ( CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" )
