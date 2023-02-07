@@ -48,7 +48,7 @@ dm::DarkMarkApplication::~DarkMarkApplication(void)
 std::string demangle_cpp(std::string name)
 {
 	int status = 0;
-	char* demangled = abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status);
+	char *demangled = abi::__cxa_demangle( name.c_str(), nullptr, nullptr, &status );
 	if (status == 0)
 	{
 		// we have a better demangled name we can use -- replace it within the line
@@ -65,9 +65,9 @@ dm::VStr get_backtrace()
 {
 	dm::VStr v;
 
-	void* buffer[30];
-	const int rows = backtrace(buffer, sizeof(buffer));
-	char** symbols = backtrace_symbols(buffer, rows);
+	void *buffer[30];
+	const int rows = backtrace( buffer, sizeof(buffer) );
+	char **symbols = backtrace_symbols( buffer, rows );
 
 	// for example, this will give us something along these lines:
 	//
@@ -85,25 +85,25 @@ dm::VStr get_backtrace()
 	);
 
 	// loop through all the entries returned by backtrace_symbols() and format them neatly (with the C++ names demangled where possible)
-	for (int i = 0; i < rows; i++)
+	for ( int i = 0; i < rows; i ++ )
 	{
 		const std::string line = symbols[i];
 
 		std::smatch what;
-		const bool valid = std::regex_match(line, what, rx, std::regex_constants::match_default);
-		if (!valid)
+		const bool valid = std::regex_match( line, what, rx, std::regex_constants::match_default );
+		if ( ! valid )
 		{
 			// if we cannot parse the line, store it as-is
-			v.push_back(line);
+			v.push_back( line );
 		}
 		else
 		{
-			const std::string path = what.str(1);
-			const std::string name = demangle_cpp(what.str(2));
-			const std::string offset = what.str(3);
-			const std::string address = what.str(4);
+			const std::string path			=								what.str(1);
+			const std::string name		= demangle_cpp( what.str(2));
+			const std::string offset		=								what.str(3);
+			const std::string address	=								what.str(4);
 
-			v.push_back(path + ": " + name + " +" + offset + " [" + address + "]");
+			v.push_back( path + ": " + name + " +" + offset + " [" + address + "]" );
 		}
 	}
 
@@ -134,7 +134,7 @@ void dm::DarkMarkApplication::signal_handler(int signal_number)
 	try
 	{
 		const auto v = get_backtrace();
-		for (size_t idx = 0; idx < v.size(); idx++)
+		for (size_t idx = 0; idx < v.size(); idx ++)
 		{
 			dm::Log("backtrace #" + std::to_string(idx) + ": " + v.at(idx));
 		}
@@ -149,8 +149,6 @@ void dm::DarkMarkApplication::signal_handler(int signal_number)
 
 	return;
 }
-
-
 
 
 void dm::DarkMarkApplication::setup_signal_handling()
