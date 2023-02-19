@@ -3,10 +3,13 @@
 #include "DarkMark.hpp"
 #include <csignal>
 #include <cstring>
+
 #ifndef WIN32
+// On Linux, we try to get backtrace information when DarkMark crashes.
+// On Windows we'd need to do something with CaptureStackBackTrace() and SymFromAddr().
 #include <cxxabi.h>
 #include <execinfo.h>
-#endif // !WIN32
+#endif
 
 
 void DarkMark_Juce_Crash_Handler(void *ptr)
@@ -44,7 +47,26 @@ dm::DarkMarkApplication::~DarkMarkApplication(void)
 	return;
 }
 
-#ifndef WIN32
+
+#ifdef WIN32
+
+std::string strsignal(int sig)
+{
+	return std::to_string(sig);
+}
+
+
+dm::VStr get_backtrace()
+{
+	dm::VStr v = {"Not yet implemented in Windows!"};
+
+	return v;
+}
+
+		// **********************************************
+#else	// ****** ELSE WIN32 above and LINUX below ******
+		// **********************************************
+
 std::string demangle_cpp(std::string name)
 {
 	int status = 0;
@@ -112,19 +134,7 @@ dm::VStr get_backtrace()
 	return v;
 }
 
-#else
-dm::VStr get_backtrace()
-{
-	dm::VStr v;
-	v.push_back("Not implemented in Windows yet!");
-	return v;
-}
-
-std::string strsignal(int sig)
-{
-	return std::to_string(sig);
-}
-#endif // !WIN32
+#endif // Linux-only functions end here
 
 
 void dm::DarkMarkApplication::signal_handler(int signal_number)
@@ -236,7 +246,7 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	std::set_terminate(DarkMark_CPlusPlus_Terminate_Handler);
 #ifndef WIN32
 	std::set_unexpected(DarkMark_CPlusPlus_Unexpected_Handler);
-#endif // !WIN32
+#endif
 	SystemStats::setApplicationCrashHandler(DarkMark_Juce_Crash_Handler);
 
 	setup_signal_handling();

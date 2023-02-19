@@ -4,18 +4,10 @@
 FILE ( GLOB DM_SOURCE *.cpp )
 LIST ( SORT DM_SOURCE )
 
-IF(!WIN32)
-ADD_EXECUTABLE ( DarkMark
-			${GUI_TYPE}
-			${DM_SOURCE}
-			$<TARGET_OBJECTS:dm_tools>
-			$<TARGET_OBJECTS:dm_darknet>
-			$<TARGET_OBJECTS:dm_darkmark>
-			$<TARGET_OBJECTS:dm_launcher>
-			$<TARGET_OBJECTS:dm_wnd>
-			)
-ELSE()
-set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_SOURCE_DIR}/src-windows/appicon.rc")
+SET (APP_WIN32_ICON "")
+IF (WIN32)
+	SET (APP_WIN32_ICON "${CMAKE_SOURCE_DIR}/src-windows/appicon.rc")
+ENDIF ()
 
 ADD_EXECUTABLE ( DarkMark
 			WIN32
@@ -26,9 +18,8 @@ ADD_EXECUTABLE ( DarkMark
 			$<TARGET_OBJECTS:dm_darkmark>
 			$<TARGET_OBJECTS:dm_launcher>
 			$<TARGET_OBJECTS:dm_wnd>
-			${APP_ICON_RESOURCE_WINDOWS}
+			${APP_WIN32_ICON}
 			)
-ENDIF()
 
 TARGET_LINK_LIBRARIES ( DarkMark PRIVATE dm_juce ${DM_LIBRARIES} )
 
