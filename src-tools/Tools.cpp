@@ -63,3 +63,18 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, VSt
 
 	return;
 }
+
+
+std::default_random_engine & dm::get_random_engine()
+{
+	static auto engine(
+		[]()
+		{
+			std::random_device rd;
+			auto e = std::default_random_engine(rd());
+			return e;
+		}()
+	);
+
+	return engine;
+}

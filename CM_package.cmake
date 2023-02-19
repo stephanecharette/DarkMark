@@ -6,16 +6,15 @@ SET ( CPACK_PACKAGE_VERSION				${DM_VERSION}					)
 SET ( CPACK_PACKAGE_VERSION_MAJOR		${DM_VER_MAJOR}					)
 SET ( CPACK_PACKAGE_VERSION_MINOR		${DM_VER_MINOR}					)
 SET ( CPACK_PACKAGE_VERSION_PATCH		${DM_VER_PATCH}					)
-#SET ( CPACK_RESOURCE_FILE_LICENSE		${CMAKE_CURRENT_SOURCE_DIR}/license.txt )
 SET ( CPACK_PACKAGE_NAME				"darkmark"		)
 SET ( CPACK_PACKAGE_FILE_NAME			"darkmark-${DM_VERSION}-${DM_UNAME_S}-${DM_UNAME_M}-${DM_LSB_ID}-${DM_LSB_REL}" )
 SET ( CPACK_PACKAGE_DESCRIPTION_SUMMARY	"darkmark"		)
 SET ( CPACK_PACKAGE_DESCRIPTION			"darkmark"		)
 
 IF ( WIN32 )
-	SET ( CPACK_PACKAGE_FILE_NAME						"darkmark-${DH_VERSION}-Windows-64" )
+	SET ( CPACK_PACKAGE_FILE_NAME						"darkmark-${DM_VERSION}-Windows-64" )
 	SET ( CPACK_NSIS_PACKAGE_NAME						"DarkMark"						)
-	SET ( CPACK_NSIS_DISPLAY_NAME						"DarkMark v${DH_VERSION}"		)
+	SET ( CPACK_NSIS_DISPLAY_NAME						"DarkMark v${DM_VERSION}"		)
 	SET ( CPACK_NSIS_MUI_ICON							"${CMAKE_CURRENT_SOURCE_DIR}\\\\src-windows\\\\darkmark_logo.ico" )
 	SET ( CPACK_NSIS_MUI_UNIICON						"${CMAKE_CURRENT_SOURCE_DIR}\\\\src-windows\\\\darkmark_logo.ico" )
 	SET ( CPACK_PACKAGE_ICON							"${CMAKE_CURRENT_SOURCE_DIR}\\\\src-windows\\\\darkmark_logo.ico" )
@@ -52,7 +51,7 @@ ELSE ()
 		COMMAND cut -d\t -f2
 		OUTPUT_VARIABLE DM_LSB_REL
 		OUTPUT_STRIP_TRAILING_WHITESPACE )
-		
+
 	INCLUDE ( CM_package_ubuntu.cmake )
 	SET ( CPACK_SOURCE_IGNORE_FILES	".svn" ".kdev4" "build/" "build_and_upload" )
 	SET ( CPACK_SOURCE_GENERATOR	"TGZ;ZIP" )

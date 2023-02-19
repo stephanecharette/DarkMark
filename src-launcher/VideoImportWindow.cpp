@@ -472,8 +472,7 @@ void dm::VideoImportWindow::run()
 			cap.open(filename);
 			const auto number_of_frames = cap.get(cv::VideoCaptureProperties::CAP_PROP_FRAME_COUNT);
 
-			std::random_device rd;
-			std::mt19937 rng(rd());
+			auto & rng = get_random_engine();
 			std::uniform_int_distribution<size_t> uni(0, number_of_frames - 1);
 
 			SId frames_needed;

@@ -11,7 +11,7 @@ ADD_SUBDIRECTORY ( src-juce )
 
 # Would love to also have -Wshadow, but JUCE prevents me from using it.
 
-if(WIN32)
+IF (WIN32)
 	ADD_COMPILE_OPTIONS ( /W4 )				# warning level (high)
 	ADD_COMPILE_OPTIONS ( /WX )				# treat warnings as errors
 	ADD_COMPILE_OPTIONS ( /permissive- )	# stick to C++ standards (turn off Microsoft-specific extensions)
@@ -21,7 +21,7 @@ if(WIN32)
 	ADD_COMPILE_OPTIONS ( /wd4458 )			# disable hide class member warning
 	ADD_COMPILE_OPTIONS ( /wd4251 )			# disable POTENTIALLY IMPORTANT warning about poppler-page.h
 	ADD_COMPILE_OPTIONS ( /wd4127 )			# disable unknown warning conditional expression is constant for types.hpp - debug fix
-	add_link_options ( /ENTRY:WinMainCRTStartup )			# Attempt to fix "__scrt_common_main_seh(void)" linker juice error
+	ADD_LINK_OPTIONS ( /ENTRY:WinMainCRTStartup ) # Attempt to fix "__scrt_common_main_seh(void)" linker juice error
 	ADD_COMPILE_DEFINITIONS ( _CRT_SECURE_NO_WARNINGS )	# don't complain about localtime()
 	SET ( CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" )
 ELSE ()

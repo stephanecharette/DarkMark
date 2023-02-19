@@ -8,8 +8,8 @@ namespace
 {
 	float get_random_delta()
 	{
-		static std::default_random_engine e;
-		static std::uniform_real_distribution<> d(0.008f, 0.030f);
+		static auto & e = dm::get_random_engine();
+		static std::uniform_real_distribution<float> d(0.008f, 0.030f);
 
 		return d(e);
 	}

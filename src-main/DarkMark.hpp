@@ -7,6 +7,8 @@
 #include <regex>
 #include <thread>
 #include <chrono>
+#include <random>
+#include <algorithm>
 #include <DarkHelp.hpp>
 #include <JuceHeader.h>
 

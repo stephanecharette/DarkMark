@@ -3,7 +3,6 @@
 #include "DarkMark.hpp"
 
 #include "json.hpp"
-#include <random>
 using json = nlohmann::json;
 
 
@@ -974,15 +973,12 @@ dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
 
 	// remember the current image filename so we can scroll back to the same one once we're done sorting
 	const std::string old_filename = image_filenames.at(image_filename_index);
-	//Create random device and generator
-	std::random_device rd;
-	std::mt19937 g(rd());
 
 	switch (sort_order)
 	{
 		case ESort::kRandom:
 		{
-			std::shuffle(image_filenames.begin(), image_filenames.end(),g);
+			std::shuffle(image_filenames.begin(), image_filenames.end(), get_random_engine());
 			break;
 		}
 		case ESort::kCountMarks:

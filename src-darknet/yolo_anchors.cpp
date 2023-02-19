@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include "yolo_anchors.hpp"
+#include "Tools.hpp"
 
 
 typedef std::vector<int>	VInt;
@@ -95,9 +96,18 @@ VInt random_samples(const size_t maximum_number_of_samples)
 		v.push_back(v.size());
 	}
 
+	#if 0
+	//
+	// If using a stand-alone version of yolo anchors, you'll have to use this
+	// (or something similar) as your random number generator.
+	//
 	std::random_device rd;
-	std::mt19937 generator(rd());
-	std::shuffle(v.begin(), v.end(), generator);
+	std::mt19937 rng(rd());
+	#else
+	auto & rng = dm::get_random_engine();
+	#endif
+
+	std::shuffle(v.begin(), v.end(), rng);
 
 	return v;
 }
