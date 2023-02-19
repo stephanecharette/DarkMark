@@ -1,4 +1,4 @@
-# DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
+# DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
 
 
 # get rid of the directories and files automatically created by Introjucer since we're using our own CMake build files

@@ -1,4 +1,4 @@
-# DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
+# DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
 
 SET ( CPACK_PACKAGE_VENDOR				"Stephane Charette"				)
 SET ( CPACK_PACKAGE_CONTACT				"stephanecharette@gmail.com"	)

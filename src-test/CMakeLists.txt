@@ -1,4 +1,4 @@
-# DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
+# DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
 
 
 #FILE ( GLOB TEST_SOURCE *.cpp		)

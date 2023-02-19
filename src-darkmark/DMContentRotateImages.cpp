@@ -1,5 +1,4 @@
-// DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
-#define _USE_MATH_DEFINES
+// DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
 #include <cmath>
 
 #include "DarkMark.hpp"

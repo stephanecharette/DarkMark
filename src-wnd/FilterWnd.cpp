@@ -1,13 +1,9 @@
-// DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
+// DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 #include "json.hpp"
 using json = nlohmann::json;
 
-
-#ifdef WIN32
-#define __PRETTY_FUNCTION__ __FUNCSIG__
-#endif
 
 class ButtonSelection : public ButtonPropertyComponent
 {

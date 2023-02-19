@@ -1,20 +1,25 @@
-# DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
+# DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
 
 
 SET ( CMAKE_CXX_STANDARD 17 )
 SET ( CMAKE_CXX_STANDARD_REQUIRED ON )
 
-# cannot add the other flags until JUCE has been built
-
 IF (WIN32)
 	# number of sections exceeded object file format limit: compile with /bigobj
 	# /bigobj can be completely removed/commented out if only release is being built
-	ADD_COMPILE_OPTIONS ( "/bigobj" )
+	ADD_COMPILE_OPTIONS ( /bigobj )
+
+	ADD_COMPILE_OPTIONS ( -D__PRETTY_FUNCTION__=__FUNCSIG__ )
+	ADD_COMPILE_OPTIONS ( -Dpclose=_pclose )
+	ADD_COMPILE_OPTIONS ( -Dpopen=_popen )
+	ADD_COMPILE_OPTIONS ( -D_USE_MATH_DEFINES )
 ELSE ()
+	# cannot add the other flags until JUCE has been built
 	ADD_DEFINITIONS ( "-Wall" ) # -Wextra -Werror -Wno-unused-parameter" )
 ENDIF ()
 
-SET ( CMAKE_ENABLE_EXPORTS TRUE )		# equivalent to -rdynamic (to get the backtrace when something goes wrong)
+# equivalent to -rdynamic (to get the backtrace when something goes wrong)
+SET ( CMAKE_ENABLE_EXPORTS TRUE )
 
 IF (FALSE)
 	# This is part of a sponsored change to provide a simplified "darknet" window

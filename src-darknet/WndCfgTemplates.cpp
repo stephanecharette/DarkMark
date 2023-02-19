@@ -1,4 +1,4 @@
-// DarkMark (C) 2019-2022 Stephane Charette <stephanecharette@gmail.com>
+// DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
 
 #include "DarkMark.hpp"
 
@@ -199,12 +199,6 @@ void dm::WndCfgTemplates::buttonClicked(Button * button)
 
 	return;
 }
-
-
-#ifdef WIN32
-#define pclose	_pclose
-#define popen	_popen
-#endif
 
 
 std::string get_command_output(const std::string & cmd)
