@@ -12,6 +12,16 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, VSt
 
 	const std::regex image_filename_regex(cfg().get_str("image_regex"), std::regex::icase | std::regex::nosubs | std::regex::optimize | std::regex::ECMAScript);
 
+#ifdef WIN32
+	const std::string chart1			= "\\chart.png";
+	const std::string chart2			= "\\chart_";
+	const std::string dm_image_cache	= "\\darkmark_image_cache\\";
+#else
+	const std::string chart1			= "/chart.png";
+	const std::string chart2			= "/chart_";
+	const std::string dm_image_cache	= "/darkmark_image_cache/";
+#endif
+
 	for (auto dir_entry : RangedDirectoryIterator(dir, true))
 	{
 		if (done)
@@ -27,18 +37,16 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, VSt
 			// and instead creates the file as "chart_<project>_yolov3[-tiny].png"?  Either way, ignore those chart*.png
 			// files when running DarkMark.
 
-			if (filename.find("/chart.png") != std::string::npos)
+			if (filename.find(".png") != std::string::npos)
 			{
-				continue;
+				if (filename.find(chart1) != std::string::npos or
+					filename.find(chart2) != std::string::npos)
+				{
+					continue;
+				}
 			}
 
-			if (filename.find("/chart_"	) != std::string::npos and
-				filename.find(".png"	) != std::string::npos)
-			{
-				continue;
-			}
-
-			if (filename.find("/darkmark_image_cache/") != std::string::npos)
+			if (filename.find(dm_image_cache) != std::string::npos)
 			{
 				continue;
 			}
