@@ -124,13 +124,37 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		// spend a few seconds looking through the "home" to see if we can find a subdirectory called "darknet"
 		bool found = false;
 		std::vector<File> dirs_to_search = {File(home)};
-		const std::time_t start_time = std::time(nullptr);
-		const std::time_t end_time = start_time + 4;
-		while (found == false and dirs_to_search.empty() == false and time(nullptr) < end_time)
+
+#ifdef WIN32
+		// Linux is easy, but in Windows the darknet directory could be anywhere.  Queue up some
+		// likely places we can try and search.  Remember we pop from the back, so put the better
+		// options at the end of the list so we check those first.
+		//
+		dirs_to_search.push_back(File::getSpecialLocation(File::SpecialLocationType::userHomeDirectory));
+		dirs_to_search.push_back(File("/darknet"));
+		dirs_to_search.push_back(File("/vcpkg"));
+		dirs_to_search.push_back(File("/src"));
+		dirs_to_search.push_back(File("/dev"));
+		//
+		// ...and we didn't check for C:, D:, etc..., so if we don't find Darknet
+		// we'll rely on the user setting it up correctly in the .cfg file.
+#endif
+		const std::time_t start_time	= std::time(nullptr);
+		const std::time_t end_time		= start_time + 5;
+		while (found == false and dirs_to_search.empty() == false and std::time(nullptr) < end_time)
 		{
 			f = dirs_to_search.back();
 			dirs_to_search.pop_back();
 			dm::Log("looking for \"darknet\" in " + f.getFullPathName().toStdString());
+
+			if (not f.exists())
+			{
+				continue;
+			}
+			if (not f.isDirectory())
+			{
+				continue;
+			}
 
 			// get the next level of subdirectories
 			auto dirs = f.findChildFiles(File::TypesOfFileToFind::findDirectories + File::TypesOfFileToFind::ignoreHiddenFiles, false);
