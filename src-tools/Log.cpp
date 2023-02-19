@@ -13,7 +13,7 @@ void dm::Log(const std::string & str)
 
 		std::cout << buffer << str << std::endl;
 
-		static std::ofstream ofs("/tmp/darkmark.log", std::ofstream::trunc);
+		static std::ofstream ofs(File::getSpecialLocation(File::SpecialLocationType::tempDirectory).getChildFile("darkmark.log").getFullPathName().toStdString(), std::ofstream::trunc);
 		if (ofs.is_open())
 		{
 			ofs << buffer << str << std::endl << std::flush;
