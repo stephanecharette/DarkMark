@@ -98,10 +98,10 @@ dm::VStr get_backtrace()
 		}
 		else
 		{
-			const std::string path			=								what.str(1);
-			const std::string name		= demangle_cpp( what.str(2));
-			const std::string offset		=								what.str(3);
-			const std::string address	=								what.str(4);
+			const std::string path		=				what.str(1);
+			const std::string name		= demangle_cpp(	what.str(2));
+			const std::string offset	=				what.str(3);
+			const std::string address	=				what.str(4);
 
 			v.push_back( path + ": " + name + " +" + offset + " [" + address + "]" );
 		}
