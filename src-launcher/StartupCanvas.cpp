@@ -806,6 +806,12 @@ void dm::StartupCanvas::calculate_size_of_directory()
 	int64_t total_bytes = 0;
 	int64_t image_cache_bytes = 0;
 
+#ifdef WIN32
+	const String dm_image_cache = "\\darkmark_image_cache\\";
+#else
+	const String dm_image_cache = "/darkmark_image_cache/";
+#endif
+
 	File dir(project_directory.toString());
 	for (auto dir_entry : RangedDirectoryIterator(dir, true))
 	{
@@ -816,7 +822,8 @@ void dm::StartupCanvas::calculate_size_of_directory()
 
 		total_bytes += dir_entry.getFileSize();
 
-		if (dir_entry.getFile().getFullPathName().contains("/darkmark_image_cache/"))
+
+		if (dir_entry.getFile().getFullPathName().contains(dm_image_cache))
 		{
 			image_cache_bytes += dir_entry.getFileSize();
 		}
