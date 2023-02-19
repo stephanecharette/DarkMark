@@ -43,4 +43,7 @@ ADD_SUBDIRECTORY ( src-launcher	)
 ADD_SUBDIRECTORY ( src-wnd		)
 ADD_SUBDIRECTORY ( src-main		)
 ADD_SUBDIRECTORY ( src-dox		)
-ADD_SUBDIRECTORY ( src-ubuntu	)
+
+IF (UNIX)
+	ADD_SUBDIRECTORY ( src-ubuntu	)
+ENDIF ()
