@@ -731,6 +731,13 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	else if (keychar == 'p')
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_predictions) + 1) % 3 );
+
+		if (toggle == EToggle::kOn)
+		{
+			// skip "on" and go directly to "auto"
+			toggle = EToggle::kAuto;
+		}
+
 		toggle_show_predictions(toggle);
 		show_message("predictions: " + std::string(
 				toggle == EToggle::kOn	? "on"	:
