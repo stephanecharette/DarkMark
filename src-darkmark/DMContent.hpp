@@ -223,6 +223,12 @@ namespace dm
 			int snap_vertical_tolerance;
 			bool snapping_enabled;
 
+			int dilate_erode_mode;	// 0=disabled, 1=dilate only, 2=dilate+erode, 3=erode+dilate, 4=erode only
+			int dilate_kernel_size;
+			int dilate_iterations;
+			int erode_kernel_size;
+			int erode_iterations;
+
 			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
 			double scale_factor; ///< @todo can this be removed now? replaced by current_zoom_factor?
 

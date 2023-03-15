@@ -41,6 +41,11 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	snap_horizontal_tolerance(cfg().get_int("snap_horizontal_tolerance")),
 	snap_vertical_tolerance(cfg().get_int("snap_vertical_tolerance")),
 	snapping_enabled(cfg().get_bool("snapping_enabled")),
+	dilate_erode_mode(cfg().get_int("dilate_erode_mode")),
+	dilate_kernel_size(cfg().get_int("dilate_kernel_size")),
+	dilate_iterations(cfg().get_int("dilate_iterations")),
+	erode_kernel_size(cfg().get_int("erode_kernel_size")),
+	erode_iterations(cfg().get_int("erode_iterations")),
 	scale_factor(1.0),
 	most_recent_class_idx(0),
 	image_filename_index(0),
@@ -2405,7 +2410,62 @@ dm::DMContent & dm::DMContent::create_threshold_image()
 		cv::Mat threshold;
 		cv::cvtColor(original_image, greyscale, cv::COLOR_BGR2GRAY);
 		cv::adaptiveThreshold(greyscale, threshold, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, black_and_white_threshold_blocksize, black_and_white_threshold_constant);
-		cv::cvtColor(threshold, black_and_white_image, cv::COLOR_GRAY2BGR);
+		cv::Mat output = threshold;
+
+		// 0 = disabled
+		// 1 = dilate only
+		// 2 = dilate + erode
+		// 3 = erode + dilate
+		// 4 = erode only
+
+		if (dilate_erode_mode == 1 or dilate_erode_mode == 2)
+		{
+			// white areas of the image are "grown" and dark areas shrink
+
+			cv::Mat kernel = cv::getStructuringElement(
+				(dilate_kernel_size % 2) ? cv::MORPH_CROSS : cv::MORPH_RECT,
+				cv::Size(dilate_kernel_size, dilate_kernel_size),
+				cv::Point(-1, -1));
+
+			cv::Mat dilated;
+			cv::dilate(output, dilated, kernel, cv::Point(-1, -1), dilate_iterations);
+
+			// *** also see mode==3 several lines below ***
+
+			output = dilated;
+		}
+
+		if (dilate_erode_mode == 2 or dilate_erode_mode == 3 or dilate_erode_mode == 4)
+		{
+			// dark areas in the image are "grown" to erode lighter areas
+			cv::Mat kernel = cv::getStructuringElement(
+				(erode_kernel_size % 2) ? cv::MORPH_CROSS : cv::MORPH_RECT,
+				cv::Size(erode_kernel_size, erode_kernel_size),
+				cv::Point(-1, -1));
+
+			cv::Mat eroded;
+			cv::erode(output, eroded, kernel, cv::Point(-1, -1), erode_iterations);
+
+			output = eroded;
+		}
+
+		if (dilate_erode_mode == 3) // this is the only case where dilation happens *after* erosion
+		{
+			// white areas of the image are "grown" and dark areas shrink
+
+			cv::Mat kernel = cv::getStructuringElement(
+				(dilate_kernel_size % 2) ? cv::MORPH_CROSS : cv::MORPH_RECT,
+				cv::Size(dilate_kernel_size, dilate_kernel_size),
+				cv::Point(-1, -1));
+
+			cv::Mat dilated;
+			cv::dilate(output, dilated, kernel, cv::Point(-1, -1), dilate_iterations);
+
+			output = dilated;
+		}
+
+		// convert it back to a 3-channel image so we can draw bounding boxes on it
+		cv::cvtColor(output, black_and_white_image, cv::COLOR_GRAY2BGR);
 	}
 
 	return *this;

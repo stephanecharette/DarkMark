@@ -38,6 +38,11 @@ namespace dm
 			Value v_snapping_enabled;
 			Value v_snap_horizontal_tolerance;
 			Value v_snap_vertical_tolerance;
+			Value v_dilate_erode_mode;
+			Value v_dilate_kernel_size;
+			Value v_dilate_iterations;
+			Value v_erode_kernel_size;
+			Value v_erode_iterations;
 
 			DMContent & content;
 			Component canvas;

@@ -96,6 +96,11 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_snapping_enabled						= content.snapping_enabled;
 	v_snap_horizontal_tolerance				= content.snap_horizontal_tolerance;
 	v_snap_vertical_tolerance				= content.snap_vertical_tolerance;
+	v_dilate_erode_mode						= content.dilate_erode_mode;
+	v_dilate_kernel_size					= content.dilate_kernel_size;
+	v_dilate_iterations						= content.dilate_iterations;
+	v_erode_kernel_size						= content.erode_kernel_size;
+	v_erode_iterations						= content.erode_iterations;
 
 	v_darkhelp_threshold						.addListener(this);
 	v_darkhelp_hierchy_threshold				.addListener(this);
@@ -113,6 +118,11 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_snapping_enabled							.addListener(this);
 	v_snap_horizontal_tolerance					.addListener(this);
 	v_snap_vertical_tolerance					.addListener(this);
+	v_dilate_erode_mode							.addListener(this);
+	v_dilate_kernel_size						.addListener(this);
+	v_dilate_iterations							.addListener(this);
+	v_erode_kernel_size							.addListener(this);
+	v_erode_iterations							.addListener(this);
 
 	Array<PropertyComponent*> properties;
 //	TextPropertyComponent		* t = nullptr;
@@ -182,6 +192,26 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s->setTooltip("Constant subtracted from the mean or weighted mean. The default value is 15.");
 	properties.add(s);
 
+	auto choice = new ChoicePropertyComponent(v_dilate_erode_mode, "dilate/erode mode", {"none", "dilate only", "dilate then erode", "erode then dilate", "erode only"}, {0, 1, 2, 3, 4});
+	choice->setTooltip("Use dilation and/or erosion to clean up noisy images. This is only used when black-and-white mode has also been enabled. Dilation grows light areas, while erosion grows dark areas.");
+	properties.add(choice);
+
+	s = new SliderPropertyComponent(v_dilate_kernel_size, "dilate kernel size", 2.0, 9, 1.0);
+	s->setTooltip("Kernel size to use if dilation has been enabled. The default value is 2.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_dilate_iterations, "dilate iterations", 1.0, 9, 1.0);
+	s->setTooltip("Number of iterations to use if dilation has been enabled. The default value is 1.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_erode_kernel_size, "erode kernel size", 2.0, 9, 1.0);
+	s->setTooltip("Kernel size to use if erosion has been enabled. The default value is 2.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_erode_iterations, "erode iterations", 1.0, 9, 1.0);
+	s->setTooltip("Number of iterations to use if erosion has been enabled. The default value is 1.");
+	properties.add(s);
+
 	b = new BooleanPropertyComponent(v_snapping_enabled, "auto-snapping enabled", "auto-snapping enabled");
 	b->setTooltip("New annotations will be snapped. This is mostly intended for objects on a light background, such as text on paper.");
 	properties.add(b);
@@ -198,7 +228,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 520);
+	r = r.withSizeKeepingCentre(400, 650);
 	setBounds(r);
 
 	setVisible(true);
@@ -234,6 +264,11 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("snapping_enabled"					, v_snapping_enabled							.getValue());
 	cfg().setValue("snap_horizontal_tolerance"			, v_snap_horizontal_tolerance					.getValue());
 	cfg().setValue("snap_vertical_tolerance"			, v_snap_vertical_tolerance						.getValue());
+	cfg().setValue("dilate_erode_mode"					, v_dilate_erode_mode							.getValue());
+	cfg().setValue("dilate_kernel_size"					, v_dilate_kernel_size							.getValue());
+	cfg().setValue("dilate_iterations"					, v_dilate_iterations							.getValue());
+	cfg().setValue("erode_kernel_size"					, v_erode_kernel_size							.getValue());
+	cfg().setValue("erode_iterations"					, v_erode_iterations							.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -303,6 +338,11 @@ void dm::SettingsWnd::valueChanged(Value & value)
 	content.snapping_enabled					= v_snapping_enabled					.getValue();
 	content.snap_horizontal_tolerance			= v_snap_horizontal_tolerance			.getValue();
 	content.snap_vertical_tolerance				= v_snap_vertical_tolerance				.getValue();
+	content.dilate_erode_mode					= v_dilate_erode_mode					.getValue();
+	content.dilate_kernel_size					= v_dilate_kernel_size					.getValue();
+	content.dilate_iterations					= v_dilate_iterations					.getValue();
+	content.erode_kernel_size					= v_erode_kernel_size					.getValue();
+	content.erode_iterations					= v_erode_iterations					.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 

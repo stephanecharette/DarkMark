@@ -69,6 +69,11 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("snap_horizontal_tolerance"		, 5													);
 	insert_if_not_exist("snap_vertical_tolerance"		, 1													);
 	insert_if_not_exist("snapping_enabled"				, false												);
+	insert_if_not_exist("dilate_erode_mode"				, 0													);
+	insert_if_not_exist("dilate_kernel_size"			, 2													);
+	insert_if_not_exist("dilate_iterations"				, 1													);
+	insert_if_not_exist("erode_kernel_size"				, 2													);
+	insert_if_not_exist("erode_iterations"				, 1													);
 
 	removeValue("darknet_enable_hue");	// this was changed to the float value darknet_hue
 	removeValue("darknet_trailing_percentage");	// typo:  "trailing" -> "training"

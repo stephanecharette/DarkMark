@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.8.8-1		| 2023-03-15	| Added dilate and erode options in settings to help work with black-and-white images, such as pages of text.
 1.8.0-1		| 2023-02-18	| Merged and fixed up changes from olokos so DarkMark can be built on Windows.
 1.7.16-1	| 2022-12-29	| Added @p restart_training to @ref CLI.
 1.7.11-1	| 2022-09-23	| Added @p limit_validation_images to @ref CLI.
