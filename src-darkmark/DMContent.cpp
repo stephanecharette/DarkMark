@@ -17,6 +17,8 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	highlight_inside_size(-1.0f),
 	highlight_outside_size(-1.0f),
 	empty_image_name_index(0),
+	tl_name_index(-1),
+	tr_name_index(-1),
 	sort_order(static_cast<ESort>(cfg().get_int("sort_order"))),
 	show_labels(static_cast<EToggle>(cfg().get_int("show_labels"))),
 	show_predictions(static_cast<EToggle>(cfg().get_int("show_predictions"))),
@@ -257,6 +259,20 @@ void dm::DMContent::start_darknet()
 			darkhelp_nn().config.non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold")		/ 100.0f;
 			darkhelp_nn().config.enable_tiles						= cfg().get_bool("darknet_image_tiling");
 			names = darkhelp_nn().names;
+
+			// see if we have a TL or TR classes
+			for (size_t idx = 0; idx < names.size(); idx ++)
+			{
+				const auto & name = names.at(idx);
+				if (name == "TL")
+				{
+					tl_name_index = idx;
+				}
+				else if (name == "TR")
+				{
+					tr_name_index = idx;
+				}
+			}
 		}
 		catch (const std::exception & e)
 		{
@@ -1922,7 +1938,6 @@ PopupMenu dm::DMContent::create_class_menu()
 	return m;
 }
 
-
 PopupMenu dm::DMContent::create_popup_menu()
 {
 	PopupMenu classMenu = create_class_menu();
@@ -1933,6 +1948,8 @@ PopupMenu dm::DMContent::create_popup_menu()
 	labels.addItem("auto show labels"	, (show_labels != EToggle::kAuto), (show_labels == EToggle::kAuto	), std::function<void()>( [&]{ set_labels(EToggle::kAuto);	} ));
 	labels.addSeparator();
 	labels.addItem("bold", true, all_marks_are_bold, std::function<void()>( [&]{ toggle_bold_labels(); } ));
+	labels.addSeparator();
+	labels.addItem("resize all TL/TR labels", (tl_name_index >= 0 or tr_name_index >= 0), false, std::function<void()>( [&]{ resize_tl_tr(); } ));
 
 	PopupMenu sort;
 	sort.addItem("sort alphabetically"				, true, (sort_order == ESort::kAlphabetical	), std::function<void()>( [&]{ set_sort_order(ESort::kAlphabetical	); } ));
@@ -2311,6 +2328,15 @@ dm::DMContent & dm::DMContent::show_message(const std::string & msg)
 		bubble_message.showAt(r, str, 4000, true, false);
 		Log("bubble message: " + msg);
 	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::resize_tl_tr()
+{
+	DMContentResizeTLTR helper(*this);
+	helper.runThread();
 
 	return *this;
 }

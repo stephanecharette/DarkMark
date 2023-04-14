@@ -121,6 +121,8 @@ namespace dm
 
 			DMContent & show_message(const std::string & msg);
 
+			DMContent & resize_tl_tr();
+
 			/** Save the current image with annotations as a screenshot.
 			 * @param [in] full_size When set to @p true, this will save the image at 100% zoom.  When set to false, this will
 			 * save the image at exactly the same zoom level as what is currently displayed on the screen.
@@ -160,6 +162,9 @@ namespace dm
 
 			/// Index into the @ref names vector so we can easily find the special case of "empty image".
 			size_t empty_image_name_index;
+
+			int tl_name_index;	///< Set to -1 by default, or to the index of the TL name if it exists.
+			int tr_name_index;	///< Set to -1 by default, or to the index of the TR name if it exists.
 
 			ESort sort_order;
 			EToggle show_labels;

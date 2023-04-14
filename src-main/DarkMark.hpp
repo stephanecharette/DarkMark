@@ -68,6 +68,7 @@ namespace dm
 	class DMContentFlipImages;
 	class DMContentDeleteRotateAndFlipImages;
 	class DMContentImportTxt;
+	class DMContentResizeTLTR;
 	class ScrollField;
 	class CrosshairComponent;
 	class DarkMarkApplication;
@@ -119,5 +120,6 @@ namespace dm
 #include "DMContentImageFilenameSort.hpp"
 #include "DMContentStatistics.hpp"
 #include "DMContentReview.hpp"
+#include "DMContentResizeTLTR.hpp"
 #include "DMWnd.hpp"
 #include "DarkMarkApp.hpp"
