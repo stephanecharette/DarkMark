@@ -4,7 +4,7 @@
 
 
 dm::DMContentResizeTLTR::DMContentResizeTLTR(dm::DMContent & c) :
-	ThreadWithProgressWindow("Re-saving the .json and .txt output files...", true, true),
+	ThreadWithProgressWindow("Resize TL and TR labels...", true, true),
 	content(c)
 {
 	return;
