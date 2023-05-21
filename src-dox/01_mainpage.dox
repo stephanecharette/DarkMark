@@ -8,9 +8,9 @@ Source code for %DarkMark is available at https://github.com/stephanecharette/Da
 
 @image html darkmark_example.png
 
-I recommend AlexeyAB's popular fork of Darknet, available at https://github.com/AlexeyAB/darknet.
+I recommend Hank.ai's fork of Darknet, available at https://github.com/hank-ai/darknet.
 
-The original author of the Darknet neural network framework is <a target="_blank" href="https://pjreddie.com/darknet/">Joseph Redmon</a>.  That version of Darknet hasn't been updated in several years, which is why I use AlexeyAB's fork instead.
+The original author of the Darknet neural network framework is Joseph Redmon.  In 2016, Alexey Bochkovskiy took over maintaining Darknet.  And in 2023, Hank.ai announced they would be sponsoring the proect.
 
 <div style="padding:1em; margin:2em; border:1px solid black; display:inline-block;">
 %DarkMark is written by <a target="_blank" href="https://www.ccoderun.ca/stephane/">Stéphane Charette d.b.a. C Code Run</a><br/>

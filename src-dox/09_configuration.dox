@@ -58,6 +58,9 @@ name | lines | layers | yolo layers | network size | weights size | related | la
 @p yolov4.cfg | 1159 | 162 | 3 | 608x608 | 245.7 MiB |  | 2020-05-23 | AlexeyAB | contains 3 YOLO layers | <a target="_blank" href="https://arxiv.org/pdf/2004.10934.pdf">YOLOv4 whitepaper</a>
 @p yolov4x-mish.cfg | 1437 | 203 | 3 | 640x640 | 380.9 MiB | @p yolov4-csp.cfg | 2020-12-07 | AlexeyAB | detector; something between yolov4-csp and yolov4-p5; more suitable for high resolutions 640x640 - 832x832 than yolov4.cfg; should be trained longer | <a target="_blank" href="https://github.com/AlexeyAB/darknet/issues/7131">7131</a>
 @p yolov4_new.cfg | 1177 | 162 | 3 | 608x608 |  |  | 2021-10-30 | AlexeyAB |  | &nbsp;
+@p yolov7-tiny.cfg | 707 | 99 | 3 | 416x416 |  |  | 2022-07-07 | AlexeyAB84 |  | &nbsp;
+@p yolov7.cfg | 1025 | 143 | 3 | 640x640 |  |  | 2022-08-11 | AlexeyAB84 |  | &nbsp;
+@p yolov7x.cfg | 1153 | 159 | 3 | 640x640 |  |  | 2022-08-11 | AlexeyAB84 |  | &nbsp;
 
 @section ConfigOld Old Configuration
 

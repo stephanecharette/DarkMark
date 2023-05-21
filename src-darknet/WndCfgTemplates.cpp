@@ -7,14 +7,15 @@
  * - yolov2 is 2018-03
  * - yolov3 is 2018-05
  * - yolov4 is 2020-05
+ * - yolov7 is 2022-08
  */
 #define OLD_CFG_TIMESTAMP "2020-01-00"
 
 /** Only define this if you need to re-create the doxygen table.  It will
  * rebuild .dox file used on the web site.  This has no impact or purpose
- * normal users of DarkMark, and should be left undefined.  Look for files
- * named *_cfg_table.txt after this window is brought up, and update the
- * Doxygen tables in 09_configuration.dox.
+ * for normal users of DarkMark, and should be left undefined.  Look for
+ * files named *_cfg_table.txt after this window is brought up, and update
+ * the Doxygen tables in 09_configuration.dox.
  */
 #if 0
 #define OUTPUT_DOX_TABLES
