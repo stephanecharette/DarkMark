@@ -368,14 +368,14 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.add(s);
 
 	b = new BooleanPropertyComponent(v_limit_validation_images, getText("limit validation images"), getText("limit validation images"));
-	setTooltip(b, "Limit the number of validation images to a maximum based on the number of classes.");
+	setTooltip(b, "Limit the number of validation images to a maximum based on the number of classes. This should be disabled unless you are running into problems related to an extreme number of validation images.");
 	properties.add(b);
 
 	pp.addSection(getText("images"), properties, true);
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_recalculate_anchors, getText("recalculate yolo anchors"), getText("recalculate yolo anchors"));
-	setTooltip(b, "Recalculate the best anchors to use given the images, bounding boxes, and network dimensions.");
+	setTooltip(b, "Recalculate the best anchors to use given the images, bounding boxes, and network dimensions. This should be enabled.");
 	recalculate_anchors_toggle = b;
 	properties.add(b);
 
@@ -388,7 +388,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		properties.add(s);
 
 		b = new BooleanPropertyComponent(v_class_imbalance, getText("handle class imbalance"), getText("compensate for class imbalance"));
-		setTooltip(b, "Sets counters_per_class in YOLO sections to balance out the network.");
+		setTooltip(b, "Sets counters_per_class in YOLO sections to balance out the network. This option problematic and should normally be disabled.");
 		class_imbalance_toggle = b;
 		if (v_recalculate_anchors.getValue().operator bool() == false)
 		{
@@ -1189,7 +1189,7 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 		ss	<< header
 			<< ""												<< std::endl
 			<< "rm -f output.log"								<< std::endl
-			<< "rm -f chart.png"								<< std::endl
+			<< "#rm -f chart.png"								<< std::endl
 			<< ""												<< std::endl
 			<< "echo \"creating new log file\" > output.log"	<< std::endl
 			<< "date >> output.log"								<< std::endl
