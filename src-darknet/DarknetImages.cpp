@@ -6,6 +6,85 @@
 using json = nlohmann::json;
 
 
+namespace
+{
+	cv::InterpolationFlags rnd_resize_method(std::default_random_engine & rng)
+	{
+		/* With very repetitive networks, such as those based on text using black-and-white images, or close-ups of barcodes,
+		* or close-ups of parts on a machine when looking for defects, always using the same resize method actually prevents
+		* objects from being detected when the images are processed with one of the other resize methods.  Not sure what kind
+		* of subtle image artifact was being introduced with INTER_LINEAR, but it was shown that if all images in the training
+		* dataset were resized using method "X", then for intererence the image also had to be resized using "X" and not "Y".
+		* (Debugged at Hank.ai on 2023-07-07.)
+		*
+		* To prevent this from happening again, DarkMark now randomly uses one of several OpenCV resize methods.
+		*/
+		const std::vector<cv::InterpolationFlags> resize_methods =
+		{
+			cv::InterpolationFlags::INTER_LINEAR,	// this is the default -- fast but lower quality
+			cv::InterpolationFlags::INTER_AREA,		// better when shrinking an image
+			cv::InterpolationFlags::INTER_CUBIC,	// better when zooming an image
+			cv::InterpolationFlags::INTER_NEAREST,	// similar to LINEAR
+		};
+
+		std::uniform_int_distribution<int> distribution(0, resize_methods.size() - 1);
+
+		return resize_methods[distribution(rng)];
+	}
+
+
+	std::string rnd_image_filename(std::default_random_engine & rng, const std::string & basename)
+	{
+		std::uniform_int_distribution<int> distribution(0, 1);
+
+		return basename + (distribution(rng) ? ".jpg" : ".png");
+	}
+
+
+	int rnd_jpg_quality(std::default_random_engine & rng)
+	{
+		// Sweet spot is ~70.  See https://www.ccoderun.ca/programming/2021-02-08_imwrite/
+
+		std::uniform_int_distribution<int> distribution(60, 80);
+
+		return distribution(rng);
+	}
+
+
+	bool is_jpg(const std::string & filename)
+	{
+		// "abc.jpg" -> extension starts at 3, which is length() - 4
+		if (filename.length() > 4)
+		{
+			if (filename.rfind(".jpg") == filename.length() - 4)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+
+	void save_image(const std::string & filename, cv::Mat & mat, std::default_random_engine & rng)
+	{
+		if (filename.empty() == false and mat.empty() == false)
+		{
+			if (is_jpg(filename))
+			{
+				cv::imwrite(filename, mat, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, rnd_jpg_quality(rng)});
+			}
+			else
+			{
+				cv::imwrite(filename, mat, {cv::ImwriteFlags::IMWRITE_PNG_COMPRESSION, 9});
+			}
+		}
+
+		return;
+	}
+}
+
+
 void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks, size_t & number_of_empty_images)
 {
 	double work_done = 0.0;
@@ -87,6 +166,8 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 		throw std::runtime_error("Failed to create directory " + dir_name + ".");
 	}
 
+	auto & rng = get_random_engine();
+
 	const cv::Size desired_image_size(info.image_width, info.image_height);
 
 	std::ofstream resized_txt(dir_name + "/resized.txt");
@@ -99,7 +180,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 		std::stringstream ss;
 		ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
 		const std::string output_base_name = ss.str();
-		const std::string output_image = output_base_name + ".jpg";
+		const std::string output_image = rnd_image_filename(rng, output_base_name);
 		const std::string output_label = output_base_name + ".txt";
 		all_output_images.push_back(output_image);
 
@@ -115,7 +196,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 		cv::Mat dst;
 		if (mat.cols != desired_image_size.width or mat.rows != desired_image_size.height)
 		{
-			cv::resize(mat, dst, desired_image_size, cv::INTER_AREA);
+			cv::resize(mat, dst, desired_image_size, 0, 0, rnd_resize_method(rng));
 			number_of_resized_images ++;
 		}
 		else
@@ -131,7 +212,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 			<< " [" << dst.cols << "x" << dst.rows << "]"
 			<< std::endl;
 
-		cv::imwrite(output_image, dst, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
+		save_image(output_image, dst, rng);
 
 		// next we copy the annoations in the .txt file
 		File txt = File(original_image).withFileExtension(".txt");
@@ -171,6 +252,8 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage(text);
+
+	auto & rng = get_random_engine();
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache").getChildFile("tiles");
 	const std::string dir_name = dir.getFullPathName().toStdString();
@@ -283,10 +366,10 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 				std::stringstream ss;
 				ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
 				const std::string output_base_name = ss.str();
-				const std::string output_image = output_base_name + ".jpg";
+				const std::string output_image = rnd_image_filename(rng, output_base_name);
 				const std::string output_label = output_base_name + ".txt";
 
-				cv::imwrite(output_image, tile, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
+				save_image(output_image, tile, rng);
 				all_output_images.push_back(output_image);
 
 				// now re-create the .txt file with the appropriate annotations for this new tile
@@ -535,15 +618,15 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 
 			// Crop the original image, and at the same time resize it to be the exact dimensions we need.
 			cv::Mat output_mat;
-			cv::resize(original_mat(roi), output_mat, desired_size);
+			cv::resize(original_mat(roi), output_mat, desired_size, 0.0, 0.0, rnd_resize_method(rng));
 
 			std::stringstream ss;
 			ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
 			const std::string output_base_name = ss.str();
-			const std::string output_image = output_base_name + ".jpg";
+			const std::string output_image = rnd_image_filename(rng, output_base_name);
 			const std::string output_label = output_base_name + ".txt";
 
-			cv::imwrite(output_image, output_mat, {cv::ImwriteFlags::IMWRITE_JPEG_QUALITY, 75});
+			save_image(output_image, output_mat, rng);
 			all_output_images.push_back(output_image);
 
 			// crop the annotations to match the image, and re-calculate the values for the .txt file.

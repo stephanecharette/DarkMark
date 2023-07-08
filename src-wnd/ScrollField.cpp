@@ -379,7 +379,7 @@ void dm::ScrollField::rebuild_cache_image()
 		const int w = getWidth();
 		const int h = getHeight();
 
-		cv::resize(field, resized_image, cv::Size(w, h));
+		resized_image = DarkHelp::slow_resize_ignore_aspect_ratio(field, cv::Size(w, h));
 
 		draw_triangles_at_image_sets();
 		draw_marker_at_current_image();

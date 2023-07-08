@@ -581,9 +581,7 @@ void dm::VideoImportWindow::run()
 					}
 					else
 					{
-						cv::Mat dst;
-						cv::resize(mat, dst, {new_width, new_height}, 0, 0,  CV_INTER_AREA);
-						mat = dst;
+						mat = DarkHelp::slow_resize_ignore_aspect_ratio(mat, {new_width, new_height});
 					}
 				}
 
