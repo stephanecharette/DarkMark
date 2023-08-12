@@ -28,12 +28,15 @@ void DarkMark_CPlusPlus_Terminate_Handler(void)
 }
 
 
+#if 0
+// std::set_unexpected() was removed in C++17
 void DarkMark_CPlusPlus_Unexpected_Handler(void)
 {
 	dm::Log("unexpected handler invoked");
 
 	exit(3);
 }
+#endif
 
 
 dm::DarkMarkApplication::DarkMarkApplication(void)
@@ -245,7 +248,8 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 
 	std::set_terminate(DarkMark_CPlusPlus_Terminate_Handler);
 #ifndef WIN32
-	std::set_unexpected(DarkMark_CPlusPlus_Unexpected_Handler);
+	// set_unexpected() was removed in C++17
+//	std::set_unexpected(DarkMark_CPlusPlus_Unexpected_Handler);
 #endif
 	SystemStats::setApplicationCrashHandler(DarkMark_Juce_Crash_Handler);
 

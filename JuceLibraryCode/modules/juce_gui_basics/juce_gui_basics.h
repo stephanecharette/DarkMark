@@ -118,6 +118,9 @@
  #define JUCE_WIN_PER_MONITOR_DPI_AWARE 1
 #endif
 
+// Stephane, 2023-08-12: https://github.com/stephanecharette/DarkMark/issues/26
+#include <utility>
+
 //==============================================================================
 namespace juce
 {
