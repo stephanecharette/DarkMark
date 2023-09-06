@@ -2449,7 +2449,7 @@ dm::DMContent & dm::DMContent::create_threshold_image()
 			// white areas of the image are "grown" and dark areas shrink
 
 			cv::Mat kernel = cv::getStructuringElement(
-				(dilate_kernel_size % 2) ? cv::MORPH_CROSS : cv::MORPH_RECT,
+				cv::MORPH_CROSS, // cv::MORPH_RECT, -- with the small kernels used in DarkMark it doesn't seem to make much difference which shape we use
 				cv::Size(dilate_kernel_size, dilate_kernel_size),
 				cv::Point(-1, -1));
 
