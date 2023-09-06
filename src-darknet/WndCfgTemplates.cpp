@@ -231,7 +231,7 @@ std::string get_command_output(const std::string & cmd)
 
 void dm::WndCfgTemplates::run()
 {
-	File dir = File(cfg().getValue("darknet_dir")).getChildFile("cfg");
+	File dir = File(cfg().getValue("darknet_templates"));
 	auto files = dir.findChildFiles(File::TypesOfFileToFind::findFiles, true, "*.cfg");
 	std::sort(files.begin(), files.end(),
 			[](const File & lhs, const File & rhs)
@@ -309,6 +309,8 @@ void dm::WndCfgTemplates::run()
 		table_content_all.push_back(row);
 	}
 
+	size_t rows_without_git_information = 0;
+
 	// get more details on each row in the table
 	for (auto & row : table_content_all)
 	{
@@ -318,11 +320,24 @@ void dm::WndCfgTemplates::run()
 		}
 
 		// now try to run the "git" command against each .cfg file to see if we can get some details on each one
+		//
+		// output should look similar to this:
+		//
+		//		2020-12-15 07:09:58 +0300 / AlexeyAB
+		//
 		const std::string str = get_command_output("git -C \"" + dir.getFullPathName().toStdString() + "\" log -1 --pretty=\"format:%ci / %cn\" \"" + row.field[Fields::kFullPath] + "\"");
 		if (str.size() >= 10)
 		{
 			row.field[Fields::kLastModified] = str.substr(0, 10);
 		}
+		else
+		{
+			rows_without_git_information ++;
+			File f(row.field[Fields::kFullPath]);
+			row.field[Fields::kLastModified] = f.getLastModificationTime().formatted("%Y-%m-%d").toStdString();
+			row.field[Fields::kLastCommitName] = "unknown";
+		}
+
 		const auto pos = str.find(" / ");
 		if (pos != std::string::npos)
 		{
@@ -724,7 +739,15 @@ void dm::WndCfgTemplates::run()
 	}
 	#endif
 
-	include_new_button	.setEnabled(true);
+	if (rows_without_git_information == table_content_all.size())
+	{
+		include_new_button.setTooltip("The \"new\" filter requires that the configuration template directory be part of a git repo. You can change the directory to use in the main DarkMark settings. Otherwise, click on the \"Help\" button at the bottom of this window to see the web page with the configuration files divided into \"old\" and \"new\".");
+		include_new_button.setEnabled(false);
+	}
+	else
+	{
+		include_new_button.setEnabled(true);
+	}
 	include_yolo_button	.setEnabled(true);
 	include_tiny_button	.setEnabled(true);
 

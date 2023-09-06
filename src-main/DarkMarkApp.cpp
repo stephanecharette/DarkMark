@@ -275,7 +275,15 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 //		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("Ubuntu");
 	#endif
 
-	cfg.reset(new Cfg);
+	try
+	{
+		cfg.reset(new Cfg);
+	}
+	catch (const std::exception & e)
+	{
+		dm::Log("exception caught in configuration: " + std::string(e.what()));
+		throw;
+	}
 
 	for (auto parm : StringArray::fromTokens(commandLine, true))
 	{
@@ -494,15 +502,30 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	startup_wnd.reset(new StartupWnd);
 
 	// before we go any further, check to see if Darknet is installed where we think it is
-	const auto darknet_dir = cfg->get_str("darknet_dir");
-	File f(darknet_dir);
-	if (f.isDirectory() == false)
+
+	const auto darknet_executable	= cfg->get_str("darknet_executable"	);
+	const auto darknet_templates	= cfg->get_str("darknet_templates"	);
+
+	File f(darknet_executable);
+	if (not f.exists())
 	{
-		Log("darknet directory does not exist: " + darknet_dir);
+		Log("darknet executable does not exist: " + darknet_executable);
 		AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark",
-				"The darknet directory is set to " + darknet_dir + ", but that directory does not exist.\n"
+				"The executable is set to \"" + darknet_executable + "\", but does not seem to exist.\n"
 				"\n"
-				"Please quit from DarkMark and edit the configuration file " + cfg->getFile().getFullPathName().toStdString() + " to set \"darknet_dir\" to the correct location.");
+				"Please quit from DarkMark and edit the configuration file " + cfg->getFile().getFullPathName().toStdString() + " to set \"darknet_executable\" to the correct location.");
+	}
+	else
+	{
+		f = File(darknet_templates);
+		if (not f.exists())
+		{
+			Log("darknet config templates not found: " + darknet_templates);
+			AlertWindow::showMessageBoxAsync(AlertWindow::AlertIconType::WarningIcon, "DarkMark",
+					"The configuration templates directory is set to \"" + darknet_templates + "\", but does not seem to exist.\n"
+					"\n"
+					"Please quit from DarkMark and edit the configuration file " + cfg->getFile().getFullPathName().toStdString() + " to set \"darknet_templates\" to the correct location.");
+		}
 	}
 
 	return;

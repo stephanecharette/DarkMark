@@ -43,7 +43,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		home = ptr;
 	}
 
-	insert_if_not_exist("darknet_dir"					, home + "/darknet"									);
+	insert_if_not_exist("darknet_dir"					, home + "/darknet"									); // no longer used, see the new value "darknet_executable"
 	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:gif))$");
 	insert_if_not_exist("sort_order"					, static_cast<int>(ESort::kAlphabetical)			);
 	insert_if_not_exist("show_labels"					, static_cast<int>(EToggle::kAuto)					);
@@ -74,6 +74,10 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("dilate_iterations"				, 1													);
 	insert_if_not_exist("erode_kernel_size"				, 2													);
 	insert_if_not_exist("erode_iterations"				, 1													);
+
+	// see at the bottom of this method where these two are initialized
+	insert_if_not_exist("darknet_executable"			, ""												);
+	insert_if_not_exist("darknet_templates"				, ""												);
 
 	removeValue("darknet_enable_hue");	// this was changed to the float value darknet_hue
 	removeValue("darknet_trailing_percentage");	// typo:  "trailing" -> "training"
@@ -121,7 +125,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		setValue("image_regex", "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:gif))$");
 	}
 
-	// see if the darknet directory exists, and if not, see if we can quickly find it
+	// see if the (old-style) darknet directory exists, and if not, see if we can quickly find it
 	auto darknet_dir = get_str("darknet_dir");
 	File f(darknet_dir);
 	if (f.exists() == false or f.isDirectory() == false)
@@ -185,6 +189,86 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 				dirs_to_search.push_back(child);
 			}
 		}
+	}
+
+	auto darknet_executable = get_str("darknet_executable");
+	f = File(darknet_executable);
+	if (f.exists() == false)
+	{
+		dm::Log("darknet executable not found: \"" + darknet_executable + "\"");
+
+#ifdef WIN32
+		f = File("C:\\Program Files\\Darknet\\bin\\Darknet.exe");
+#else
+		f = File("/usr/bin/darknet");
+#endif
+		if (f.exists())
+		{
+			darknet_executable = f.getFullPathName().toStdString();
+			dm::Log("setting darknet executable to " + darknet_executable);
+		}
+		else
+		{
+			dm::Log("cannot find \"" + darknet_executable + "\"");
+			darknet_executable = "";
+
+			// see if we can use the old darknet_dir value to guess where darknet is located
+			if (darknet_dir.empty() == false)
+			{
+				f = File(darknet_dir).getChildFile("darknet");
+				if (f.exists())
+				{
+					darknet_executable = f.getFullPathName().toStdString();
+					dm::Log("darknet executable defaulting to " + darknet_executable);
+				}
+			}
+			else
+			{
+				darknet_executable = "NOT_FOUND";
+			}
+		}
+
+		set_str("darknet_executable", darknet_executable);
+	}
+
+	auto darknet_templates = get_str("darknet_templates");
+	f = File(darknet_templates);
+	if (f.exists() == false)
+	{
+		dm::Log("darknet config templates not found: \"" + darknet_templates + "\"");
+
+#ifdef WIN32
+		f = File("C:\\Program Files\\Darknet\\cfg\\");
+#else
+		f = File("/opt/darknet/cfg");
+#endif
+		if (f.exists())
+		{
+			darknet_templates = f.getFullPathName().toStdString();
+			dm::Log("setting darknet config templates to " + darknet_templates);
+		}
+		else
+		{
+			dm::Log("cannot find \"" + darknet_templates + "\"");
+			darknet_templates = "";
+
+			// see if we can use the old darknet_dir value to find the .cfg files
+			if (darknet_dir.empty() == false)
+			{
+				f = File(darknet_dir).getChildFile("cfg");
+				if (f.isDirectory())
+				{
+					darknet_templates = f.getFullPathName().toStdString();
+					dm::Log("darknet config templates defaulting to " + darknet_templates);
+				}
+			}
+			else
+			{
+				darknet_templates = "NOT_FOUND";
+			}
+		}
+
+		set_str("darknet_templates", darknet_templates);
 	}
 
 	saveIfNeeded();

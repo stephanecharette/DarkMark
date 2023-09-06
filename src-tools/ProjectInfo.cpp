@@ -54,7 +54,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 {
 	// these settings are "global" (not project specific)
 	cfg_prefix					= prefix;
-	darknet_dir					= cfg().get_str		("darknet_dir"									, "");
+//	darknet_dir					= cfg().get_str		("darknet_dir"									, "");
 
 	// every other setting is project-specific (with default values if the settings does not yet exist in configuration)
 	cfg_template				= cfg().get_str		(cfg_prefix + "darknet_cfg_template"			, ""	);
@@ -179,7 +179,7 @@ dm::ProjectInfo & dm::ProjectInfo::rebuild(const std::string & project_directory
 
 	if (cfg_template.empty())
 	{
-		cfg_template = File(darknet_dir).getChildFile("cfg").getChildFile("yolov4-tiny.cfg").getFullPathName().toStdString();
+		cfg_template = File(cfg().get_str("darknet_templates")).getChildFile("yolov4-tiny.cfg").getFullPathName().toStdString();
 	}
 
 	// check to make sure the template .cfg files actually exists

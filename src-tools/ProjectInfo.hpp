@@ -14,7 +14,6 @@ namespace dm
 
 			std::string cfg_prefix;					///< The text that needs to be prefixed to configuration items, such as @p "project_12345_".
 			std::string project_name;				///< e.g., @p flowers
-			std::string	darknet_dir;				///< e.g., @p /home/bob/darknet
 			std::string	project_dir;				///< e.g., @p /home/bob/nn/flowers
 			std::string data_filename;				///< e.g., @p /home/bob/nn/flowers/flowers.data
 			std::string names_filename;				///< e.g., @p /home/bob/nn/flowers/flowers.names

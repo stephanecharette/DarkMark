@@ -67,10 +67,13 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 		peer->setIcon(DarkMarkLogo());
 	}
 
+	v_darknet_executable	= String(cfg().get_str("darknet_executable"));
+	v_darknet_templates		= String(cfg().get_str("darknet_templates"));
+
 	if (dmapp().darkhelp_nn)
 	{
 		v_darkhelp_threshold							= std::round(100.0f * dmapp().darkhelp_nn->config.threshold);
-		v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp_nn->config.hierarchy_threshold);
+//		v_darkhelp_hierchy_threshold					= std::round(100.0f * dmapp().darkhelp_nn->config.hierarchy_threshold);
 		v_darkhelp_non_maximal_suppression_threshold	= std::round(100.0f * dmapp().darkhelp_nn->config.non_maximal_suppression_threshold);
 		v_image_tiling									= dmapp().darkhelp_nn->config.enable_tiles;
 	}
@@ -78,7 +81,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	{
 		// DarkHelp didn't load (no neural network?) so use whatever is in configuration instead
 		v_darkhelp_threshold							= cfg().get_int("darknet_threshold");
-		v_darkhelp_hierchy_threshold					= cfg().get_int("darknet_hierarchy_threshold");
+//		v_darkhelp_hierchy_threshold					= cfg().get_int("darknet_hierarchy_threshold");
 		v_darkhelp_non_maximal_suppression_threshold	= cfg().get_int("darknet_nms_threshold");
 		v_image_tiling									= cfg().get_bool("darknet_image_tiling");
 	}
@@ -102,8 +105,10 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_erode_kernel_size						= content.erode_kernel_size;
 	v_erode_iterations						= content.erode_iterations;
 
+	v_darknet_executable						.addListener(this);
+	v_darknet_templates							.addListener(this);
 	v_darkhelp_threshold						.addListener(this);
-	v_darkhelp_hierchy_threshold				.addListener(this);
+//	v_darkhelp_hierchy_threshold				.addListener(this);
 	v_darkhelp_non_maximal_suppression_threshold.addListener(this);
 	v_scrollfield_width							.addListener(this);
 	v_scrollfield_marker_size					.addListener(this);
@@ -125,18 +130,26 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_erode_iterations							.addListener(this);
 
 	Array<PropertyComponent*> properties;
-//	TextPropertyComponent		* t = nullptr;
+	TextPropertyComponent		* t = nullptr;
 	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
 //	ButtonPropertyComponent		* b = nullptr;
+
+	t = new TextPropertyComponent(v_darknet_executable, "darknet executable", 1000, false, true);
+	t->setTooltip("The location of the darknet executable used to train a network.");
+	properties.add(t);
+
+	t = new TextPropertyComponent(v_darknet_templates, "configuration templates", 1000, false, true);
+	t->setTooltip("The location of the .cfg files to use as configuration templates when setting up a project to train a network.");
+	properties.add(t);
 
 	s = new SliderPropertyComponent(v_darkhelp_threshold, "detection threshold", 0, 100, 1);
 	s->setTooltip("Detection threshold is used to determine whether or not there is an object in the predicted bounding box. Default value is 50%.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_darkhelp_hierchy_threshold, "hierarchy threshold", 0, 100, 1);
-	s->setTooltip("The hierarchical threshold is used to decide whether following the tree to a more specific class is the right action to take. When this threshold is 0, the tree will basically follow the highest probability branch all the way to a leaf node. Default value is 50%.");
-	properties.add(s);
+//	s = new SliderPropertyComponent(v_darkhelp_hierchy_threshold, "hierarchy threshold", 0, 100, 1);
+//	s->setTooltip("The hierarchical threshold is used to decide whether following the tree to a more specific class is the right action to take. When this threshold is 0, the tree will basically follow the highest probability branch all the way to a leaf node. Default value is 50%.");
+//	properties.add(s);
 
 	s = new SliderPropertyComponent(v_darkhelp_non_maximal_suppression_threshold, "nms threshold", 0, 100, 1);
 	s->setTooltip("Non-Maximal Suppression (NMS) suppresses overlapping bounding boxes and only retains the bounding box that has the maximum probability of object detection associated with it. It examines all bounding boxes and removes the least confident of the boxes that overlap with each other. Default value is 45%.");
@@ -228,7 +241,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 650);
+	r = r.withSizeKeepingCentre(400, 675);
 	setBounds(r);
 
 	setVisible(true);
@@ -248,8 +261,10 @@ void dm::SettingsWnd::closeButtonPressed()
 	// close button
 
 //	cfg().setValue("crosshair_colour"					, CrosshairComponent::crosshair_colour			.toString());
+	cfg().setValue("darknet_executable"					, v_darknet_executable							.getValue());
+	cfg().setValue("darknet_templates"					, v_darknet_templates							.getValue());
 	cfg().setValue("darknet_threshold"					, v_darkhelp_threshold							.getValue());
-	cfg().setValue("darknet_hierarchy_threshold"		, v_darkhelp_hierchy_threshold					.getValue());
+//	cfg().setValue("darknet_hierarchy_threshold"		, v_darkhelp_hierchy_threshold					.getValue());
 	cfg().setValue("darknet_nms_threshold"				, v_darkhelp_non_maximal_suppression_threshold	.getValue());
 	cfg().setValue("scrollfield_width"					, v_scrollfield_width							.getValue());
 	cfg().setValue("scrollfield_marker_size"			, v_scrollfield_marker_size						.getValue());
@@ -323,7 +338,7 @@ void dm::SettingsWnd::valueChanged(Value & value)
 {
 	if (dmapp().darkhelp_nn)
 	{
-		dmapp().darkhelp_nn->config.hierarchy_threshold					= static_cast<float>(v_darkhelp_hierchy_threshold					.getValue()) / 100.0f;
+//		dmapp().darkhelp_nn->config.hierarchy_threshold					= static_cast<float>(v_darkhelp_hierchy_threshold					.getValue()) / 100.0f;
 		dmapp().darkhelp_nn->config.non_maximal_suppression_threshold	= static_cast<float>(v_darkhelp_non_maximal_suppression_threshold	.getValue()) / 100.0f;
 		dmapp().darkhelp_nn->config.threshold							= static_cast<float>(v_darkhelp_threshold							.getValue()) / 100.0f;
 		dmapp().darkhelp_nn->config.enable_tiles						= static_cast<bool>(v_image_tiling.getValue());

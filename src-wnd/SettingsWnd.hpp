@@ -22,8 +22,10 @@ namespace dm
 			virtual void valueChanged(Value & value) override;
 			virtual void timerCallback() override;
 
+			Value v_darknet_executable;
+			Value v_darknet_templates;
 			Value v_darkhelp_threshold;
-			Value v_darkhelp_hierchy_threshold;
+//			Value v_darkhelp_hierchy_threshold;
 			Value v_darkhelp_non_maximal_suppression_threshold;
 			Value v_scrollfield_width;
 			Value v_scrollfield_marker_size;

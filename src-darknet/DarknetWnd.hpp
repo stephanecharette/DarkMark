@@ -53,7 +53,6 @@ namespace dm
 
 			CfgHandler cfg_handler;
 
-			Value v_darknet_dir;
 			Value v_cfg_template;
 			Value v_train_with_all_images;
 			Value v_training_images_percentage;

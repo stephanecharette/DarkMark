@@ -232,7 +232,11 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		peer->setIcon(DarkMarkLogo());
 	}
 
-	v_darknet_dir					= info.darknet_dir.c_str();
+	if (info.batch_size <= 1)
+	{
+		info.batch_size = 64;
+	}
+
 	v_cfg_template					= info.cfg_template.c_str();
 	v_train_with_all_images			= info.train_with_all_images;
 	v_training_images_percentage	= std::round(100.0 * info.training_images_percentage);
@@ -281,17 +285,13 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_zoom_images			.addListener(this);
 
 	Array<PropertyComponent *> properties;
-	TextPropertyComponent		* t = nullptr;
+//	TextPropertyComponent		* t = nullptr;
 	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
 	ButtonPropertyComponent		* u = nullptr;
 
 	if (normal_interface)
 	{
-		t = new TextPropertyComponent(v_darknet_dir, "darknet directory", 1000, false, true);
-		setTooltip(t, "The directory where darknet was built.  Should also contain a 'cfg' directory which contains the example .cfg files to use as templates.");
-		properties.add(t);
-
 		u = new CfgTemplateButton(v_cfg_template);
 		setTooltip(u, "The darknet configuration file to use as a template for this project.");
 		properties.add(u);
@@ -643,18 +643,11 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 
 	// otherwise if we get here we need to validate the fields before we export the darknet files
 
-	const String darknet_dir	= v_darknet_dir	.getValue();
 	const String cfg_template	= v_cfg_template.getValue();
 	const int image_width		= v_image_width	.getValue();
 	const int image_height		= v_image_height.getValue();
 	const int batch_size		= v_batch_size	.getValue();
 	const int subdivisions		= v_subdivisions.getValue();
-
-	if (darknet_dir.isEmpty() or File(darknet_dir).exists() == false or File(darknet_dir).getChildFile("cfg").exists() == false)
-	{
-		AlertWindow::showMessageBox(AlertWindow::AlertIconType::WarningIcon, "DarkMark", "The specified darknet directory is not valid.");
-		return;
-	}
 
 	if (cfg_template.isEmpty() or File(cfg_template).exists() == false)
 	{
@@ -688,7 +681,6 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 
 	canvas.setEnabled(false);
 
-	cfg().setValue(/* this one is a global value */ "darknet_dir"		, v_darknet_dir					);
 	cfg().setValue(content.cfg_prefix + "darknet_cfg_template"			, v_cfg_template				);
 	cfg().setValue(content.cfg_prefix + "darknet_train_with_all_images"	, v_train_with_all_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_training_percentage"	, v_training_images_percentage	);
@@ -719,7 +711,6 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_cutmix"				, v_cutmix						);
 	cfg().setValue(content.cfg_prefix + "darknet_mixup"					, v_mixup						);
 
-	info.darknet_dir				= v_darknet_dir				.toString().toStdString();
 	info.cfg_template				= v_cfg_template			.toString().toStdString();
 	info.train_with_all_images		= v_train_with_all_images	.getValue();
 	info.training_images_percentage	= static_cast<double>(v_training_images_percentage.getValue()) / 100.0;
@@ -1178,7 +1169,7 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 
 	if (true)
 	{
-		std::string cmd = info.darknet_dir + "/darknet detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
+		std::string cmd = cfg().get_str("darknet_executable") + " detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
 		if (info.restart_training)
 		{
 			cmd += " " + cfg().get_str(content.cfg_prefix + "weights");
