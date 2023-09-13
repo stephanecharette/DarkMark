@@ -24,24 +24,23 @@ DarkMark is open source and published using the GNU GPL v3 license.  See license
 
 # How to Build DarkMark
 
-Extremely simple easy-to-follow tutorial on how to build Darknet, DarkHelp, and DarkMark:
+Extremely simple easy-to-follow tutorial on how to build [Darknet](https://github.com/hank-ai/darknet#table-of-contents), [DarkHelp](https://github.com/stephanecharette/DarkHelp#building-darkhelp-linux), and DarkMark:
 
-[![DarkMark build tutorial](src-dox/darkmark_build_thumbnail.png)](https://www.youtube.com/watch?v=pJ2iyf_E9PM)
+[![DarkHelp build tutorial](https://github.com/hank-ai/darknet/raw/master/doc/linux_build_thumbnail.jpg)](https://www.youtube.com/watch?v=WTT1s8JjLFk)
 
-DarkMark requires [DarkHelp](https://github.com/stephanecharette/DarkHelp/) to build.  (And DarkHelp requires Darknet.)  So before you start building DarkMark, make sure you follow [the build instructions for DarkHelp](https://github.com/stephanecharette/DarkHelp/#how-to-build-darkhelp-linux).
+DarkMark requires both [Darknet](https://github.com/hank-ai/darknet#linux-cmake-method) and [DarkHelp](https://github.com/stephanecharette/DarkHelp#building-darkhelp-linux) to build.
 
 Once Darknet and DarkHelp have been built and installed, run the following commands to build DarkMark on Ubuntu:
 
-	sudo apt-get install build-essential cmake libopencv-dev libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev libpoppler-cpp-dev
-	cd ~/src
-	git clone https://github.com/stephanecharette/DarkMark.git
-	cd DarkMark
-	mkdir build
-	cd build
-	cmake -DCMAKE_BUILD_TYPE=Release ..
-	make
-	make package
-	sudo dpkg -i darkmark*.deb
+    sudo apt-get install build-essential libopencv-dev libx11-dev libfreetype6-dev libxrandr-dev libxinerama-dev libxcursor-dev libmagic-dev libpoppler-cpp-dev
+    cd ~/src
+    git clone https://github.com/stephanecharette/DarkMark.git
+    cd DarkMark
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+    make -j4 package
+    sudo dpkg -i darkmark*.deb
 
 If you are using WSL2, Docker, or a Linux distro that does not come with the default fonts typically found on Ubuntu, you'll also need to install this:
 
