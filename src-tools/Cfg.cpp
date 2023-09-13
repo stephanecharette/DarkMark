@@ -169,7 +169,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 			auto dirs = f.findChildFiles(File::TypesOfFileToFind::findDirectories + File::TypesOfFileToFind::ignoreHiddenFiles, false);
 			for (const auto & child : dirs)
 			{
-				if (child.getFileName() == "darknet")
+				if (child.getFileName().toStdString().find("darknet") != std::string::npos)
 				{
 					// if this really is darknet, then it will have a subdirectory called "cfg"
 					File darknet_cfg = child.getChildFile("cfg");
@@ -218,8 +218,19 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 				f = File(darknet_dir).getChildFile("darknet");
 				if (f.exists())
 				{
+					// this is the old-style build location, such as ~/src/darknet/darknet
 					darknet_executable = f.getFullPathName().toStdString();
 					dm::Log("darknet executable defaulting to " + darknet_executable);
+				}
+				else
+				{
+					// last-ditch attempt -- is this a new repo, but they didn't install the package yet?
+					f = File(darknet_dir).getChildFile("build").getChildFile("src").getChildFile("darknet");
+					if (f.exists())
+					{
+						darknet_executable = f.getFullPathName().toStdString();
+						dm::Log("darknet executable in \"build\" directory: " + darknet_executable);
+					}
 				}
 			}
 			else
