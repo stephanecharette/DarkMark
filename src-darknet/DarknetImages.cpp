@@ -76,7 +76,7 @@ namespace
 			}
 			else
 			{
-				cv::imwrite(filename, mat, {cv::ImwriteFlags::IMWRITE_PNG_COMPRESSION, 9});
+				cv::imwrite(filename, mat, {cv::ImwriteFlags::IMWRITE_PNG_COMPRESSION, 0});
 			}
 		}
 

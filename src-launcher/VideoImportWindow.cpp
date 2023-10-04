@@ -590,7 +590,7 @@ void dm::VideoImportWindow::run()
 
 				if (save_as_png)
 				{
-					cv::imwrite(ss.str() + ".png", mat, {CV_IMWRITE_PNG_COMPRESSION, 9});
+					cv::imwrite(ss.str() + ".png", mat, {CV_IMWRITE_PNG_COMPRESSION, 1});
 				}
 				else if (save_as_jpg)
 				{

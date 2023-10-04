@@ -384,13 +384,13 @@ void dm::DMContentFlipImages::run()
 					// once we get here we know we need to create a new image!
 					Log("flip " + content.image_filenames[idx] + ": " + std::to_string(flip_code) + ": " + postfix);
 
-					// rotate and save the image to disk
+					// flip and save the image to disk
 					cv::Mat dst;
 					cv::flip(original_mat, dst, flip_code);
 					if (use_png)
 					{
 						new_fn += ".png";
-						cv::imwrite(new_fn, dst, {cv::IMWRITE_PNG_COMPRESSION, 9});
+						cv::imwrite(new_fn, dst, {cv::IMWRITE_PNG_COMPRESSION, 1});
 					}
 					else if (use_jpg)
 					{

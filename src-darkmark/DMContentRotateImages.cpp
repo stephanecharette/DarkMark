@@ -391,7 +391,7 @@ void dm::DMContentRotateImages::run()
 					if (use_png)
 					{
 						new_fn += ".png";
-						cv::imwrite(new_fn, dst, {cv::IMWRITE_PNG_COMPRESSION, 9});
+						cv::imwrite(new_fn, dst, {cv::IMWRITE_PNG_COMPRESSION, 1});
 					}
 					else if (use_jpg)
 					{
