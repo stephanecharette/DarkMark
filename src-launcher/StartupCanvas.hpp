@@ -80,6 +80,7 @@ namespace dm
 		Value darknet_configuration_filename;
 		Value darknet_weights_filename;
 		Value darknet_names_filename;
+		Value colourlist_filename;
 
 		TableListBox table;
 

@@ -613,6 +613,8 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				cfg().setValue(prefix + "names"					, notebook_canvas->darknet_names_filename			);
 				cfg().setValue(prefix + "darknet_cfg_template"	, notebook_canvas->darknet_configuration_template	);
 				cfg().setValue(prefix + "timestamp"				, static_cast<int>(std::time(nullptr))				);
+				cfg().setValue(prefix + "markup_colours"			, notebook_canvas->colourlist_filename				);
+				
 
 				// Prior to 2020-05-30, there were many settings in configuration that were "global".  Every time a project
 				// was loaded, the settings were copied over to the global name.  This mess is because when it was first
@@ -623,7 +625,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				// the settings they previously used with this project.
 				if (File(cfg_filename).existsAsFile())
 				{
-					// regex to find keyword/value pairs such as:   width=416
+					// regex to find keyword/value pairs such as:	width=416
 					const std::regex rgx("^(\\w+)[ \t]*=[ \t]*([0-9.]+)$");
 
 					std::ifstream ifs(cfg_filename.toStdString());
