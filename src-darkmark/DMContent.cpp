@@ -344,6 +344,9 @@ void dm::DMContent::start_darknet()
 	names.push_back("* empty image *");
 
 	annotation_colours = DarkHelp::get_default_annotation_colours();
+	const std::string colorlist_filename = cfg().get_str(cfg_prefix + "markup_colours");
+	DarkHelp::load_custom_annotation_colours(colorlist_filename);
+	annotation_colours = DarkHelp::get_default_annotation_colours();
 	if (annotation_colours.empty() == false)
 	{
 		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx % annotation_colours.size());

@@ -113,6 +113,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	darknet_configuration_filename	.addListener(this);
 	darknet_weights_filename		.addListener(this);
 	darknet_names_filename			.addListener(this);
+	colourlist_filename				.addListener(this);
 
 	Array<PropertyComponent *> properties;
 
@@ -145,6 +146,7 @@ dm::StartupCanvas::StartupCanvas(const std::string & key, const std::string & di
 	properties.add(new TextPropertyComponent(darknet_configuration_filename	, "darknet configuration"	, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_weights_filename		, "darknet weights"			, 1000, false, true));
 	properties.add(new TextPropertyComponent(darknet_names_filename			, "classes/names"			, 1000, false, true));
+	properties.add(new TextPropertyComponent(colourlist_filename			, "markup colours"			, 1000, false, true));
 
 	pp.addProperties(properties);
 	properties.clear();
@@ -170,7 +172,7 @@ dm::StartupCanvas::~StartupCanvas()
 void dm::StartupCanvas::resized()
 {
 	const int margin_size		= 5;
-	const int number_of_lines	= 17;
+	const int number_of_lines	= 18;
 	const int height_per_line	= 25;
 	const int total_pp_height	= number_of_lines * height_per_line;
 
@@ -505,6 +507,7 @@ void dm::StartupCanvas::refresh()
 	darknet_configuration_filename	= cfg().getValue("project_" + cfg_key + "_cfg"					);
 	darknet_weights_filename		= cfg().getValue("project_" + cfg_key + "_weights"				);
 	darknet_names_filename			= cfg().getValue("project_" + cfg_key + "_names"				);
+	colourlist_filename				= cfg().getValue("project_" + cfg_key + "_markup_colours"		);
 
 	done = false;
 	t = std::thread(&StartupCanvas::initialize_on_thread, this);
