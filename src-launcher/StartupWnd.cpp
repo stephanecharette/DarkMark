@@ -615,7 +615,6 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				cfg().setValue(prefix + "timestamp"				, static_cast<int>(std::time(nullptr))				);
 				cfg().setValue(prefix + "markup_colours"		, notebook_canvas->colourlist_filename				);
 
-
 				// Prior to 2020-05-30, there were many settings in configuration that were "global".  Every time a project
 				// was loaded, the settings were copied over to the global name.  This mess is because when it was first
 				// written, DarkMark didn't manage multiple projects.  It only managed a single project.

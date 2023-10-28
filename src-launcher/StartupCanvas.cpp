@@ -845,3 +845,4 @@ void dm::StartupCanvas::calculate_size_of_directory()
 
 	return;
 }
+

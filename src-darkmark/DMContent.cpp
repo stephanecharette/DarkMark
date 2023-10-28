@@ -1234,7 +1234,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 				}
 			}
 
-			// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
+			// Sort the marks based on a gross (rounded) X and Y position of the midpoint.	This way when
 			// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
 			task = "sorting marks";
 			std::sort(marks.begin(), marks.end(),
