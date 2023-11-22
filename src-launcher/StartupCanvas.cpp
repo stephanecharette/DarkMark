@@ -236,7 +236,7 @@ void dm::StartupCanvas::initialize_on_thread()
 		number_of_json		= String(json_counter) + " (" + String(std::round(100.0 * json_counter / (image_counter == 0 ? 1 : image_counter))) + "%)";
 	}
 
-	if (image_filenames.empty() == false)
+	if (initialize_everything and image_filenames.empty() == false)
 	{
 		auto image = ImageCache::getFromFile(File(image_filenames[std::rand() % image_filenames.size()]));
 		thumbnail.setImage(image, RectanglePlacement::xLeft);
