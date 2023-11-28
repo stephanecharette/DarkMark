@@ -18,7 +18,8 @@ void dm::DMContentImageFilenameSort::run()
 {
 	DarkMarkApplication::setup_signal_handling();
 
-	if (content.sort_order != dm::ESort::kCountMarks and
+	if (content.sort_order != dm::ESort::kSimilarMarks and
+		content.sort_order != dm::ESort::kCountMarks and
 		content.sort_order != dm::ESort::kTimestamp)
 	{
 		// this class can only sort those 2 types, everything else should be handled directly in DMContent::set_sort_order()
@@ -48,6 +49,10 @@ void dm::DMContentImageFilenameSort::run()
 		if (content.sort_order == dm::ESort::kCountMarks)
 		{
 			m[fn] = content.count_marks_in_json(file, true);
+		}
+		else if (content.sort_order == dm::ESort::kSimilarMarks)
+		{
+			m[fn] = content.build_id_from_classes(file);
 		}
 		else
 		{
@@ -101,7 +106,8 @@ void dm::DMContentImageFilenameSort::run()
 						setProgress(work_completed / max_work);
 						work_completed ++;
 
-						if (content.sort_order == dm::ESort::kCountMarks)
+						if (content.sort_order == dm::ESort::kCountMarks or
+							content.sort_order == dm::ESort::kSimilarMarks)
 						{
 							return m.at(lhs) < m.at(rhs);
 						}
