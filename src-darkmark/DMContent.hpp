@@ -14,7 +14,8 @@ namespace dm
 		kAlphabetical				,
 		kTimestamp					,
 		kCountMarks					,
-		kRandom
+		kRandom						,
+		kSimilarMarks
 	};
 
 
@@ -70,6 +71,8 @@ namespace dm
 			DMContent & save_json();
 
 			DMContent & import_text_annotations(const VStr & image_filenames);
+
+			size_t build_id_from_classes(File & f);
 
 			size_t count_marks_in_json(File & f, const bool for_sorting_purposes=false);
 

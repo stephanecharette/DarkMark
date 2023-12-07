@@ -1009,16 +1009,11 @@ dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
 			std::shuffle(image_filenames.begin(), image_filenames.end(), get_random_engine());
 			break;
 		}
+		case ESort::kSimilarMarks:
 		case ESort::kCountMarks:
-		{
-			// this one takes a while, so start a progress thread to do the work
-			DMContentImageFilenameSort helper(*this);
-			helper.runThread();
-			break;
-		}
 		case ESort::kTimestamp:
 		{
-			// this one takes a while, so start a progress thread to do the work
+			// these ones takes a while, so start a progress thread to do the work
 			DMContentImageFilenameSort helper(*this);
 			helper.runThread();
 			break;
@@ -1455,6 +1450,47 @@ dm::DMContent & dm::DMContent::import_text_annotations(const VStr & images_fn)
 	}
 
 	return *this;
+}
+
+
+size_t dm::DMContent::build_id_from_classes(File & f)
+{
+	// assigns a numeric ID to each class so images can be sorted by "similarity" of annotations
+
+	size_t result = 0;
+
+	if (f.existsAsFile())
+	{
+		try
+		{
+			json root = json::parse(f.loadFileAsString().toStdString());
+
+			// now we walk through the marks and turn on bits for whichever class has been annotated
+			for (size_t idx = 0; idx < root["mark"].size(); idx ++)
+			{
+				const size_t class_id = root["mark"][idx]["class_idx"];
+				result |= (0x01 << (empty_image_name_index - class_id));
+			}
+
+			if (result == 0 and root.value("completely_empty", false))
+			{
+				// assign a value to completely empty images so they don't mix with non-annotated images
+				result = 1;
+			}
+		}
+		catch (const std::exception & e)
+		{
+			Log("Error parsing " + f.getFullPathName().toStdString() + ": " + e.what());
+			AlertWindow::showMessageBox(
+				AlertWindow::AlertIconType::WarningIcon,
+				"DarkMark",
+				"Failed to read or parse the .json file " + f.getFullPathName().toStdString() + ":\n"
+				"\n" +
+				e.what());
+		}
+	}
+
+	return result;
 }
 
 
@@ -1977,6 +2013,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	sort.addItem("sort alphabetically"				, true, (sort_order == ESort::kAlphabetical	), std::function<void()>( [&]{ set_sort_order(ESort::kAlphabetical	); } ));
 	sort.addItem("sort by modification timestamp"	, true, (sort_order == ESort::kTimestamp	), std::function<void()>( [&]{ set_sort_order(ESort::kTimestamp		); } ));
 	sort.addItem("sort by number of marks"			, true, (sort_order == ESort::kCountMarks	), std::function<void()>( [&]{ set_sort_order(ESort::kCountMarks	); } ));
+	sort.addItem("sort by similar marks"			, true, (sort_order == ESort::kSimilarMarks	), std::function<void()>( [&]{ set_sort_order(ESort::kSimilarMarks	); } ));
 	sort.addItem("sort randomly"					, true, (sort_order == ESort::kRandom		), std::function<void()>( [&]{ set_sort_order(ESort::kRandom		); } ));
 
 	PopupMenu view;
