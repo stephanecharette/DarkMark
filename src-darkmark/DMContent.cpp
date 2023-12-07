@@ -1329,6 +1329,17 @@ dm::DMContent & dm::DMContent::save_text()
 			fs << std::fixed << std::setprecision(10) << m.class_idx << " " << x << " " << y << " " << w << " " << h << std::endl;
 		}
 
+		if (fs.fail())
+		{
+			Log("Error saving text file " + text_filename);
+			AlertWindow::showMessageBox(
+				AlertWindow::AlertIconType::WarningIcon,
+				"DarkMark",
+				"Failed to save the text annotations to " + text_filename + ".\n"
+				"\n"
+				"Is the drive full?  Perhaps a read-only file or directory?");
+		}
+
 		fs.close();
 
 		if (delete_txt_file)
@@ -1404,6 +1415,17 @@ dm::DMContent & dm::DMContent::save_json()
 		{
 			std::ofstream fs(json_filename);
 			fs << root.dump(1, '\t') << std::endl;
+
+			if (fs.fail())
+			{
+				Log("Error saving " + json_filename);
+				AlertWindow::showMessageBox(
+					AlertWindow::AlertIconType::WarningIcon,
+					"DarkMark",
+					"Failed to save the annotations to " + json_filename + ".\n"
+					"\n"
+					"Is the drive full?  Perhaps a read-only file or directory?");
+			}
 		}
 		else
 		{

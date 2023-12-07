@@ -437,6 +437,19 @@ void dm::DMContentRotateImages::run()
 
 							ofs << std::fixed << std::setprecision(10) << m.class_idx << " " << new_x << " " << new_y << " " << new_w << " " << new_h << std::endl;
 						}
+
+						if (ofs.fail())
+						{
+							Log("Rotate:  error saving " + txt_fn);
+							AlertWindow::showMessageBox(
+								AlertWindow::AlertIconType::WarningIcon,
+								"DarkMark",
+								"Failed to save the rotated annotations to " + txt_fn + ".\n"
+								"\n"
+								"Is the drive full?  Perhaps a read-only file or directory?");
+							break;
+						}
+
 						ofs.close();
 
 						// load the new images to force DarkMark to create the .json file from the .txt file

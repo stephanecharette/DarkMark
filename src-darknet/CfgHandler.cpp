@@ -282,6 +282,12 @@ dm::CfgHandler & dm::CfgHandler::output(const dm::ProjectInfo & info)
 		ofs << line << std::endl;
 	}
 
+	if (ofs.fail())
+	{
+		Log("error saving config file " + info.cfg_filename);
+		throw std::runtime_error("failed to write configuration file \"" + info.cfg_filename + "\"");
+	}
+
 	return *this;
 }
 
