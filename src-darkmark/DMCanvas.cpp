@@ -413,37 +413,36 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 			// corner dragging should only be done on "real" marks, not predictions
 			if (m.is_prediction == false)
 			{
-				// check to see if this mouse click is within 10 pixels from the corner
+				// figure out which corner is nearest to the mouse click
+				auto best_corner = ECorner::kTL;
+				auto best_len = std::numeric_limits<double>::infinity();
 				for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
 				{
 					const cv::Point corner_point = m.get_corner(type);
-//					Log("[mousedown 3] corner.x=" + std::to_string(corner_point.x) + " corner.y=" + std::to_string(corner_point.y));
-
-					const double len = std::round(std::hypot(corner_point.x - p.x, corner_point.y - p.y));
-					if (len < content.corner_size)
+					const double len = std::hypot(corner_point.x - p.x, corner_point.y - p.y);
+					if (len < best_len)
 					{
-						// we've clicked on a corner!
-//						Log("[mousedown 4] corner click detected, len=" + std::to_string(len));
-
-						const auto opposite_corner = static_cast<ECorner>((static_cast<int>(type) + 2) % 4);
-						const cv::Point opposite_point = m.get_corner(opposite_corner) - zoom_image_offset;
-
-						mouse_drag_rectangle.setPosition(opposite_point.x, opposite_point.y);
-
-#if 0
-						Log("[mousedown 5] mouse_drag_rect:"
-							" x=" + std::to_string(mouse_drag_rectangle.getX()) +
-							" y=" + std::to_string(mouse_drag_rectangle.getY()) +
-							" w=" + std::to_string(mouse_drag_rectangle.getWidth()) +
-							" h=" + std::to_string(mouse_drag_rectangle.getHeight()));
-#endif
-						index_to_delete = static_cast<int>(idx);
-
-						// remember the offset between where we clicked, and where the actual corner is located -- this will need to be applied to each mouse event
-						mouse_drag_offset = corner_point - p;
-
-						break;
+						best_corner = type;
+						best_len = len;
 					}
+				}
+
+				// check to see if the "best" corner we identified above is usable
+				const cv::Point corner_point = m.get_corner(best_corner);
+
+				if (std::round(best_len) <= content.corner_size)
+				{
+					// we've clicked on a corner!
+
+					const auto opposite_corner = static_cast<ECorner>((static_cast<int>(best_corner) + 2) % 4);
+					const cv::Point opposite_point = m.get_corner(opposite_corner) - zoom_image_offset;
+
+					mouse_drag_rectangle.setPosition(opposite_point.x, opposite_point.y);
+
+					index_to_delete = static_cast<int>(idx);
+
+					// remember the offset between where we clicked, and where the actual corner is located -- this will need to be applied to each mouse event
+					mouse_drag_offset = corner_point - p;
 				}
 			}
 
