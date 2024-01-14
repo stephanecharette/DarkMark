@@ -268,7 +268,7 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 
 		if (mouse_drag_rectangle.getWidth() > 2 and mouse_drag_rectangle.getHeight() > 2)
 		{
-			mouseDragFinished(mouse_drag_rectangle);
+			mouseDragFinished(mouse_drag_rectangle, event);
 		}
 	}
 

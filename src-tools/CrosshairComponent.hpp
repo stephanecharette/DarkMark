@@ -43,7 +43,7 @@ namespace dm
 			virtual void mouseUp(const MouseEvent & event) override;
 			virtual void mouseDrag(const MouseEvent & event) override;
 			virtual void mouseWheelMove(const MouseEvent & event, const MouseWheelDetails & wheel) override;
-			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect) { return; }
+			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event) { return; }
 
 			virtual void timerCallback() override;
 

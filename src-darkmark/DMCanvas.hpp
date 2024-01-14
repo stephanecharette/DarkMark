@@ -25,7 +25,7 @@ namespace dm
 
 			virtual void mouseDown(const MouseEvent & event) override;
 			virtual void mouseDoubleClick(const MouseEvent & event) override;
-			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect) override;
+			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event) override;
 
 			/// Link to the parent which manages the content, including all the marks.
 			DMContent & content;

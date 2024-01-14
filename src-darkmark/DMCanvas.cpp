@@ -521,7 +521,7 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 }
 
 
-void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
+void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event)
 {
 	double midx			= drag_rect.getCentreX() + zoom_image_offset.x;
 	double midy			= drag_rect.getCentreY() + zoom_image_offset.y;
@@ -553,10 +553,18 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect)
 	content.most_recent_size = m.get_normalized_bounding_rect().size();
 	content.need_to_save = true;
 	content.image_is_completely_empty = false;
-	if (content.snapping_enabled)
+
+	bool snap = content.snapping_enabled;
+	if (event.mods.isShiftDown())
+	{
+		// when SHIFT is held down we invert the "snap" setting
+		snap = ! snap;
+	}
+	if (snap)
 	{
 		content.snap_annotation(content.selected_mark);
 	}
+
 	content.rebuild_image_and_repaint();
 
 	return;
