@@ -44,7 +44,10 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	}
 
 	insert_if_not_exist("darknet_dir"					, home + "/darknet"									); // no longer used, see the new value "darknet_executable"
-	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:gif))$");
+
+	// note where image_regex is used, the option "std::regex::icase" also gets set, so don't worry about uppercase/lowercase
+	insert_if_not_exist("image_regex"					, "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:tiff?)|(?:gif))$");
+
 	insert_if_not_exist("sort_order"					, static_cast<int>(ESort::kAlphabetical)			);
 	insert_if_not_exist("show_labels"					, static_cast<int>(EToggle::kAuto)					);
 	insert_if_not_exist("show_predictions"				, static_cast<int>(EToggle::kAuto)					);
@@ -119,10 +122,18 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		setValue("darknet_nms_threshold"		, "45");
 	}
 
+	// note where image_regex is used, the option "std::regex::icase" also gets set, so don't worry about uppercase/lowercase
+
 	// update the image extension list to include webp files which had previously been missed (2022-09-03)
 	if (get_str("image_regex") == "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:gif))$") // the old value
 	{
 		setValue("image_regex", "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:gif))$");
+	}
+
+	// update the image extension list to include TIFF files
+	if (get_str("image_regex") == "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:gif))$")
+	{
+		setValue("image_regex", "^.+\\.(?:(?:jpe?g)|(?:bmp)|(?:png)|(?:webp)|(?:tiff?)|(?:gif))$");
 	}
 
 	// see if the (old-style) darknet directory exists, and if not, see if we can quickly find it
