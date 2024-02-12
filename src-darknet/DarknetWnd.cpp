@@ -1237,7 +1237,7 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 			<< "#	rm -f output.log"																			<< std::endl
 			<< "	rm -f chart.png"																			<< std::endl
 			<< ""																								<< std::endl
-			<< "	rsync --update --human-readable --info=progress2 --times --no-compress gpurig:" << info.project_dir << "/\\* ."	<< std::endl
+			<< "	rsync --update --human-readable --info=progress2,stats2 --times --no-compress gpurig:" << info.project_dir << "/\\* ." << std::endl
 			<< ""																								<< std::endl;
 
 			if (info.delete_temp_weights)
@@ -1284,7 +1284,7 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 			<< "if [ $? -ne 0 ]; then"																			<< std::endl
 			<< "	echo \"Make sure the hostname 'gpurig' can be resolved or exists in the /etc/hosts file!\""	<< std::endl
 			<< "else"																							<< std::endl
-			<< "	rsync --update --human-readable --recursive --no-inc-recursive --info=progress2 --times --no-compress . gpurig:" << info.project_dir << std::endl
+			<< "	rsync --update --human-readable --recursive --no-inc-recursive --info=progress2,stats2 --times --no-compress . gpurig:" << info.project_dir << std::endl
 			<< "fi"																								<< std::endl
 			<< ""																								<< std::endl;
 		const std::string data = ss.str();
