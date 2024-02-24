@@ -1,4 +1,4 @@
-# DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
+# DarkMark (C) 2019-2024 Stephane Charette <stephanecharette@gmail.com>
 
 
 # get rid of the directories and files automatically created by Introjucer since we're using our own CMake build files
@@ -35,11 +35,13 @@ INCLUDE_DIRECTORIES ( BEFORE src-wnd		)
 INCLUDE_DIRECTORIES ( BEFORE src-launcher	)
 INCLUDE_DIRECTORIES ( BEFORE src-darkmark	)
 INCLUDE_DIRECTORIES ( BEFORE src-darknet	)
+INCLUDE_DIRECTORIES ( BEFORE src-classid	)
 
 ADD_SUBDIRECTORY ( src-tools	)
 ADD_SUBDIRECTORY ( src-darknet	)
 ADD_SUBDIRECTORY ( src-darkmark	)
 ADD_SUBDIRECTORY ( src-launcher	)
+ADD_SUBDIRECTORY ( src-classid	)
 ADD_SUBDIRECTORY ( src-wnd		)
 ADD_SUBDIRECTORY ( src-main		)
 ADD_SUBDIRECTORY ( src-dox		)

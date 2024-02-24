@@ -1,4 +1,4 @@
-// DarkMark (C) 2019-2023 Stephane Charette <stephanecharette@gmail.com>
+// DarkMark (C) 2019-2024 Stephane Charette <stephanecharette@gmail.com>
 
 #pragma once
 
@@ -9,14 +9,14 @@ namespace dm
 {
 	class DMContentDeleteRotateAndFlipImages : public ThreadWithProgressWindow
 	{
-	public:
+		public:
 
-		DMContentDeleteRotateAndFlipImages(dm::DMContent & c);
+			DMContentDeleteRotateAndFlipImages(dm::DMContent & c);
 
-		virtual ~DMContentDeleteRotateAndFlipImages();
+			virtual ~DMContentDeleteRotateAndFlipImages();
 
-		virtual void run();
+			virtual void run();
 
-		DMContent & content;
+			DMContent & content;
 	};
 }
