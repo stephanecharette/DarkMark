@@ -259,6 +259,40 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 
 	std::srand(std::time(nullptr));
 
+	// See if we have access to some sort of windowing system.  If the user does a "ssh" without "ssh -X" then JUCE will
+	// crash when we try to create a window.  So get ahead of this and attempt to detect if we have a desktop, otherwise
+	// log a message.
+	Desktop & desktop = Desktop::getInstance();
+	if (desktop.isHeadless())
+	{
+		dm::Log("This seems to be a headless system.  Do you have a GUI desktop?");
+		dm::Log("Did you perhaps run \"ssh\" instead of \"ssh -X\"?");
+		dm::Log("Are you running a server distro instead of a desktop edition?");
+		dm::Log("DarkMark is a GUI application, and it requires a GUI desktop to run!");
+		dm::Log("Please fix this error and try again.");
+		throw std::runtime_error("Cannot run DarkMark on a headless system.");
+	}
+
+	const Displays & displays = desktop.getDisplays();
+	const Displays::Display * primary_display = displays.getPrimaryDisplay();
+	if (primary_display == nullptr)
+	{
+		dm::Log("This seems suspicious:  no primary display has been configured!?");
+	}
+
+	for (int idx = 0; idx < displays.displays.size(); idx ++)
+	{
+		const auto & display = displays.displays.getReference(idx);
+		dm::Log(
+			"display #"	+ std::to_string(idx) +
+			" dpi="		+ std::to_string(display.dpi) +
+			" main="	+ std::to_string(display.isMain) +
+			" scale="	+ std::to_string(display.scale) +
+			" total=\""	+ display.totalArea	.toString().toStdString() + "\""
+			" user=\""	+ display.userArea	.toString().toStdString() + "\""
+			);
+	}
+
 	#if DARKNET_GEN_SIMPLIFIED
 		// different default font is needed for Japanese characters; this requires: "sudo apt-get install fonts-ipafont-gothic"
 		Desktop::getInstance().getDefaultLookAndFeel().setDefaultSansSerifTypefaceName("IPAPGothic");
