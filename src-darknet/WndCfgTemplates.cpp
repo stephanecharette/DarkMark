@@ -207,7 +207,12 @@ std::string get_command_output(const std::string & cmd)
 	std::string output;
 
 	// loosely based on https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
-	std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+	std::unique_ptr<FILE, void(*)(FILE*)> pipe(popen(cmd.c_str(), "r"),
+		[](FILE * f) -> void
+		{
+			// wrapper to ignore the return value from pclose() is needed with newer versions of gnu g++
+			std::ignore = pclose(f);
+		});
 
 	if (pipe == nullptr)
 	{
