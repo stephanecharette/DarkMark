@@ -43,6 +43,14 @@ dm::CfgHandler & dm::CfgHandler::parse(const std::string & filename)
 	std::string line;
 	while (std::getline(ifs, line))
 	{
+		// a .cfg file that came from Windows will end with CRLF instead of just LF, in which case
+		// std::getline() will give us a line that ends with a stray CR that needs to be trimmed
+		auto p = line.find_last_not_of(" \t\r\n");
+		if (p != std::string::npos)
+		{
+			line.erase(p + 1);
+		}
+
 		cfg.push_back(line);
 	}
 	ifs.close();

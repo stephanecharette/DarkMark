@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.8.28-1	| 2024-08-17	| Darknet .cfg files with DOS EOL (CRLF) would cause DarkMark to crash when exporting files.
 1.8.13-1	| 2023-09-06	| Updated how DarkMark finds darknet and the .cfg files to work with the new Hank.ai Darknet repo.
 1.8.11-1	| 2023-07-08	| Images in @p darkmark_image_cache randomly saved as PNG or JPG, and resized using one of several random OpenCV methods to prevent neural networks from learning about specific image artifacts.
 1.8.8-1		| 2023-03-15	| Added dilate and erode options in settings to help work with black-and-white images, such as pages of text.
