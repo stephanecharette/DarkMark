@@ -18,7 +18,7 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 	tb_empty_images		("flip empty images (negative samples)"				),
 	tb_other_images		("flip non-annotated images"						),
 
-	tb_keypoint_annotations("MSCOCO keypoint annotations (LEFT=odd, RIGHT=even)"),
+	tb_keypoint_annotations("fix MSCOCO keypoint annotations (LEFT=odd, RIGHT=even)"),
 
 	help				("Read Me!"),
 	cancel				("Cancel"),
