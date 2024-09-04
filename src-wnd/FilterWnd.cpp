@@ -133,7 +133,7 @@ dm::FilterWnd::FilterWnd(dm::DMContent & c) :
 	b->setTooltip("Determines whether or not all classes are included or individually filtered. The default value is \"yes\" (include all classes).");
 	properties.add(b);
 
-	b = new BooleanPropertyComponent(v_include_empty_images, "empty images", "empty images");
+	b = new BooleanPropertyComponent(v_include_empty_images, "empty images", "negative samples");
 	b->setTooltip("Determines whether or not empty images are included. The default value is \"yes\".");
 	properties.add(b);
 

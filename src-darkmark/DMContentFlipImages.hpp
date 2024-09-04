@@ -40,6 +40,8 @@ namespace dm
 			ToggleButton	tb_empty_images;
 			ToggleButton	tb_other_images;
 
+			ToggleButton	tb_keypoint_annotations;
+
 			TextButton		help;
 			TextButton		cancel;
 			TextButton		ok;

@@ -18,6 +18,8 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 	tb_empty_images		("flip empty images (negative samples)"				),
 	tb_other_images		("flip non-annotated images"						),
 
+	tb_keypoint_annotations("MSCOCO keypoint annotations (LEFT=odd, RIGHT=even)"),
+
 	help				("Read Me!"),
 	cancel				("Cancel"),
 	ok					("Flip"),
@@ -44,6 +46,8 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 	canvas.addAndMakeVisible(tb_empty_images		);
 	canvas.addAndMakeVisible(tb_other_images		);
 
+	canvas.addAndMakeVisible(tb_keypoint_annotations);
+
 	canvas.addAndMakeVisible(help					);
 	canvas.addAndMakeVisible(cancel					);
 	canvas.addAndMakeVisible(ok						);
@@ -62,6 +66,7 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 	tb_annotated_images		.addListener(this);
 	tb_empty_images			.addListener(this);
 	tb_other_images			.addListener(this);
+	tb_keypoint_annotations	.addListener(this);
 	help					.addListener(this);
 	cancel					.addListener(this);
 	ok						.addListener(this);
@@ -80,6 +85,15 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 		"the mirror image alters the class.",
 		NotificationType::sendNotification);
 
+	// This option only makes sense if we're using the MSCOCO keypoints-style network.  Remember that DarkMark adds 1 fake
+	// class for "empty" images, so a 17-class network will appear to have 18 classes.  The MSCOCO keypoint networks should
+	// have 17 classes, and should always have an odd number of classes.  +1 means 18 and always be even.  Disable the
+	// checkbox if those conditions are not met.
+	if (content.names.size() < 18 or content.names.size() % 2 == 1)
+	{
+		tb_keypoint_annotations.setEnabled(false);
+	}
+
 	setIcon(DarkMarkLogo());
 	ComponentPeer *peer = getPeer();
 	if (peer)
@@ -93,7 +107,7 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 	}
 	else
 	{
-		centreWithSize(400, 400);
+		centreWithSize(400, 450);
 	}
 
 	setVisible(true);
@@ -166,6 +180,8 @@ void dm::DMContentFlipImages::resized()
 	fb_rows.items.add(FlexItem(tb_annotated_images		).withHeight(height));
 	fb_rows.items.add(FlexItem(tb_empty_images			).withHeight(height));
 	fb_rows.items.add(FlexItem(tb_other_images			).withHeight(height));
+	fb_rows.items.add(FlexItem(							).withHeight(height).withFlex(0.1));
+	fb_rows.items.add(FlexItem(tb_keypoint_annotations	).withHeight(height));
 
 	FlexBox button_row;
 	button_row.flexDirection = FlexBox::Direction::row;
@@ -256,6 +272,7 @@ void dm::DMContentFlipImages::run()
 	const bool flip_annotated_images	= tb_annotated_images.getToggleState();
 	const bool flip_empty_images		= tb_empty_images.getToggleState();
 	const bool flip_other_images		= tb_other_images.getToggleState();
+	const bool flip_mscoco_keypoint		= tb_keypoint_annotations.getToggleState();
 
 	const bool use_png = tb_save_as_png.getToggleState();
 	const bool use_jpg = tb_save_as_jpeg.getToggleState();
@@ -421,6 +438,26 @@ void dm::DMContentFlipImages::run()
 								continue;
 							}
 
+							int class_idx = m.class_idx;
+							if (is_hor and flip_mscoco_keypoint)
+							{
+								// "nose" is class zero, which has no left or right distinctiondesignation
+								if (class_idx > 0)
+								{
+									// beyond "nose", all the classes are LEFT == odd, and RIGHT == even,
+									// so if we have #1 (left eye) then we add 1 to get #2 (right eye)
+									// and if we have #2 (right eye) then we subtract 1 to get #1 (left eye)
+									if (class_idx % 2)
+									{
+										class_idx += 1;
+									}
+									else
+									{
+										class_idx -= 1;
+									}
+								}
+							}
+
 							const cv::Rect2d r	= m.get_bounding_rect(dst.size());
 							const double w		= r.width;
 							const double h		= r.height;
@@ -435,7 +472,7 @@ void dm::DMContentFlipImages::run()
 							const double new_x	= cx / cols;
 							const double new_y	= cy / rows;
 
-							ofs << std::fixed << std::setprecision(10) << m.class_idx << " " << new_x << " " << new_y << " " << new_w << " " << new_h << std::endl;
+							ofs << std::fixed << std::setprecision(10) << class_idx << " " << new_x << " " << new_y << " " << new_w << " " << new_h << std::endl;
 						}
 
 						if (ofs.fail())

@@ -2,6 +2,8 @@
 
 DarkMark has options to both <a href="Summary.html#DarkMarkRotation">rotate</a> and <a href="Summary.html#DarkMarkFlip">flip</a> images.  DarkMark also ensures all the annotations are rotated and flipped.
 
+If the dataset is MSCOCO-style keypoints, where the "left" annotations are odd numbers and "right" annotations are even numbers, then make sure to toggle that checkbox when flipping horizontally.  This way, DarkMark will automatically modify the "left" and "right" annotation index numbers as the images are flipped.
+
 @section duplicates Duplicates
 
 It is important to remember that there is significant overlap between image rotation and image flip.  For example, if you perform a <b>horizontal flip + rotate 90°</b>, this is equivalent to a <b>vertical flip + rotate 270°</b>.  This image shows the various combinations of flips and rotations:
