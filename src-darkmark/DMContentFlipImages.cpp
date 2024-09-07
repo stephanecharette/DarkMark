@@ -85,13 +85,31 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 		"the mirror image alters the class.",
 		NotificationType::sendNotification);
 
-	// This option only makes sense if we're using the MSCOCO keypoints-style network.  Remember that DarkMark adds 1 fake
-	// class for "empty" images, so a 17-class network will appear to have 18 classes.  The MSCOCO keypoint networks should
-	// have 17 classes, and should always have an odd number of classes.  +1 means 18 and always be even.  Disable the
-	// checkbox if those conditions are not met.
-	if (content.names.size() < 18 or content.names.size() % 2 == 1)
+	// look to see if we have classes with "left" and "right" in the names
+	for (size_t id = 0; id < content.names.size(); id ++)
+	{
+		if (content.names.at(id).find("left") != std::string::npos or
+			content.names.at(id).find("Left") != std::string::npos or
+			content.names.at(id).find("LEFT") != std::string::npos or
+			content.names.at(id).find("right") != std::string::npos or
+			content.names.at(id).find("Right") != std::string::npos or
+			content.names.at(id).find("RIGHT") != std::string::npos)
+		{
+			annotations_to_flip.insert(id);
+		}
+	}
+
+	// This option only makes sense if we're using the 17-class MSCOCO keypoints-style network.  Remember that
+	// DarkMark adds 1 fake class for "empty" images, so a 17-class network will appear to have 18 classes.
+	//
+	// Completely disable this checkbox if we don't have MSCOCO keypoint annotations to flip.
+	if (content.names.size() < 18 or annotations_to_flip.empty())
 	{
 		tb_keypoint_annotations.setEnabled(false);
+	}
+	if (content.names.size() >= 18 and annotations_to_flip.size() > 1)
+	{
+		tb_keypoint_annotations.setToggleState(true, NotificationType::sendNotification);
 	}
 
 	setIcon(DarkMarkLogo());
@@ -439,22 +457,18 @@ void dm::DMContentFlipImages::run()
 							}
 
 							int class_idx = m.class_idx;
-							if (is_hor and flip_mscoco_keypoint)
+							if (is_hor and flip_mscoco_keypoint and annotations_to_flip.count(class_idx))
 							{
-								// "nose" is class zero, which has no left or right distinctiondesignation
-								if (class_idx > 0)
+								// beyond "nose" which is index #0, all the classes are LEFT == odd and RIGHT == even,
+								// so if we have #1 (left eye) then we add 1 to get #2 (right eye) and if we have
+								// #2 (right eye) then we subtract 1 to get #1 (left eye)
+								if (class_idx % 2)
 								{
-									// beyond "nose", all the classes are LEFT == odd, and RIGHT == even,
-									// so if we have #1 (left eye) then we add 1 to get #2 (right eye)
-									// and if we have #2 (right eye) then we subtract 1 to get #1 (left eye)
-									if (class_idx % 2)
-									{
-										class_idx += 1;
-									}
-									else
-									{
-										class_idx -= 1;
-									}
+									class_idx += 1;
+								}
+								else
+								{
+									class_idx -= 1;
 								}
 							}
 

@@ -41,6 +41,7 @@ namespace dm
 			ToggleButton	tb_other_images;
 
 			ToggleButton	tb_keypoint_annotations;
+			std::set<int>	annotations_to_flip;
 
 			TextButton		help;
 			TextButton		cancel;
