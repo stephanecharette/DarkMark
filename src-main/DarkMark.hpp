@@ -61,6 +61,8 @@ namespace dm
 	class FilterWnd;
 	class ProjectInfo;
 	class DMContentReview;
+	class DMContentReviewIoU;
+	class DMReviewIoUWnd;
 	class DMReviewWnd;
 	class DMReviewCanvas;
 	class DMContentMoveEmptyImages;
@@ -102,6 +104,7 @@ namespace dm
 #include "AboutWnd.hpp"
 #include "DMReviewWnd.hpp"
 #include "DMReviewCanvas.hpp"
+#include "DMReviewIoUWnd.hpp"
 #include "CfgHandler.hpp"
 #include "DarknetWnd.hpp"
 #include "WndCfgTemplates.hpp"
@@ -121,5 +124,6 @@ namespace dm
 #include "DMContentStatistics.hpp"
 #include "DMContentReview.hpp"
 #include "DMContentResizeTLTR.hpp"
+#include "DMContentReviewIoU.hpp"
 #include "DMWnd.hpp"
 #include "DarkMarkApp.hpp"

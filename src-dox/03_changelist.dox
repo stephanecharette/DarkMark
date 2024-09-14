@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.9.2-1		| 2024-09-13	| Added IoU Review window.
 1.9.0-1		| 2024-09-04	| Flipping images horizontally now supports fixing the annotation index when using MSCOCO keypoint annotations.
 1.8.28-1	| 2024-08-17	| Darknet .cfg files with DOS EOL (CRLF) would cause DarkMark to crash when exporting files.
 1.8.13-1	| 2023-09-06	| Updated how DarkMark finds darknet and the .cfg files to work with the new Hank.ai Darknet repo.

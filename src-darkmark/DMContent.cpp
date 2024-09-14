@@ -2072,6 +2072,10 @@ PopupMenu dm::DMContent::create_popup_menu()
 	PopupMenu review;
 	review.addItem("zoom-and-review"		, std::function<void()>( [&]{ zoom_and_review();	} ));
 	review.addItem("review annotations..."	, std::function<void()>( [&]{ review_marks();		} ));
+	if (dmapp().darkhelp_nn)
+	{
+		review.addItem("review IoU..."		, std::function<void()>( [&]{ review_iou();			} ));
+	}
 	review.addItem("gather statistics..."	, std::function<void()>( [&]{ gather_statistics();	} ));
 
 	PopupMenu m;
@@ -2136,6 +2140,21 @@ dm::DMContent & dm::DMContent::review_marks()
 	}
 
 	DMContentReview helper(*this);
+	helper.runThread();
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::review_iou()
+{
+	if (need_to_save)
+	{
+		save_json();
+		save_text();
+	}
+
+	DMContentReviewIoU helper(*this);
 	helper.runThread();
 
 	return *this;

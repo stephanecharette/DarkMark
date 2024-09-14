@@ -38,6 +38,7 @@ namespace dm
 			std::unique_ptr<AboutWnd>		about_wnd;
 			std::unique_ptr<DMJumpWnd>		jump_wnd;
 			std::unique_ptr<DMReviewWnd>	review_wnd;
+			std::unique_ptr<DMReviewIoUWnd>	review_iou_wnd;
 			std::unique_ptr<DarknetWnd>		darknet_wnd;
 			std::unique_ptr<StartupWnd>		startup_wnd;
 			std::unique_ptr<SettingsWnd>	settings_wnd;

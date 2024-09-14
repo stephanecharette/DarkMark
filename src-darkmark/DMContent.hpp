@@ -108,6 +108,8 @@ namespace dm
 
 			DMContent & review_marks();
 
+			DMContent & review_iou();
+
 			DMContent & zoom_and_review();
 
 			DMContent & rotate_every_image();

@@ -83,13 +83,14 @@ dm::DMWnd::~DMWnd(void)
 		cfg().setValue("DMWnd", getWindowStateAsString());
 	}
 
-	dmapp().jump_wnd	.reset(nullptr);
-	dmapp().review_wnd	.reset(nullptr);
-	dmapp().stats_wnd	.reset(nullptr);
-	dmapp().darknet_wnd	.reset(nullptr);
-//	dmapp().darkhelp_nn	.reset(nullptr);
-	dmapp().settings_wnd.reset(nullptr);
-	dmapp().filter_wnd	.reset(nullptr);
+	dmapp().jump_wnd		.reset(nullptr);
+	dmapp().review_wnd		.reset(nullptr);
+	dmapp().review_iou_wnd	.reset(nullptr);
+	dmapp().stats_wnd		.reset(nullptr);
+	dmapp().darknet_wnd		.reset(nullptr);
+//	dmapp().darkhelp_nn		.reset(nullptr);
+	dmapp().settings_wnd	.reset(nullptr);
+	dmapp().filter_wnd		.reset(nullptr);
 
 	return;
 }
