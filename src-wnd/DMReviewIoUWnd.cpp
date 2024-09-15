@@ -25,8 +25,8 @@ dm::DMReviewIoUWnd::DMReviewIoUWnd(DMContent & c) :
 	tlb.getHeader().addColumn("extra pred."			, 10, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	tlb.getHeader().addColumn("missed pred."		, 11, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	tlb.getHeader().addColumn("differences"			, 12, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	tlb.getHeader().addColumn("missed predictions"	, 13, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	tlb.getHeader().addColumn("extra predictions"	, 14, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	tlb.getHeader().addColumn("extra predictions"	, 13, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	tlb.getHeader().addColumn("missed predictions"	, 14, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	// if changing columns, also update paintCell() below
 
 	if (cfg().containsKey("iou_review_columns"))
