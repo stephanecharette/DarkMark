@@ -25,8 +25,8 @@ dm::DMReviewIoUWnd::DMReviewIoUWnd(DMContent & c) :
 	tlb.getHeader().addColumn("extra pred."			, 10, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	tlb.getHeader().addColumn("missed pred."		, 11, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	tlb.getHeader().addColumn("differences"			, 12, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	tlb.getHeader().addColumn("extra predictions"	, 13, 100, 30, -1, TableHeaderComponent::defaultFlags);
-	tlb.getHeader().addColumn("missed predictions"	, 14, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	tlb.getHeader().addColumn("missed predictions"	, 13, 100, 30, -1, TableHeaderComponent::defaultFlags);
+	tlb.getHeader().addColumn("extra predictions"	, 14, 100, 30, -1, TableHeaderComponent::defaultFlags);
 	// if changing columns, also update paintCell() below
 
 	if (cfg().containsKey("iou_review_columns"))
@@ -276,8 +276,18 @@ void dm::DMReviewIoUWnd::paintCell(Graphics & g, int rowNumber, int columnId, in
 			case 14: ss << info.annotations_without_predictions;			break;
 		}
 
+		auto justification = Justification::centredLeft;
+		if (columnId >= 4 and columnId <= 9)
+		{
+			justification = Justification::centredRight;
+		}
+		if (columnId >= 10 and columnId <= 12)
+		{
+			justification = Justification::centred;
+		}
+
 		std::string str = ss.str();
-		if (str == "0" and columnId >= 4 and columnId <= 12)
+		if (columnId >= 4 and columnId <= 12 and str == "0")
 		{
 			// don't bother printing a bunch of zeros in the table
 			str = "";
@@ -286,7 +296,7 @@ void dm::DMReviewIoUWnd::paintCell(Graphics & g, int rowNumber, int columnId, in
 		// draw the text and the right-hand-side dividing line between cells
 		g.setColour( Colours::black );
 		Rectangle<int> r(0, 0, width, height);
-		g.drawFittedText(str, r.reduced(2), Justification::centredLeft, 1 );
+		g.drawFittedText(str, r.reduced(2), justification, 3);
 	}
 
 	// draw the divider on the right side of the column
@@ -305,7 +315,7 @@ void dm::DMReviewIoUWnd::sortOrderChanged(int newSortColumnId, bool isForwards)
 	}
 
 	std::sort(v.begin(), v.end(),
-			[&](ReviewIoUInfo lhs, ReviewIoUInfo rhs)
+			[&](ReviewIoUInfo lhs, ReviewIoUInfo rhs) // not by reference on purpose since we may need to swap the values if this is a reverse sort
 			{
 				if (isForwards == false)
 				{
