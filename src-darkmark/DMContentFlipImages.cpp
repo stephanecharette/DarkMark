@@ -18,7 +18,7 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 	tb_empty_images		("flip empty images (negative samples)"				),
 	tb_other_images		("flip non-annotated images"						),
 
-	tb_keypoint_annotations("fix MSCOCO keypoint annotations (LEFT=odd, RIGHT=even)"),
+	tb_keypoint_annotations("fix MSCOCO keypoint or TL/TR annotations (odd=LEFT, even=RIGHT)"),
 
 	help				("Read Me!"),
 	cancel				("Cancel"),
@@ -93,21 +93,29 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 			content.names.at(id).find("LEFT") != std::string::npos or
 			content.names.at(id).find("right") != std::string::npos or
 			content.names.at(id).find("Right") != std::string::npos or
-			content.names.at(id).find("RIGHT") != std::string::npos)
+			content.names.at(id).find("RIGHT") != std::string::npos or
+			content.names.at(id).find("tl") != std::string::npos or
+			content.names.at(id).find("tr") != std::string::npos or
+			content.names.at(id).find("bl") != std::string::npos or
+			content.names.at(id).find("br") != std::string::npos or
+			content.names.at(id).find("TL") != std::string::npos or
+			content.names.at(id).find("TR") != std::string::npos or
+			content.names.at(id).find("BL") != std::string::npos or
+			content.names.at(id).find("BR") != std::string::npos)
 		{
 			annotations_to_flip.insert(id);
 		}
 	}
 
-	// This option only makes sense if we're using the 17-class MSCOCO keypoints-style network.  Remember that
-	// DarkMark adds 1 fake class for "empty" images, so a 17-class network will appear to have 18 classes.
+	// This option only makes sense if we're using a network that has LEFT/RIGHT classes,
+	// such as MSCOCO keypoints.
 	//
-	// Completely disable this checkbox if we don't have MSCOCO keypoint annotations to flip.
-	if (content.names.size() < 18 or annotations_to_flip.empty())
+	// Completely disable this checkbox if we didn't detect classes to flip.
+	if (annotations_to_flip.empty())
 	{
 		tb_keypoint_annotations.setEnabled(false);
 	}
-	if (content.names.size() >= 18 and annotations_to_flip.size() > 1)
+	else if (annotations_to_flip.size() % 2 == 0)
 	{
 		tb_keypoint_annotations.setToggleState(true, NotificationType::sendNotification);
 	}
