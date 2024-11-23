@@ -94,18 +94,21 @@ dm::DMContentFlipImages::DMContentFlipImages(dm::DMContent & c) :
 			content.names.at(id).find("right") != std::string::npos or
 			content.names.at(id).find("Right") != std::string::npos or
 			content.names.at(id).find("RIGHT") != std::string::npos or
-			content.names.at(id).find("tl") != std::string::npos or
-			content.names.at(id).find("tr") != std::string::npos or
-			content.names.at(id).find("bl") != std::string::npos or
-			content.names.at(id).find("br") != std::string::npos or
-			content.names.at(id).find("TL") != std::string::npos or
-			content.names.at(id).find("TR") != std::string::npos or
-			content.names.at(id).find("BL") != std::string::npos or
-			content.names.at(id).find("BR") != std::string::npos)
+			content.names.at(id) == "tl" or
+			content.names.at(id) == "tr" or
+			content.names.at(id) == "bl" or
+			content.names.at(id) == "br" or
+			content.names.at(id) == "TL" or
+			content.names.at(id) == "TR" or
+			content.names.at(id) == "BL" or
+			content.names.at(id) == "BR")
 		{
 			annotations_to_flip.insert(id);
+			std::cout << "annotations_to_flip: " << id << "=" << content.names.at(id) << std::endl;
 		}
 	}
+
+	std::cout << "SIZE=" << annotations_to_flip.size() << std::endl;
 
 	// This option only makes sense if we're using a network that has LEFT/RIGHT classes,
 	// such as MSCOCO keypoints.
