@@ -344,6 +344,9 @@ void dm::DMContent::start_darknet()
 	names.push_back("* empty image *");
 
 	annotation_colours = DarkHelp::get_default_annotation_colours();
+	const std::string colorlist_filename = cfg().get_str(cfg_prefix + "markup_colours");
+	DarkHelp::load_custom_annotation_colours(colorlist_filename);
+	annotation_colours = DarkHelp::get_default_annotation_colours();
 	if (annotation_colours.empty() == false)
 	{
 		const auto & opencv_colour = annotation_colours.at(most_recent_class_idx % annotation_colours.size());
@@ -1226,7 +1229,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 				}
 			}
 
-			// Sort the marks based on a gross (rounded) X and Y position of the midpoint.  This way when
+			// Sort the marks based on a gross (rounded) X and Y position of the midpoint.	This way when
 			// the user presses TAB or SHIFT+TAB the marks appear in a consistent and predictable order.
 			task = "sorting marks";
 			std::sort(marks.begin(), marks.end(),
