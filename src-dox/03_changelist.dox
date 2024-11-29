@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.10.1-1	| 2024-11-28	| Load the heatmap images from Darknet.  See the settings window (@p "e") to configure which heatmap is used.
 1.9.2-1		| 2024-09-13	| Added IoU Review window.
 1.9.0-1		| 2024-09-04	| Flipping images horizontally now supports fixing the annotation index when using MSCOCO keypoint annotations.
 1.8.28-1	| 2024-08-17	| Darknet .cfg files with DOS EOL (CRLF) would cause DarkMark to crash when exporting files.

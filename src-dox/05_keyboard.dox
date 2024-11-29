@@ -34,6 +34,8 @@ Key							| Saves Modified Marks First	| Description
 @p D (uppercase)			|								| Toggle auto-snapping.  Intended for use when annotating objects on a simple background, such as text on light-coloured paper.  (But see note below.)
 @p e						|								| Miscellaneous settings window.
 @p f						| yes							| Filter window.
+@p h						| yes							| Cycle between the various heatmaps for each class.  This will only make a difference if your network has more than 1 class.
+@p H						| yes							| Toggle loading and displaying the heatmap from Darknet.
 @p j						| yes							| Jump to a different image.
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).

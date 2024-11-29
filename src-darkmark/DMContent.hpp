@@ -64,6 +64,9 @@ namespace dm
 
 			DMContent & toggle_show_processing_time();
 
+			DMContent & cycle_heatmaps();
+			DMContent & toggle_heatmaps();
+
 			DMContent & load_image(const size_t new_idx, const bool full_load = true, const bool display_immediately = false);
 
 			DMContent & save_text();
@@ -219,6 +222,7 @@ namespace dm
 
 			cv::Mat original_image;
 			cv::Mat scaled_image;
+			cv::Mat heatmap_image;
 
 			/// Image to which we've applied black-and-white thresholding, and converted back to a RGB image.
 			/// This is only created when you press 'W' to enable black-and-white mode.
@@ -238,6 +242,12 @@ namespace dm
 			int dilate_iterations;
 			int erode_kernel_size;
 			int erode_iterations;
+
+			bool heatmap_enabled;
+			double heatmap_alpha_blend;
+			double heatmap_sigma;
+			int heatmap_visualize;
+			int heatmap_class_idx;
 
 			/// The exact amount by which the image needs to be scaled.  @see @ref resized()
 			double scale_factor; ///< @todo can this be removed now? replaced by current_zoom_factor?

@@ -68,6 +68,24 @@ void dm::DMCanvas::rebuild_cache_image()
 		content.scaled_image = image_to_use.clone();
 	}
 
+	if (content.heatmap_enabled and not content.heatmap_image.empty())
+	{
+		cv::Mat heatmap = DarkHelp::fast_resize_ignore_aspect_ratio(content.heatmap_image, content.scaled_image.size());
+
+		if (content.heatmap_visualize < 0)
+		{
+			cv::cvtColor(heatmap, heatmap, cv::COLOR_GRAY2BGR);
+		}
+		else
+		{
+			cv::applyColorMap(heatmap, heatmap, content.heatmap_visualize);
+		}
+
+		const double alpha = 1.0 - content.heatmap_alpha_blend;
+		const double beta = 1.0 - alpha;
+		cv::addWeighted(content.scaled_image, alpha, heatmap, beta, 0, content.scaled_image);
+	}
+
 	const auto fontface			= cv::FONT_HERSHEY_PLAIN;
 	const auto fontscale		= 1.0;
 	const auto fontthickness	= 1;

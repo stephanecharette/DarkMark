@@ -981,7 +981,14 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	number_of_zooms_created			= 0;
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache");
-	dir.deleteRecursively();
+	if (dir.exists())
+	{
+		for (const auto & name : {"resize", "tiles", "zoom"})
+		{
+			File subdir = dir.getChildFile(name);
+			subdir.deleteRecursively();
+		}
+	}
 
 	// these vectors will have the full path of the images we need to use (or which have been skipped)
 	VStr negative_samples;

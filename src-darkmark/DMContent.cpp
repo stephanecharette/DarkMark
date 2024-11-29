@@ -5,7 +5,6 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
-
 dm::DMContent::DMContent(const std::string & prefix) :
 	cfg_prefix(prefix),
 	show_window(not (dmapp().cli_options.count("editor") and dmapp().cli_options.at("editor") == "gen-darknet")),
@@ -48,6 +47,13 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	dilate_iterations(cfg().get_int("dilate_iterations")),
 	erode_kernel_size(cfg().get_int("erode_kernel_size")),
 	erode_iterations(cfg().get_int("erode_iterations")),
+
+	heatmap_enabled(cfg().get_bool("heatmap_enabled")),
+	heatmap_alpha_blend(cfg().get_double("heatmap_alpha_blend")),
+	heatmap_sigma(cfg().get_double("heatmap_sigma")),
+	heatmap_visualize(cfg().get_int("heatmap_visualize")),
+	heatmap_class_idx(-1), // this does not get stored in configuration
+
 	scale_factor(1.0),
 	most_recent_class_idx(0),
 	image_filename_index(0),
@@ -856,6 +862,23 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		cfg().setValue("snapping_enabled", snapping_enabled);
 		return true;
 	}
+	else if (keychar == 'h')
+	{
+		if (heatmap_enabled)
+		{
+			cycle_heatmaps();
+		}
+		else
+		{
+			toggle_heatmaps();
+		}
+		return true;
+	}
+	else if (keychar == 'H')
+	{
+		toggle_heatmaps();
+		return true;
+	}
 	else if (keychar == 'j')
 	{
 		show_jump_wnd();
@@ -1133,6 +1156,53 @@ dm::DMContent & dm::DMContent::toggle_show_processing_time()
 }
 
 
+dm::DMContent & dm::DMContent::cycle_heatmaps()
+{
+	if (not dmapp().darkhelp_nn)
+	{
+		show_message("neural network not loaded");
+	}
+	else
+	{
+		heatmap_class_idx ++;
+		if (heatmap_class_idx >= static_cast<int>(names.size()) - 1)
+		{
+			heatmap_class_idx = -1;
+			show_message("heatmap set to \"combined\"");
+		}
+		else
+		{
+			show_message("heatmap set to class #" + std::to_string(heatmap_class_idx) + ", \"" + names.at(heatmap_class_idx) + "\"");
+		}
+
+		// the heatmaps are only generated at the time the images are loaded, so force a full reload of the current image
+		load_image(image_filename_index);
+	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::toggle_heatmaps()
+{
+	if (not dmapp().darkhelp_nn)
+	{
+		show_message("neural network not loaded");
+	}
+	else
+	{
+		heatmap_enabled = not heatmap_enabled;
+
+		cfg().setValue("heatmap_enabled", heatmap_enabled);
+
+		// the heatmaps are only generated at the time the images are loaded, so force a full reload of the current image
+		load_image(image_filename_index);
+	}
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_load, const bool display_immediately)
 {
 	images_are_loading = true;
@@ -1177,6 +1247,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 	{
 		task = "loading image file " + long_filename;
 //		Log("loading image " + long_filename);
+		heatmap_image = cv::Mat();
 		original_image = cv::imread(long_filename);
 		if (original_image.empty())
 		{
@@ -1223,6 +1294,39 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 						m.is_prediction = true;
 						marks.push_back(m);
 					}
+				}
+			}
+
+			if (heatmap_enabled and dmapp().darkhelp_nn)
+			{
+				task = "generating heatmap";
+				auto mm = darkhelp_nn().heatmaps_all(heatmap_sigma);
+				if (mm.count(heatmap_class_idx) > 0)
+				{
+					heatmap_image = mm.at(heatmap_class_idx);
+				}
+				else if (mm.count(-1) > 0)
+				{
+					heatmap_image = mm.at(-1);
+				}
+
+				if (not heatmap_image.empty())
+				{
+					// normalize the image ONCE on load, so we don't have to keep doing it during display
+					//
+					// see: Darknet::visualize_heatmap()
+
+					task = "normalizing heatmap";
+
+					double min_val = 0.0;
+					double max_val = 0.0;
+					cv::minMaxLoc(heatmap_image, &min_val, &max_val);
+
+					// normalize the heatmap values
+					cv::Mat mat = (heatmap_image - min_val) / (max_val - min_val);
+
+					// convert the heatmap to a single-channel image with values ranging from zero to 255
+					mat.convertTo(heatmap_image, CV_8UC1, 255.0);
 				}
 			}
 
@@ -2025,6 +2129,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	view.addSeparator();
 	view.addItem("display using black-and-white"	, true									, black_and_white_mode_enabled			,  std::function<void()>( [&]{ toggle_black_and_white_mode();			} ));
 	view.addItem("show annotations"					, true									, show_marks							,  std::function<void()>( [&]{ toggle_show_marks();						} ));
+	view.addItem("show heatmap"						, true									, heatmap_enabled						,  std::function<void()>( [&]{ toggle_heatmaps();						} ));
 	view.addItem("shade"							, true									, shade_rectangles						,  std::function<void()>( [&]{ toggle_shade_rectangles();				} ));
 
 	const size_t number_of_darknet_marks = [&]

@@ -104,6 +104,11 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_dilate_iterations						= content.dilate_iterations;
 	v_erode_kernel_size						= content.erode_kernel_size;
 	v_erode_iterations						= content.erode_iterations;
+	v_heatmaps_enabled						= content.heatmap_enabled;
+	v_heatmap_class_idx						= content.heatmap_class_idx;
+	v_heatmap_alpha_blend					= content.heatmap_alpha_blend;
+	v_heatmap_sigma							= content.heatmap_sigma;
+	v_heatmap_visualize						= content.heatmap_visualize;
 
 	v_darknet_executable						.addListener(this);
 	v_darknet_templates							.addListener(this);
@@ -128,6 +133,11 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_dilate_iterations							.addListener(this);
 	v_erode_kernel_size							.addListener(this);
 	v_erode_iterations							.addListener(this);
+	v_heatmaps_enabled							.addListener(this);
+	v_heatmap_class_idx							.addListener(this);
+	v_heatmap_alpha_blend						.addListener(this);
+	v_heatmap_sigma								.addListener(this);
+	v_heatmap_visualize							.addListener(this);
 
 	Array<PropertyComponent*> properties;
 	TextPropertyComponent		* t = nullptr;
@@ -159,7 +169,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	b->setTooltip("Determines if images will be tiled when sent to darknet for processing. The default value is \"off\".");
 	properties.add(b);
 
-	pp.addSection("darknet", properties);
+	pp.addSection("darknet", properties, true);
 	properties.clear();
 
 //	b = new CrosshairColourPicker("crosshair colour");
@@ -190,7 +200,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s->setTooltip("In pixels, the height of the rows and the height of each annotation thumbnail. The default value is 75.");
 	properties.add(s);
 
-	pp.addSection("drawing", properties);
+	pp.addSection("drawing", properties, true);
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_black_and_white_mode_enabled, "black-and-white mode", "black-and-white mode");
@@ -225,6 +235,9 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s->setTooltip("Number of iterations to use if erosion has been enabled. The default value is 1.");
 	properties.add(s);
 
+	pp.addSection("black-and-white mode", properties, false);
+	properties.clear();
+
 	b = new BooleanPropertyComponent(v_snapping_enabled, "auto-snapping enabled", "auto-snapping enabled");
 	b->setTooltip("New annotations will be snapped. This is mostly intended for objects on a light background, such as text on paper.");
 	properties.add(b);
@@ -237,11 +250,77 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s->setTooltip("The number of pixels DarkMark will search vertically when attempting to snap annotations. This is used by the \"snap\" feature when annotating images with text. This may need to be adjusted based on spacing between lines of text.");
 	properties.add(s);
 
-	pp.addSection("black-and-white mode", properties);
+	pp.addSection("snapping", properties, false);
+	properties.clear();
+
+	b = new BooleanPropertyComponent(v_heatmaps_enabled, "heatmaps enabled", "heatmaps enabled");
+	b->setTooltip("Display heatmaps. This is only available once a neural network has been trained and loaded.");
+	properties.add(b);
+
+	StringArray sa = {"combined"};
+	Array<var> var = {-1};
+	for (size_t idx = 0; idx < content.names.size() - 1; idx ++) // -1 to skip "empty image*
+	{
+		sa.add(content.names[idx]);
+		var.add(static_cast<int>(idx));
+	}
+	choice = new ChoicePropertyComponent(v_heatmap_class_idx, "class", sa, var);
+	choice->setTooltip("Select the heatmap to be used. It can be a specific class, or the combination of all classes.");
+	properties.add(choice);
+
+	s = new SliderPropertyComponent(v_heatmap_alpha_blend, "alpha blend", 0.05, 0.95, 0.05);
+	s->setTooltip("Alpha blend to use when displaying heatmaps. This is only used when heatmaps are enabled. The default value is 0.5.");
+	properties.add(s);
+
+	s = new SliderPropertyComponent(v_heatmap_sigma, "spread", 0.0, 100.0, 0.1);
+	s->setTooltip("Sigma determines the spread of the heatmap values when doing Gaussian distribution. Default is 15.");
+	properties.add(s);
+
+	choice = new ChoicePropertyComponent(v_heatmap_visualize, "colourmap",
+		{
+			// special case
+			"none",
+			// OpenCV names start here (see cv::ColormapTypes)
+			"autumn"		, "bone"		, "jet"			, "winter"		, "rainbow"		, "ocean"				, "summer"	,
+			"spring"		, "cool"		, "hsv"			, "pink"		, "hot"			, "parula"				, "magma"	,
+			"inferno"		, "plasma"		, "viridis"		, "cividis"		, "twilight"	, "twilight shifted"	, "turbo"	,
+			"deepgreen"
+		},
+		{
+			// special case
+			-1,
+			// OpenCV types
+			cv::ColormapTypes::COLORMAP_AUTUMN,
+			cv::ColormapTypes::COLORMAP_BONE,
+			cv::ColormapTypes::COLORMAP_JET,
+			cv::ColormapTypes::COLORMAP_WINTER,
+			cv::ColormapTypes::COLORMAP_RAINBOW,
+			cv::ColormapTypes::COLORMAP_OCEAN,
+			cv::ColormapTypes::COLORMAP_SUMMER,
+			cv::ColormapTypes::COLORMAP_SPRING,
+			cv::ColormapTypes::COLORMAP_COOL,
+			cv::ColormapTypes::COLORMAP_HSV,
+			cv::ColormapTypes::COLORMAP_PINK,
+			cv::ColormapTypes::COLORMAP_HOT,
+			cv::ColormapTypes::COLORMAP_PARULA,
+			cv::ColormapTypes::COLORMAP_MAGMA,
+			cv::ColormapTypes::COLORMAP_INFERNO,
+			cv::ColormapTypes::COLORMAP_PLASMA,
+			cv::ColormapTypes::COLORMAP_VIRIDIS,
+			cv::ColormapTypes::COLORMAP_CIVIDIS,
+			cv::ColormapTypes::COLORMAP_TWILIGHT,
+			cv::ColormapTypes::COLORMAP_TWILIGHT_SHIFTED,
+			cv::ColormapTypes::COLORMAP_TURBO,
+			cv::ColormapTypes::COLORMAP_DEEPGREEN
+		});
+	choice->setTooltip("Select which OpenCV visualization colourmap to use for the heatmap. Default is \"jet\".");
+	properties.add(choice);
+
+	pp.addSection("heatmap", properties, false);
 	properties.clear();
 
 	auto r = dmapp().wnd->getBounds();
-	r = r.withSizeKeepingCentre(400, 675);
+	r = r.withSizeKeepingCentre(400, 450);
 	setBounds(r);
 
 	setVisible(true);
@@ -284,6 +363,10 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("dilate_iterations"					, v_dilate_iterations							.getValue());
 	cfg().setValue("erode_kernel_size"					, v_erode_kernel_size							.getValue());
 	cfg().setValue("erode_iterations"					, v_erode_iterations							.getValue());
+	cfg().setValue("heatmap_enabled"					, v_heatmaps_enabled							.getValue());
+	cfg().setValue("heatmap_alpha_blend"				, v_heatmap_alpha_blend							.getValue());
+	cfg().setValue("heatmap_sigma"						, v_heatmap_sigma								.getValue());
+	cfg().setValue("heatmap_visualize"					, v_heatmap_visualize							.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
 
@@ -358,6 +441,11 @@ void dm::SettingsWnd::valueChanged(Value & value)
 	content.dilate_iterations					= v_dilate_iterations					.getValue();
 	content.erode_kernel_size					= v_erode_kernel_size					.getValue();
 	content.erode_iterations					= v_erode_iterations					.getValue();
+	content.heatmap_enabled						= v_heatmaps_enabled					.getValue();
+	content.heatmap_class_idx					= v_heatmap_class_idx					.getValue();
+	content.heatmap_alpha_blend					= v_heatmap_alpha_blend					.getValue();
+	content.heatmap_sigma						= v_heatmap_sigma						.getValue();
+	content.heatmap_visualize					= v_heatmap_visualize					.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image
 

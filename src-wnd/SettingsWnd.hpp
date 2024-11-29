@@ -46,6 +46,12 @@ namespace dm
 			Value v_erode_kernel_size;
 			Value v_erode_iterations;
 
+			Value v_heatmaps_enabled;
+			Value v_heatmap_alpha_blend;
+			Value v_heatmap_sigma;
+			Value v_heatmap_visualize;
+			Value v_heatmap_class_idx;
+
 			DMContent & content;
 			Component canvas;
 			PropertyPanel pp;
