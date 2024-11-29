@@ -284,7 +284,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 			"autumn"		, "bone"		, "jet"			, "winter"		, "rainbow"		, "ocean"				, "summer"	,
 			"spring"		, "cool"		, "hsv"			, "pink"		, "hot"			, "parula"				, "magma"	,
 			"inferno"		, "plasma"		, "viridis"		, "cividis"		, "twilight"	, "twilight shifted"	, "turbo"	,
-			"deepgreen"
+//			"deepgreen" note that deepgreen was only added in later versions of OpenCV
 		},
 		{
 			// special case
@@ -311,7 +311,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 			cv::ColormapTypes::COLORMAP_TWILIGHT,
 			cv::ColormapTypes::COLORMAP_TWILIGHT_SHIFTED,
 			cv::ColormapTypes::COLORMAP_TURBO,
-			cv::ColormapTypes::COLORMAP_DEEPGREEN
+//			cv::ColormapTypes::COLORMAP_DEEPGREEN
 		});
 	choice->setTooltip("Select which OpenCV visualization colourmap to use for the heatmap. Default is \"jet\".");
 	properties.add(choice);
