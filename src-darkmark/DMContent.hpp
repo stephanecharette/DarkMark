@@ -245,7 +245,7 @@ namespace dm
 
 			bool heatmap_enabled;
 			double heatmap_alpha_blend;
-			double heatmap_sigma;
+			double heatmap_threshold;
 			int heatmap_visualize;
 			int heatmap_class_idx;
 

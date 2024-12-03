@@ -50,7 +50,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 
 	heatmap_enabled(cfg().get_bool("heatmap_enabled")),
 	heatmap_alpha_blend(cfg().get_double("heatmap_alpha_blend")),
-	heatmap_sigma(cfg().get_double("heatmap_sigma")),
+	heatmap_threshold(cfg().get_double("heatmap_threshold")),
 	heatmap_visualize(cfg().get_int("heatmap_visualize")),
 	heatmap_class_idx(-1), // this does not get stored in configuration
 
@@ -1300,7 +1300,7 @@ dm::DMContent & dm::DMContent::load_image(const size_t new_idx, const bool full_
 			if (heatmap_enabled and dmapp().darkhelp_nn)
 			{
 				task = "generating heatmap";
-				auto mm = darkhelp_nn().heatmaps_all(heatmap_sigma);
+				auto mm = darkhelp_nn().heatmaps_all(heatmap_threshold);
 				if (mm.count(heatmap_class_idx) > 0)
 				{
 					heatmap_image = mm.at(heatmap_class_idx);

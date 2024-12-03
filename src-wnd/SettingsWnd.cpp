@@ -107,7 +107,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_heatmaps_enabled						= content.heatmap_enabled;
 	v_heatmap_class_idx						= content.heatmap_class_idx;
 	v_heatmap_alpha_blend					= content.heatmap_alpha_blend;
-	v_heatmap_sigma							= content.heatmap_sigma;
+	v_heatmap_threshold						= content.heatmap_threshold;
 	v_heatmap_visualize						= content.heatmap_visualize;
 
 	v_darknet_executable						.addListener(this);
@@ -136,7 +136,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	v_heatmaps_enabled							.addListener(this);
 	v_heatmap_class_idx							.addListener(this);
 	v_heatmap_alpha_blend						.addListener(this);
-	v_heatmap_sigma								.addListener(this);
+	v_heatmap_threshold							.addListener(this);
 	v_heatmap_visualize							.addListener(this);
 
 	Array<PropertyComponent*> properties;
@@ -272,8 +272,8 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s->setTooltip("Alpha blend to use when displaying heatmaps. This is only used when heatmaps are enabled. The default value is 0.5.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_heatmap_sigma, "spread", 0.0, 100.0, 0.1);
-	s->setTooltip("Sigma determines the spread of the heatmap values when doing Gaussian distribution. Default is 15.");
+	s = new SliderPropertyComponent(v_heatmap_threshold, "threshold", 0.0, 1.0, 0.01);
+	s->setTooltip("Threshold determines how many predictions are included in the heatmap. Default is 0.1.");
 	properties.add(s);
 
 	choice = new ChoicePropertyComponent(v_heatmap_visualize, "colourmap",
@@ -365,7 +365,7 @@ void dm::SettingsWnd::closeButtonPressed()
 	cfg().setValue("erode_iterations"					, v_erode_iterations							.getValue());
 	cfg().setValue("heatmap_enabled"					, v_heatmaps_enabled							.getValue());
 	cfg().setValue("heatmap_alpha_blend"				, v_heatmap_alpha_blend							.getValue());
-	cfg().setValue("heatmap_sigma"						, v_heatmap_sigma								.getValue());
+	cfg().setValue("heatmap_threshold"					, v_heatmap_threshold							.getValue());
 	cfg().setValue("heatmap_visualize"					, v_heatmap_visualize							.getValue());
 
 	dmapp().settings_wnd.reset(nullptr);
@@ -444,7 +444,7 @@ void dm::SettingsWnd::valueChanged(Value & value)
 	content.heatmap_enabled						= v_heatmaps_enabled					.getValue();
 	content.heatmap_class_idx					= v_heatmap_class_idx					.getValue();
 	content.heatmap_alpha_blend					= v_heatmap_alpha_blend					.getValue();
-	content.heatmap_sigma						= v_heatmap_sigma						.getValue();
+	content.heatmap_threshold					= v_heatmap_threshold					.getValue();
 	content.heatmap_visualize					= v_heatmap_visualize					.getValue();
 
 	startTimer(250); // request a callback -- in milliseconds -- at which point in time we'll fully reload the current image

@@ -80,7 +80,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 
 	insert_if_not_exist("heatmap_enabled"				, false												);
 	insert_if_not_exist("heatmap_alpha_blend"			, 0.5												);
-	insert_if_not_exist("heatmap_sigma"					, 15.0												);
+	insert_if_not_exist("heatmap_threshold"				, 0.1												);
 	insert_if_not_exist("heatmap_visualize"				, 2													);
 
 	// see at the bottom of this method where these two are initialized
@@ -92,6 +92,7 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	removeValue("darknet_enable_yolov3_tiny");	// this was changed to project-specific template
 	removeValue("darknet_enable_yolov3_full");	// this was changed to project-specific template
 	removeValue("crosshair_colour"); // crosshairs are now the colour of the last-used class
+	removeValue("heatmap_sigma"); // this was changed to heatmap_threshold
 
 	// global settings that have since been converted to be per-project
 	removeValue("darknet_config"				);
