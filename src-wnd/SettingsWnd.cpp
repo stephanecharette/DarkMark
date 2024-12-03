@@ -272,7 +272,7 @@ dm::SettingsWnd::SettingsWnd(dm::DMContent & c) :
 	s->setTooltip("Alpha blend to use when displaying heatmaps. This is only used when heatmaps are enabled. The default value is 0.5.");
 	properties.add(s);
 
-	s = new SliderPropertyComponent(v_heatmap_threshold, "threshold", 0.0, 1.0, 0.01);
+	s = new SliderPropertyComponent(v_heatmap_threshold, "threshold", 0.001, 1.000, 0.001);
 	s->setTooltip("Threshold determines how many predictions are included in the heatmap. Default is 0.1.");
 	properties.add(s);
 
