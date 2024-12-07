@@ -18,17 +18,24 @@ void dm::DMContentImageFilenameSort::run()
 {
 	DarkMarkApplication::setup_signal_handling();
 
-	if (content.sort_order != dm::ESort::kSimilarMarks and
-		content.sort_order != dm::ESort::kCountMarks and
-		content.sort_order != dm::ESort::kTimestamp)
+	if (content.sort_order != dm::ESort::kSimilarMarks					and
+		content.sort_order != dm::ESort::kCountMarks					and
+		content.sort_order != dm::ESort::kTimestamp						and
+		content.sort_order != dm::ESort::kMinimumIoU					and
+		content.sort_order != dm::ESort::kAverageIoU					and
+		content.sort_order != dm::ESort::kMaximumIoU					and
+		content.sort_order != dm::ESort::kNumberOfPredictions			and
+		content.sort_order != dm::ESort::kNumberOfDifferences			and
+		content.sort_order != dm::ESort::kPredictionsWithoutAnnotations	and
+		content.sort_order != dm::ESort::kAnnotationsWithoutPredictions	)
 	{
-		// this class can only sort those 2 types, everything else should be handled directly in DMContent::set_sort_order()
+		// this class can only sort those few types, everything else should be handled directly in DMContent::set_sort_order()
 		Log("ERROR: progress thread cannot sort for type #" + std::to_string((int)content.sort_order));
 
 		return;
 	}
 
-	std::map<std::string, size_t> m;
+	std::map<std::string, float> m;
 
 	const std::time_t now = std::time(nullptr);
 
@@ -56,35 +63,107 @@ void dm::DMContentImageFilenameSort::run()
 		}
 		else
 		{
-			/* This is what would be most useful:
-				*
-				*		1) unmarked images are sorted first
-				*		2) marked images are then appended with the most recent image appearing at the very end
-				*
-				* This way users can press "END" and move LEFT to iterate over images, or press "HOME" and move RIGHT to see
-				* unmarked images.
-				*
-				* The way we do this is to calculate the age of an image:  NOW - time when an image was last modified.  A picture
-				* with an age of 1 second was just modified, while a picture with an age of 12345 was modified a long time ago.
-				* And to make this work so unmarked images are sorted first, we bias them as being much older than all marked
-				* images.  Simply subtract a constant value from the timestamp of unmarked images.
-				*/
-			size_t timestamp = 0;
-
+			// if we get here, then we need to get something from the .json file
+			json j;
 			if (file.existsAsFile())
 			{
-				json j = json::parse(file.loadFileAsString().toStdString());
-				timestamp = now - j["timestamp"].get<std::time_t>();
+				j = json::parse(file.loadFileAsString().toStdString());
 			}
 
-			// If we don't have a timestamp, then use the file's modification time instead,
-			// but subtract a known value so we separate the files with tags and those without.
-			if (timestamp == 0)
+			if (content.sort_order == dm::ESort::kMinimumIoU)
 			{
-				timestamp = now - (file.getLastModificationTime().toMilliseconds() / 1000 - 123456789);
+				float f = 0.0f;
+				if (j.contains("predictions"))
+				{
+					f = j["predictions"]["IoU"]["min"];
+				}
+				m[fn] = f;
 			}
+			else if (content.sort_order == dm::ESort::kAverageIoU)
+			{
+				float f = 0.0f;
+				if (j.contains("predictions"))
+				{
+					f = j["predictions"]["IoU"]["avg"];
+				}
+				m[fn] = f;
+			}
+			else if (content.sort_order == dm::ESort::kMaximumIoU)
+			{
+				float f = 0.0f;
+				if (j.contains("predictions"))
+				{
+					f = j["predictions"]["IoU"]["max"];
+				}
+				m[fn] = f;
+			}
+			else if (content.sort_order == dm::ESort::kNumberOfPredictions)
+			{
+				float f = 0.0f;
+				if (j.contains("predictions"))
+				{
+					f = j["predictions"]["count"];
+				}
+				m[fn] = f;
+			}
+			else if (content.sort_order == dm::ESort::kNumberOfDifferences)
+			{
+				float f = 0.0f;
+				if (j.contains("predictions"))
+				{
+					f = j["predictions"]["number_of_differences"];
+				}
+				m[fn] = f;
+			}
+			else if (content.sort_order == dm::ESort::kPredictionsWithoutAnnotations)
+			{
+				float f = 0.0f;
+				if (j.contains("predictions"))
+				{
+					f = j["predictions"]["predictions_without_annotations"];
+				}
+				m[fn] = f;
+			}
+			else if (content.sort_order == dm::ESort::kAnnotationsWithoutPredictions)
+			{
+				float f = 0.0f;
+				if (j.contains("predictions"))
+				{
+					f = j["predictions"]["annotations_without_predictions"];
+				}
+				m[fn] = f;
+			}
+			else if (content.sort_order == dm::ESort::kTimestamp)
+			{
+				/* This is what would be most useful:
+					*
+					*		1) unmarked images are sorted first
+					*		2) marked images are then appended with the most recent image appearing at the very end
+					*
+					* This way users can press "END" and move LEFT to iterate over images, or press "HOME" and move RIGHT to see
+					* unmarked images.
+					*
+					* The way we do this is to calculate the age of an image:  NOW - time when an image was last modified.  A picture
+					* with an age of 1 second was just modified, while a picture with an age of 12345 was modified a long time ago.
+					* And to make this work so unmarked images are sorted first, we bias them as being much older than all marked
+					* images.  Simply subtract a constant value from the timestamp of unmarked images.
+					*/
+				size_t timestamp = 0;
 
-			m[fn] = timestamp;
+				if (j.contains("timestamp"))
+				{
+					timestamp = now - j["timestamp"].get<std::time_t>();
+				}
+
+				// If we don't have a timestamp, then use the file's modification time instead,
+				// but subtract a known value so we separate the files with tags and those without.
+				if (timestamp == 0)
+				{
+					timestamp = now - (file.getLastModificationTime().toMilliseconds() / 1000 - 123456789);
+				}
+
+				m[fn] = timestamp;
+			}
 		}
 	}
 
@@ -106,8 +185,7 @@ void dm::DMContentImageFilenameSort::run()
 						setProgress(work_completed / max_work);
 						work_completed ++;
 
-						if (content.sort_order == dm::ESort::kCountMarks or
-							content.sort_order == dm::ESort::kSimilarMarks)
+						if (content.sort_order != dm::ESort::kTimestamp)
 						{
 							return m.at(lhs) < m.at(rhs);
 						}
@@ -117,6 +195,13 @@ void dm::DMContentImageFilenameSort::run()
 						// reverse the sort (RHS < LHS versus LHS < RHS) to get the older pictures first, and the newest pictures at the end of the list
 						return m.at(rhs) < m.at(lhs);
 					} );
+
+#if 0
+		for (const auto & fn : content.image_filenames)
+		{
+			std::cout << fn << " -> " << m[fn] << std::endl;
+		}
+#endif
 	}
 
 	if (threadShouldExit())

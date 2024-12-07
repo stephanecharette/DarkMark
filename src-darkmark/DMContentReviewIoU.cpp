@@ -248,6 +248,20 @@ void dm::DMContentReviewIoU::run()
 		info.number = v.size() + 1;
 
 		v.push_back(info);
+
+		// update the JSON with the IoU information for this image; these values are then used when sorting
+		Log("IoU: updating " + f.getFullPathName().toStdString());
+		root["predictions"]["IoU"]["min"]						= info.minimum_iou;
+		root["predictions"]["IoU"]["avg"]						= info.average_iou;
+		root["predictions"]["IoU"]["max"]						= info.maximum_iou;
+		root["predictions"]["count"]							= info.number_of_predictions;
+		root["predictions"]["matches"]							= info.number_of_matches;
+		root["predictions"]["predictions_without_annotations"]	= info.number_of_predictions_without_annotations;
+		root["predictions"]["annotations_without_predictions"]	= info.number_of_annotations_without_predictions;
+		root["predictions"]["number_of_differences"]			= info.number_of_differences;
+
+		std::ofstream fs(f.getFullPathName().toStdString());
+		fs << root.dump(1, '\t') << std::endl;
 	}
 
 	if (not dmapp().review_iou_wnd)
@@ -257,6 +271,8 @@ void dm::DMContentReviewIoU::run()
 	dmapp().review_iou_wnd->v.swap(v);
 	dmapp().review_iou_wnd->toFront(true);
 	dmapp().review_iou_wnd->tlb.updateContent();
+
+	content.IoU_info_found = true;
 
 	return;
 }

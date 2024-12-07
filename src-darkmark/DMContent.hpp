@@ -15,7 +15,14 @@ namespace dm
 		kTimestamp					,
 		kCountMarks					,
 		kRandom						,
-		kSimilarMarks
+		kSimilarMarks				,
+		kMinimumIoU					,
+		kAverageIoU					,
+		kMaximumIoU					,
+		kNumberOfPredictions		,
+		kNumberOfDifferences		,
+		kPredictionsWithoutAnnotations,
+		kAnnotationsWithoutPredictions
 	};
 
 
@@ -208,6 +215,7 @@ namespace dm
 			bool show_processing_time;
 			bool need_to_save;
 			bool show_mouse_pointer;
+			bool IoU_info_found;
 			int corner_size;
 			int selected_mark;
 

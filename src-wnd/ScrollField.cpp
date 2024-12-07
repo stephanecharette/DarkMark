@@ -221,6 +221,11 @@ void dm::ScrollField::update_index(const size_t idx)
 			}
 			msg = "done " + msg;
 		}
+
+		if (root.contains("predictions"))
+		{
+			content.IoU_info_found = true;
+		}
 	}
 	catch (const std::exception & e)
 	{

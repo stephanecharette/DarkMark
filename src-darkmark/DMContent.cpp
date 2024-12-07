@@ -33,6 +33,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	show_processing_time(cfg().get_bool("show_processing_time")),
 	need_to_save(false),
 	show_mouse_pointer(cfg().get_bool("show_mouse_pointer")),
+	IoU_info_found(false),
 	corner_size(cfg().get_int("corner_size")),
 	selected_mark(-1),
 	images_are_loading(false),
@@ -1035,6 +1036,13 @@ dm::DMContent & dm::DMContent::set_sort_order(const dm::ESort new_sort_order)
 		case ESort::kSimilarMarks:
 		case ESort::kCountMarks:
 		case ESort::kTimestamp:
+		case ESort::kMinimumIoU:
+		case ESort::kAverageIoU:
+		case ESort::kMaximumIoU:
+		case ESort::kNumberOfPredictions:
+		case ESort::kNumberOfDifferences:
+		case ESort::kPredictionsWithoutAnnotations:
+		case ESort::kAnnotationsWithoutPredictions:
 		{
 			// these ones takes a while, so start a progress thread to do the work
 			DMContentImageFilenameSort helper(*this);
@@ -1741,6 +1749,11 @@ bool dm::DMContent::load_json()
 			image_is_completely_empty = root.value("completely_empty", false);
 		}
 
+		if (root.contains("predictions"))
+		{
+			IoU_info_found = true;
+		}
+
 		success = true;
 	}
 
@@ -2119,6 +2132,15 @@ PopupMenu dm::DMContent::create_popup_menu()
 	sort.addItem("sort by number of marks"			, true, (sort_order == ESort::kCountMarks	), std::function<void()>( [&]{ set_sort_order(ESort::kCountMarks	); } ));
 	sort.addItem("sort by similar marks"			, true, (sort_order == ESort::kSimilarMarks	), std::function<void()>( [&]{ set_sort_order(ESort::kSimilarMarks	); } ));
 	sort.addItem("sort randomly"					, true, (sort_order == ESort::kRandom		), std::function<void()>( [&]{ set_sort_order(ESort::kRandom		); } ));
+	sort.addSeparator();
+	sort.addSectionHeader("Open the \"Review IoU\" window to update the following sort options:");
+	sort.addItem("sort by minimum IoU"						, IoU_info_found, (sort_order == ESort::kMinimumIoU						), std::function<void()>( [&]{ set_sort_order(ESort::kMinimumIoU					); } ));
+	sort.addItem("sort by average IoU"						, IoU_info_found, (sort_order == ESort::kAverageIoU						), std::function<void()>( [&]{ set_sort_order(ESort::kAverageIoU					); } ));
+	sort.addItem("sort by maximum IoU"						, IoU_info_found, (sort_order == ESort::kMaximumIoU						), std::function<void()>( [&]{ set_sort_order(ESort::kMaximumIoU					); } ));
+	sort.addItem("sort by number of predictions"			, IoU_info_found, (sort_order == ESort::kNumberOfPredictions			), std::function<void()>( [&]{ set_sort_order(ESort::kNumberOfPredictions			); } ));
+	sort.addItem("sort by number of differences"			, IoU_info_found, (sort_order == ESort::kNumberOfDifferences			), std::function<void()>( [&]{ set_sort_order(ESort::kNumberOfDifferences			); } ));
+	sort.addItem("sort by predictions without annotations"	, IoU_info_found, (sort_order == ESort::kPredictionsWithoutAnnotations	), std::function<void()>( [&]{ set_sort_order(ESort::kPredictionsWithoutAnnotations	); } ));
+	sort.addItem("sort by annotations without predictions"	, IoU_info_found, (sort_order == ESort::kAnnotationsWithoutPredictions	), std::function<void()>( [&]{ set_sort_order(ESort::kAnnotationsWithoutPredictions	); } ));
 
 	PopupMenu view;
 	view.addItem("always show darknet predictions"	, (show_predictions != EToggle::kOn		), (show_predictions == EToggle::kOn	), std::function<void()>( [&]{ toggle_show_predictions(EToggle::kOn);	} ));
