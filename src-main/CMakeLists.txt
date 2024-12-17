@@ -17,6 +17,7 @@ ADD_EXECUTABLE ( DarkMark
 			$<TARGET_OBJECTS:dm_darknet>
 			$<TARGET_OBJECTS:dm_darkmark>
 			$<TARGET_OBJECTS:dm_launcher>
+			$<TARGET_OBJECTS:dm_classid>
 			$<TARGET_OBJECTS:dm_wnd>
 			${APP_WIN32_ICON}
 			)

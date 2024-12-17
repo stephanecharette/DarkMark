@@ -11,6 +11,7 @@ dm::StartupWnd::StartupWnd() :
 		import_video_button("Import video..."),
 		import_pdf_button("Import PDF..."),
 		open_folder_button("Open folder..."),
+		class_id_button("Class IDs..."),
 		refresh_button("Refresh"),
 		ok_button("Load..."),
 		cancel_button("Cancel")
@@ -26,6 +27,7 @@ dm::StartupWnd::StartupWnd() :
 	canvas.addAndMakeVisible(import_video_button);
 	canvas.addAndMakeVisible(import_pdf_button);
 	canvas.addAndMakeVisible(open_folder_button);
+	canvas.addAndMakeVisible(class_id_button);
 	canvas.addAndMakeVisible(refresh_button);
 	canvas.addAndMakeVisible(ok_button);
 	canvas.addAndMakeVisible(cancel_button);
@@ -65,6 +67,7 @@ dm::StartupWnd::StartupWnd() :
 	import_video_button	.addListener(this);
 	import_pdf_button	.addListener(this);
 	open_folder_button	.addListener(this);
+	class_id_button		.addListener(this);
 	refresh_button		.addListener(this);
 	ok_button			.addListener(this);
 	cancel_button		.addListener(this);
@@ -212,6 +215,7 @@ void dm::StartupWnd::resized()
 		button_row.items.add(FlexItem(import_video_button)	.withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 		button_row.items.add(FlexItem(import_pdf_button)	.withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 		button_row.items.add(FlexItem(open_folder_button)	.withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
+		button_row.items.add(FlexItem(class_id_button)		.withWidth(125.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 		button_row.items.add(FlexItem()						.withFlex(1.0));
 		button_row.items.add(FlexItem(refresh_button)		.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
 		button_row.items.add(FlexItem(ok_button)			.withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, 0)));
@@ -244,6 +248,19 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		{
 			File dir(notebook_canvas->project_directory.toString());
 			dir.revealToUser();
+		}
+	}
+	else if (button == &class_id_button)
+	{
+		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
+		if (notebook_canvas)
+		{
+			const auto fn = notebook_canvas->darknet_names_filename.toString().toStdString();
+			if (not fn.empty())
+			{
+				ClassIdWnd wnd(fn);
+				wnd.runModalLoop();
+			}
 		}
 	}
 	else if (button == &refresh_button)
@@ -702,6 +719,7 @@ void dm::StartupWnd::updateButtons()
 	import_video_button	.setEnabled(enabled);
 	import_pdf_button	.setEnabled(enabled);
 	open_folder_button	.setEnabled(enabled);
+	class_id_button		.setEnabled(enabled);
 	refresh_button		.setEnabled(enabled);
 	ok_button			.setEnabled(enabled);
 

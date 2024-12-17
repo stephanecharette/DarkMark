@@ -33,6 +33,7 @@ namespace dm
 			TextButton import_video_button;
 			TextButton import_pdf_button;
 			TextButton open_folder_button;
+			TextButton class_id_button;
 			TextButton refresh_button;
 			TextButton ok_button;
 			TextButton cancel_button;
