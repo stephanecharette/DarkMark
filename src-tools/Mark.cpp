@@ -272,6 +272,7 @@ dm::Mark & dm::Mark::set(cv::Rect & r)
 	const double maxy			= static_cast<double>(r.y + r.height)	/ image_height;
 
 	normalized_all_points.clear();
+	normalized_all_points.reserve(4);
 	normalized_all_points.push_back(cv::Point2d(minx, miny));
 	normalized_all_points.push_back(cv::Point2d(maxx, miny));
 	normalized_all_points.push_back(cv::Point2d(maxx, maxy));
@@ -348,4 +349,35 @@ cv::Scalar dm::Mark::get_colour()
 	const auto colour = v[class_idx % v.size()];
 
 	return colour;
+}
+
+
+std::string dm::Mark::as_debug_string() const
+{
+	std::stringstream ss;
+	ss << "idx=" << class_idx << " " << " name=" << name << " img=" << image_dimensions;
+
+	for (size_t i = 0; i < normalized_all_points.size(); i++)
+	{
+		const auto & p = normalized_all_points.at(i);
+		ss << std::endl << "  -> normalized point #" << i << ": x=" << p.x << " y=" << p.y;
+	}
+
+	const auto all_points = get_all_points();
+	for (size_t i = 0; i < all_points.size(); i ++)
+	{
+		const auto & p = all_points.at(i);
+		ss << std::endl << "  -> point #" << i << ": x=" << p.x << " y=" << p.y;
+	}
+
+	const auto r = get_bounding_rect();
+	ss << std::endl << "  -> r.x=" << r.x << " r.y=" << r.y << " r.w=" << r.width << " r.h=" << r.height;
+
+	auto p = get_corner(ECorner::kTL);
+	ss << std::endl << "  -> TL.x=" << p.x << " TL.y=" << p.y;
+
+	p = get_corner(ECorner::kTR);
+	ss << std::endl << "  -> TR.x=" << p.x << " TR.y=" << p.y;
+
+	return ss.str();
 }

@@ -76,12 +76,19 @@ void dm::DMContentResizeTLTR::run()
 			// if we get here, then we have a TL/TR mark
 
 			const auto old_r = mark.get_bounding_rect(content.original_image.size());
+
+			if (old_r.size() == preferred_size)
+			{
+//				Log("rectangle is already the preferred size");
+				continue;
+			}
+
 			auto new_r = old_r;
 
 			if (mark.class_idx == static_cast<size_t>(content.tr_name_index))
 			{
 				// for TR we need to move the left border, meaning the original X position
-				new_r.x += new_r.width - preferred_size.width;
+				new_r.x += (new_r.width - preferred_size.width);
 			}
 
 			new_r.width		= preferred_size.width;
