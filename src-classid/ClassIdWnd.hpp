@@ -11,14 +11,33 @@ namespace dm
 	{
 		public:
 
+			enum class EAction
+			{
+				kInvalid,
+				kNone,
+				kMerge,
+				kDelete,
+			};
+
 			struct Info
 			{
 				int			original_id;
 				std::string	original_name;
-				bool		must_delete;
-				int			merge_into_id; // the ID we're merging into is either -1 (meaning we don't merge) or the original ID since that one never changes
+				size_t		images;
+				size_t		count;
+				EAction		action;
 				int			modified_id;
 				std::string	modified_name;
+
+				Info() :
+					original_id(-1),
+					images(0),
+					count(0),
+					action(EAction::kNone),
+					modified_id(-1)
+				{
+					return;
+				}
 			};
 
 			ClassIdWnd(const std::string & fn);
@@ -50,14 +69,13 @@ namespace dm
 			TableListBox table;
 
 			TextButton add_button;
+			ArrowButton up_button;
+			ArrowButton down_button;
 			TextButton apply_button;
 			TextButton cancel_button;
 
-			std::vector<ToggleButton *> toggle_buttons;
+//			std::vector<ToggleButton *> toggle_buttons;
 			std::vector<ComboBox *> combo_boxes;
-
-			/// The checkboxes in LookAndFeel V4 are hard to see, so use V3 instead.
-			LookAndFeel_V3 button_look_and_feel;
 
 			std::vector<Info> vinfo;
 	};
