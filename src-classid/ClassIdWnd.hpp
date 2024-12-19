@@ -40,7 +40,7 @@ namespace dm
 				}
 			};
 
-			ClassIdWnd(const std::string & fn);
+			ClassIdWnd(File project_dir, const std::string & fn);
 
 			virtual ~ClassIdWnd();
 
@@ -58,11 +58,25 @@ namespace dm
 			virtual void selectedRowsChanged(int rowNumber) override;
 			virtual void cellClicked(int rowNumber, int columnId, const MouseEvent & event) override;
 			virtual Component * refreshComponentForCell(int rowNumber, int columnId, bool isRowSelected, Component * existingComponentToUpdate) override;
+			virtual String getCellTooltip(int rowNumber, int columnId) override;
 
 			void rebuild_table();
 
+			std::atomic<bool> done;
+			std::thread counting_thread;
+			void count_images_and_marks();
+
+			/// Root of the project, where images and .txt files can be found
+			File dir;
+
 			/// The filename that contains all of the class names.
 			const std::string names_fn;
+
+			/// The key is the class ID, the val is the number of files found with that class.
+			std::map<int, size_t> count_files_per_class;
+
+			/// The key is the class ID, the val is the number of annotations found with that class.
+			std::map<int, size_t> count_annotations_per_class;
 
 			Component canvas;
 

@@ -255,10 +255,11 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
 		if (notebook_canvas)
 		{
-			const auto fn = notebook_canvas->darknet_names_filename.toString().toStdString();
-			if (not fn.empty())
+			const auto fn = notebook_canvas->darknet_names_filename.toString();
+			const auto dir = notebook_canvas->project_directory.toString();
+			if (dir.isEmpty() == false and fn.isEmpty() == false)
 			{
-				ClassIdWnd wnd(fn);
+				ClassIdWnd wnd(dir, fn.toStdString());
 				wnd.runModalLoop();
 			}
 		}

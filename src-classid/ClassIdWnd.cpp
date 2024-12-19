@@ -3,9 +3,11 @@
 #include "DarkMark.hpp"
 
 
-dm::ClassIdWnd::ClassIdWnd(const std::string & fn) :
+dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 	DocumentWindow("DarkMark - " + File(fn).getFileName(), Colours::darkgrey, TitleBarButtons::closeButton),
 	ThreadWithProgressWindow("DarkMark", true, true),
+	done					(false),
+	dir						(project_dir),
 	names_fn				(fn),
 	add_button				("Add Row"),
 	up_button				("up"	, 0.75f, Colours::lightblue),
@@ -76,14 +78,28 @@ dm::ClassIdWnd::ClassIdWnd(const std::string & fn) :
 
 	setVisible(true);
 
+	for (const auto & info : vinfo)
+	{
+		count_files_per_class[info.original_id]			= 0;
+		count_annotations_per_class[info.original_id]	= 0;
+	}
+
+	counting_thread = std::thread(&dm::ClassIdWnd::count_images_and_marks, this);
+
 	return;
 }
 
 
 dm::ClassIdWnd::~ClassIdWnd()
 {
+	done = true;
 	signalThreadShouldExit();
 	cfg().setValue("ClassIdWnd", getWindowStateAsString());
+
+	if (counting_thread.joinable())
+	{
+		counting_thread.join();
+	}
 
 	return;
 }
@@ -252,6 +268,8 @@ void dm::ClassIdWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 	const auto & info = vinfo[rowNumber];
 
 	String str;
+	Justification justification = Justification::centredLeft;
+
 	if (columnId == 1) // original ID
 	{
 		str = String(info.original_id);
@@ -262,11 +280,19 @@ void dm::ClassIdWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 	}
 	else if (columnId == 3) // images
 	{
-		str = String(info.images);
+		if (count_files_per_class.count(info.original_id))
+		{
+			str = String(count_files_per_class.at(info.original_id));
+			justification = Justification::centredRight;
+		}
 	}
 	else if (columnId == 4) // counter
 	{
-		str = String(info.count);
+		if (count_annotations_per_class.count(info.original_id))
+		{
+			str = String(count_annotations_per_class.at(info.original_id));
+			justification = Justification::centredRight;
+		}
 	}
 	else if (columnId == 5) // action
 	{
@@ -320,7 +346,7 @@ void dm::ClassIdWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 	{
 		g.setColour(Colours::black);
 		Rectangle<int> r(0, 0, width, height);
-		g.drawFittedText(str, r.reduced(2), Justification::centredLeft, 1 );
+		g.drawFittedText(str, r.reduced(2), justification, 1 );
 	}
 
 	// draw the divider on the right side of the column
@@ -372,7 +398,7 @@ void dm::ClassIdWnd::cellClicked(int rowNumber, int columnId, const MouseEvent &
 		}
 
 		PopupMenu m;
-		m.addSectionHeader("\"" + info.original_name + "\"");
+		m.addSectionHeader("\"" + name + "\"");
 		m.addSeparator();
 		if (info.action == EAction::kDelete)
 		{
@@ -454,6 +480,23 @@ Component * dm::ClassIdWnd::refreshComponentForCell(int rowNumber, int columnId,
 }
 
 
+String dm::ClassIdWnd::getCellTooltip(int rowNumber, int columnId)
+{
+	String str = "Click on \"action\" or \"new id\" columns to delete or merge.";
+
+	if (columnId == 3)
+	{
+		str = "The number of .txt files which reference this class ID.";
+	}
+	else if (columnId == 4)
+	{
+		str = "The total number of annotations for this class ID.";
+	}
+
+	return str;
+}
+
+
 void dm::ClassIdWnd::rebuild_table()
 {
 	dm::Log("rebuilding table");
@@ -494,6 +537,59 @@ void dm::ClassIdWnd::rebuild_table()
 
 	table.updateContent();
 	table.repaint();
+
+	return;
+}
+
+
+void dm::ClassIdWnd::count_images_and_marks()
+{
+	// this is started on a secondary thread
+
+	try
+	{
+		VStr image_filenames;
+		VStr json_filenames;
+		VStr images_without_json;
+
+		find_files(dir, image_filenames, json_filenames, images_without_json, done);
+
+		dm::Log("counting thread: number of images found in " + dir.getFullPathName().toStdString() + ": " + std::to_string(image_filenames.size()));
+
+		for (size_t idx = 0; idx < image_filenames.size() and not threadShouldExit(); idx ++)
+		{
+			auto & fn = image_filenames[idx];
+			File file = File(fn).withFileExtension(".txt");
+			if (file.exists())
+			{
+				std::set<int> classes_found;
+
+				std::ifstream ifs(file.getFullPathName().toStdString());
+				while (ifs.good() and not threadShouldExit())
+				{
+					int class_id = -1;
+					float x, y, w, h;
+					ifs >> class_id >> x >> y >> w >> h;
+					if (class_id >= 0 and x > 0.0f and y > 0.0f and w > 0.0f and h > 0.0f)
+					{
+						classes_found.insert(class_id);
+						count_annotations_per_class[class_id] ++;
+					}
+				}
+
+				for (const int id : classes_found)
+				{
+					count_files_per_class[id] ++;
+				}
+			}
+		}
+	}
+	catch(const std::exception & e)
+	{
+		dm::Log(std::string("counting thread exception: ") + e.what());
+	}
+
+	Log("counting thread is exiting");
 
 	return;
 }
