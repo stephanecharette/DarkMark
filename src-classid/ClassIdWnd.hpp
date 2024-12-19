@@ -7,7 +7,7 @@
 
 namespace dm
 {
-	class ClassIdWnd : public DocumentWindow, public Button::Listener, public ComboBox::Listener, public ThreadWithProgressWindow, public TableListBoxModel
+	class ClassIdWnd : public DocumentWindow, public Button::Listener, public ThreadWithProgressWindow, public TableListBoxModel
 	{
 		public:
 
@@ -50,7 +50,6 @@ namespace dm
 			virtual void userTriedToCloseWindow()		override;
 			virtual void resized()						override;
 			virtual void buttonClicked(Button * button)	override;
-			virtual void comboBoxChanged(ComboBox * comboBoxThatHasChanged) override;
 			virtual void run()							override;
 
 			virtual int getNumRows() override;
@@ -62,6 +61,7 @@ namespace dm
 
 			void rebuild_table();
 
+			/// The filename that contains all of the class names.
 			const std::string names_fn;
 
 			Component canvas;
@@ -73,9 +73,6 @@ namespace dm
 			ArrowButton down_button;
 			TextButton apply_button;
 			TextButton cancel_button;
-
-//			std::vector<ToggleButton *> toggle_buttons;
-			std::vector<ComboBox *> combo_boxes;
 
 			std::vector<Info> vinfo;
 	};

@@ -93,8 +93,8 @@ void dm::ClassIdWnd::add_row(const std::string & name)
 {
 	Info info;
 	info.original_id	= vinfo.size();
-	info.original_name	= name;
-	info.modified_name	= name;
+	info.original_name	= String(name).trim().toStdString();
+	info.modified_name	= info.original_name;
 
 	if (name == "new class")
 	{
@@ -139,7 +139,6 @@ void dm::ClassIdWnd::resized()
 	button_row.items.add(FlexItem(add_button)		.withWidth(100.0));
 	button_row.items.add(FlexItem()					.withFlex(1.0));
 	button_row.items.add(FlexItem(up_button)		.withWidth(50.0));
-//	button_row.items.add(FlexItem()					.withWidth(margin_size));
 	button_row.items.add(FlexItem(down_button)		.withWidth(50.0));
 	button_row.items.add(FlexItem()					.withFlex(1.0));
 	button_row.items.add(FlexItem(apply_button)		.withWidth(100.0));
@@ -190,62 +189,6 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 			table.selectRow(row + 1);
 		}
 	}
-	else
-	{
-#if 0
-		const String id = button->getComponentID();
-		if (id.endsWith("_MUST_DELETE"))
-		{
-			const int row = id.getIntValue();
-			const bool must_delete = button->getToggleState();
-			vinfo[row].must_delete = must_delete;
-			if (must_delete)
-			{
-				// if we're deleting this class, then that means we're not merging it into anything
-				vinfo[row].merge_into_id = -1;
-				combo_boxes[row]->clear();
-			}
-			combo_boxes[row]->setEnabled(not must_delete);
-			rebuild_table();
-		}
-#endif
-	}
-
-	return;
-}
-
-
-void dm::ClassIdWnd::comboBoxChanged(ComboBox * comboBoxThatHasChanged)
-{
-	if (comboBoxThatHasChanged == nullptr)
-	{
-		return;
-	}
-#if 0
-	const String id = comboBoxThatHasChanged->getComponentID();
-	if (id.endsWith("_MERGE_INTO"))
-	{
-		const int row = id.getIntValue();
-		const auto text = comboBoxThatHasChanged->getText();
-
-		// find the user-selected text in the vector and remember the original ID so we know exactly what needs to be merged
-		int merge_id = -1;
-		for (const auto & info : vinfo)
-		{
-			if (info.modified_name == text)
-			{
-				merge_id = info.original_id;
-				break;
-			}
-		}
-
-//		vinfo[row].merge_into_id	= merge_id;
-		vinfo[row].modified_id		= -1;
-		vinfo[row].modified_name	= "";
-
-		rebuild_table();
-	}
-#endif
 
 	return;
 }
@@ -306,44 +249,69 @@ void dm::ClassIdWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 		return;
 	}
 
+	const auto & info = vinfo[rowNumber];
+
 	String str;
 	if (columnId == 1) // original ID
 	{
-		str = String(vinfo[rowNumber].original_id);
+		str = String(info.original_id);
 	}
 	else if (columnId == 2) // original name
 	{
-		str = vinfo[rowNumber].original_name;
+		str = info.original_name;
 	}
 	else if (columnId == 3) // images
 	{
-		str = String(vinfo[rowNumber].images);
+		str = String(info.images);
 	}
 	else if (columnId == 4) // counter
 	{
-		str = String(vinfo[rowNumber].count);
+		str = String(info.count);
 	}
 	else if (columnId == 5) // action
 	{
-		switch (vinfo[rowNumber].action)
+		switch (info.action)
 		{
-			case EAction::kMerge:	str = "merge";	break;
-			case EAction::kDelete:	str = "delete";	break;
-			default: break;
+			case EAction::kMerge:
+			{
+				str = "merged";
+				break;
+			}
+			case EAction::kDelete:
+			{
+				str = "deleted";
+				break;
+			}
+			case EAction::kNone:
+			{
+				if (info.original_name != info.modified_name)
+				{
+					str = "renamed";
+				}
+				else if (info.original_id != info.modified_id)
+				{
+					str = "reordered";
+				}
+				break;
+			}
+			default:
+			{
+				break;
+			}
 		}
 	}
 	else if (columnId == 6) // modified ID
 	{
-		if (vinfo[rowNumber].action != EAction::kDelete)
+		if (info.action != EAction::kDelete)
 		{
-			str = String(vinfo[rowNumber].modified_id);
+			str = String(info.modified_id);
 		}
 	}
 	else if (columnId == 7) // modified name
 	{
-		if (vinfo[rowNumber].action != EAction::kDelete)
+		if (info.action != EAction::kDelete)
 		{
-			str = vinfo[rowNumber].modified_name;
+			str = info.modified_name;
 		}
 	}
 
@@ -383,8 +351,6 @@ void dm::ClassIdWnd::selectedRowsChanged(int rowNumber)
 
 void dm::ClassIdWnd::cellClicked(int rowNumber, int columnId, const MouseEvent & event)
 {
-	std::cout << "cell clicked: row=" << rowNumber << " col=" << columnId << std::endl;
-
 	if (rowNumber < 0					or
 		rowNumber >= (int)vinfo.size())
 	{
@@ -416,7 +382,6 @@ void dm::ClassIdWnd::cellClicked(int rowNumber, int columnId, const MouseEvent &
 		{
 			m.addItem("delete this class"	, true, false, std::function<void()>( [&]{ vinfo[rowNumber].action = EAction::kDelete; } ));
 		}
-		m.addItem("rename this class"	, true, false, std::function<void()>( [&]{ return; } ));
 		m.addItem("merge this class"	, true, false, std::function<void()>( [&]{ return; } ));
 		m.show();
 		rebuild_table();
@@ -428,53 +393,61 @@ void dm::ClassIdWnd::cellClicked(int rowNumber, int columnId, const MouseEvent &
 
 Component * dm::ClassIdWnd::refreshComponentForCell(int rowNumber, int columnId, bool isRowSelected, Component * existingComponentToUpdate)
 {
-//	std::cout << "refresh: row=" << rowNumber << " col=" << columnId << " sel=" << isRowSelected << std::endl;
+	// remove whatever previously existed for a different row,
+	// we'll create a new one specific to this row if needed
+	delete existingComponentToUpdate;
+	existingComponentToUpdate = nullptr;
 
-	if (rowNumber < 0					or
-		rowNumber >= (int)vinfo.size()	)
+	// rows are 0-based, columns are 1-based
+	// column #7 is where they get to type a new name for the class
+	if (rowNumber >= 0					and
+		rowNumber < (int)vinfo.size()	and
+		columnId == 7					and
+		isRowSelected					and
+		vinfo[rowNumber].action == EAction::kNone)
 	{
-		// rows are 0-based, columns are 1-based
-		return nullptr;
-	}
+		auto editor = new TextEditor("class name editor");
+		editor->setColour(TextEditor::ColourIds::backgroundColourId, Colours::lightblue);
+		editor->setColour(TextEditor::ColourIds::textColourId, Colours::black);
+		editor->setColour(TextEditor::ColourIds::highlightedTextColourId, Colours::black);
+		editor->setMouseClickGrabsKeyboardFocus(true);
+		editor->setEscapeAndReturnKeysConsumed(false);
+		editor->setReturnKeyStartsNewLine(false);
+		editor->setTabKeyUsedAsCharacter(false);
+		editor->setSelectAllWhenFocused(true);
+		editor->setWantsKeyboardFocus(true);
+		editor->setPopupMenuEnabled(false);
+		editor->setScrollbarsShown(false);
+		editor->setCaretVisible(true);
+		editor->setMultiLine(false);
+		editor->setText(vinfo[rowNumber].modified_name);
+		editor->moveCaretToEnd();
+		editor->selectAll();
 
-	// column #3 must contain a togglebutton to delete the entire row
-	if (columnId == 3)
-	{
-//		existingComponentToUpdate = toggle_buttons[rowNumber];
-	}
-
-	// column #4 may contain a drop-down box to select where this ID will be merged
-	if (columnId == 4)
-	{
-#if 0
-		// update the combobox to reflect the items that can actually be selected
-		auto combobox = combo_boxes[rowNumber];
-		combobox->clear();
-		int next_item_idx = 1; // id=0 is reserved by JUCE
-		combobox->addItem(" ", next_item_idx ++);
-		combobox->addSeparator();
-		for (size_t idx = 0; idx < vinfo.size(); idx ++)
+		editor->onEscapeKey = [=]
 		{
-			combobox->addItem(vinfo[idx].modified_name, next_item_idx);
-
-			if (idx == (size_t)rowNumber or
-				vinfo[idx].must_delete or
-				vinfo[idx].merge_into_id >= 0)
+			// go back to the previous name
+			editor->setText(vinfo[rowNumber].modified_name);
+			this->rebuild_table();
+		};
+		editor->onFocusLost = [=]
+		{
+			auto str = editor->getText().trim().toStdString();
+			if (str.empty())
 			{
-				combobox->setItemEnabled(next_item_idx, false);
+				str = vinfo[rowNumber].modified_name;
+				if (str.empty())
+				{
+					str = vinfo[rowNumber].original_name;
+				}
 			}
-			next_item_idx ++;
-		}
 
-		// should we pre-select some text in the combobox?
-		const int merge_id = vinfo[rowNumber].merge_into_id;
-		if (merge_id >= 0)
-		{
-			combobox->setText(vinfo[merge_id].modified_name);
-		}
+			this->vinfo[rowNumber].modified_name = str;
+			this->rebuild_table();
+		};
+		editor->onReturnKey = editor->onFocusLost;
 
-		existingComponentToUpdate = combobox;
-#endif
+		existingComponentToUpdate = editor;
 	}
 
 	return existingComponentToUpdate;
@@ -515,69 +488,6 @@ void dm::ClassIdWnd::rebuild_table()
 			changes_to_apply = true;
 			break;
 		}
-	}
-
-#if 0
-		if (info.must_delete)
-		{
-			if (info.modified_id	!= -1 or
-				info.modified_name	!= "")
-			{
-				info.modified_id = -1;
-				info.modified_name = "";
-				changes ++;
-			}
-		}
-		else if (info.merge_into_id >= 0)
-		{
-			if (info.modified_id	!= vinfo[info.merge_into_id].modified_id or
-				info.modified_name	!= vinfo[info.merge_into_id].modified_name)
-			{
-				info.modified_id	= vinfo[info.merge_into_id].modified_id;
-				info.modified_name	= vinfo[info.merge_into_id].modified_name;
-				changes ++;
-			}
-		}
-		else
-		{
-			if (info.modified_id != next_class_id)
-			{
-				info.modified_id = next_class_id;
-				changes ++;
-			}
-
-			if (info.modified_name.empty())
-			{
-				info.modified_name = info.original_name;
-				changes ++;
-			}
-
-			next_class_id ++;
-		}
-	}
-#endif
-
-	// now go back through and assign all of the classes that were merged
-//	for (auto & info : vinfo)
-	{
-#if 0
-		const auto merge_id = info.merge_into_id;
-
-		if (merge_id >= 0)
-		{
-			if (info.modified_id != vinfo[merge_id].modified_id)
-			{
-				info.modified_id = vinfo[merge_id].modified_id;
-				changes ++;
-			}
-
-			if (info.modified_name != vinfo[merge_id].modified_name)
-			{
-				info.modified_name = vinfo[merge_id].modified_name;
-				changes ++;
-			}
-		}
-#endif
 	}
 
 	apply_button.setEnabled(changes_to_apply);
