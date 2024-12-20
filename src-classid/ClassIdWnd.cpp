@@ -833,6 +833,7 @@ void dm::ClassIdWnd::count_images_and_marks()
 			{
 				std::set<int> classes_found;
 
+				size_t line_number = 0;
 				std::ifstream ifs(file.getFullPathName().toStdString());
 				while (not threadShouldExit())
 				{
@@ -842,6 +843,7 @@ void dm::ClassIdWnd::count_images_and_marks()
 					double w = -1.0;
 					double h = -1.0;
 
+					line_number ++;
 					ifs >> class_id >> x >> y >> w >> h;
 
 					if (not ifs.good())
@@ -852,25 +854,26 @@ void dm::ClassIdWnd::count_images_and_marks()
 					if (class_id < 0 or class_id >= (int)vinfo.size())
 					{
 						error_count ++;
-						dm::Log("ERROR: class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " is invalid");
+						dm::Log("ERROR: class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " on line #" + std::to_string(line_number) + " is invalid");
 					}
 					else if (
-						x <= 0.0f or
-						y <= 0.0f or
-						w <= 0.0f or
-						h <= 0.0f)
+						x <= 0.0 or
+						y <= 0.0 or
+						w <= 0.0 or
+						h <= 0.0)
 					{
 						error_count ++;
-						dm::Log("ERROR: coordinates for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " are invalid");
+						dm::Log("ERROR: coordinates for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " on line #" + std::to_string(line_number) + " are invalid");
 					}
 					else if (
-						x - w / 2.0f < 0.0f or
-						x + w / 2.0f > 1.0f or
-						y - h / 2.0f < 0.0f or
-						y + h / 2.0f > 1.0f)
+						// take into account rounding errors, especially when converting coordinates between float and double
+						x - w / 2.0 < -0.000001 or
+						x + w / 2.0 >  1.000001 or
+						y - h / 2.0 < -0.000001 or
+						y + h / 2.0 >  1.000001)
 					{
 						error_count ++;
-						dm::Log("ERROR: width or height for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " is invalid");
+						dm::Log("ERROR: width or height for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " on line #" + std::to_string(line_number) + " is invalid");
 					}
 					else
 					{
