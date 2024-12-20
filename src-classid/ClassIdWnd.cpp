@@ -837,10 +837,10 @@ void dm::ClassIdWnd::count_images_and_marks()
 				while (not threadShouldExit())
 				{
 					int class_id = -1;
-					float x = -1.0f;
-					float y = -1.0f;
-					float w = -1.0f;
-					float h = -1.0f;
+					double x = -1.0;
+					double y = -1.0;
+					double w = -1.0;
+					double h = -1.0;
 
 					ifs >> class_id >> x >> y >> w >> h;
 
