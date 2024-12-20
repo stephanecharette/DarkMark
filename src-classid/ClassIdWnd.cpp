@@ -9,6 +9,7 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 	done					(false),
 	dir						(project_dir),
 	names_fn				(fn),
+	error_count				(0),
 	add_button				("Add Row"),
 	up_button				("up"	, 0.75f, Colours::lightblue),
 	down_button				("down"	, 0.25f, Colours::lightblue),
@@ -400,15 +401,95 @@ void dm::ClassIdWnd::cellClicked(int rowNumber, int columnId, const MouseEvent &
 		PopupMenu m;
 		m.addSectionHeader("\"" + name + "\"");
 		m.addSeparator();
-		if (info.action == EAction::kDelete)
+
+		// is there another class that is supposed to merge to this one?
+		bool found_a_class_that_merges_to_this_one = false;
+		for (size_t idx = 0; idx < vinfo.size(); idx ++)
 		{
-			m.addItem("delete this class"	, true, true, std::function<void()>( [&]{ vinfo[rowNumber].action = EAction::kNone; } ));
+			if (rowNumber == (int)idx)
+			{
+				continue;
+			}
+
+			if (vinfo[idx].action == EAction::kMerge and
+				vinfo[idx].modified_id == info.modified_id)
+			{
+				found_a_class_that_merges_to_this_one = true;
+				break;
+			}
+		}
+
+		if (found_a_class_that_merges_to_this_one)
+		{
+			m.addItem("cannot delete this class due to pending merge", false, false, std::function<void()>( []{return;} ));
+		}
+		else if (info.action == EAction::kDelete)
+		{
+			// this will clear the deletion flag
+			m.addItem("delete this class"	, true, true, std::function<void()>( [=]() { this->vinfo[rowNumber].action = EAction::kNone; } ));
 		}
 		else
 		{
-			m.addItem("delete this class"	, true, false, std::function<void()>( [&]{ vinfo[rowNumber].action = EAction::kDelete; } ));
+			// this will set the deletion flag
+			m.addItem("delete this class"	, true, false, std::function<void()>( [=]() { this->vinfo[rowNumber].action = EAction::kDelete; } ));
 		}
-		m.addItem("merge this class"	, true, false, std::function<void()>( [&]{ return; } ));
+
+		if (vinfo.size() > 1)
+		{
+			m.addSeparator();
+
+			if (found_a_class_that_merges_to_this_one)
+			{
+				m.addItem("cannot merge this class due to pending merge", false, false, std::function<void()>( []{return;} ));
+			}
+			else
+			{
+				PopupMenu merged;
+
+				for (size_t idx = 0; idx < vinfo.size(); idx ++)
+				{
+					if (rowNumber == (int)idx)
+					{
+						continue;
+					}
+
+					const auto & dst = vinfo[idx];
+
+					if (dst.action != EAction::kNone)
+					{
+						// cannot merge to a class that is deleted or already merged
+						continue;
+					}
+
+					if (info.action == EAction::kMerge and info.merge_to_name == dst.modified_name)
+					{
+						merged.addItem("merge with class #" + std::to_string(dst.modified_id) + " \"" + info.merge_to_name + "\"", true, true, std::function<void()>(
+							[=]()
+							{
+								// un-merge
+								this->vinfo[rowNumber].action = EAction::kNone;
+								this->vinfo[rowNumber].merge_to_name.clear();
+								this->vinfo[rowNumber].modified_name = this->vinfo[rowNumber].original_name;
+								return;
+							}));
+					}
+					else
+					{
+						merged.addItem("merge with class #" + std::to_string(dst.modified_id) + " \"" + dst.modified_name + "\"", true, false, std::function<void()>(
+							[=]()
+							{
+								// merge
+								this->vinfo[rowNumber].action = EAction::kMerge;
+								this->vinfo[rowNumber].merge_to_name = dst.modified_name;
+								this->vinfo[rowNumber].modified_name = dst.modified_name;
+								return;
+							}));
+					}
+				}
+				m.addSubMenu("merge", merged);
+			}
+		}
+
 		m.show();
 		rebuild_table();
 	}
@@ -461,14 +542,27 @@ Component * dm::ClassIdWnd::refreshComponentForCell(int rowNumber, int columnId,
 			auto str = editor->getText().trim().toStdString();
 			if (str.empty())
 			{
-				str = vinfo[rowNumber].modified_name;
+				str = this->vinfo[rowNumber].modified_name;
 				if (str.empty())
 				{
-					str = vinfo[rowNumber].original_name;
+					str = this->vinfo[rowNumber].original_name;
 				}
 			}
 
 			this->vinfo[rowNumber].modified_name = str;
+
+			// see if there are other classes which are merged here, in which case we need to update their names
+			for (size_t idx = 0; idx < this->vinfo.size(); idx ++)
+			{
+				auto & dst = this->vinfo[idx];
+				if (dst.action == EAction::kMerge and
+					dst.modified_id == this->vinfo[rowNumber].modified_id)
+				{
+					dst.merge_to_name = str;
+					dst.modified_name = str;
+				}
+			}
+
 			this->rebuild_table();
 		};
 		editor->onReturnKey = editor->onFocusLost;
@@ -484,7 +578,11 @@ String dm::ClassIdWnd::getCellTooltip(int rowNumber, int columnId)
 {
 	String str = "Click on \"action\" or \"new id\" columns to delete or merge.";
 
-	if (columnId == 3)
+	if (error_count > 0)
+	{
+		str = "Errors detected while processing annotations.  See log file for details.";
+	}
+	else if (columnId == 3)
 	{
 		str = "The number of .txt files which reference this class ID.";
 	}
@@ -510,13 +608,39 @@ void dm::ClassIdWnd::rebuild_table()
 
 		if (info.action == EAction::kDelete)
 		{
-			dm::Log("class \"" + info.original_name + "\" has been deleted");
+			dm::Log("class \"" + info.modified_name + "\" has been deleted");
+			info.modified_id = -1;
+		}
+		else if (info.action == EAction::kMerge)
+		{
+			dm::Log("class \"" + info.original_name + "\" has been merged to \"" + info.merge_to_name + "\", will need to revisit once IDs have been assigned");
 			info.modified_id = -1;
 		}
 		else
 		{
-			dm::Log("class \"" + info.original_name + "\" has been assigned id #" + std::to_string(next_class_id));
+			dm::Log("class \"" + info.modified_name + "\" has been assigned id #" + std::to_string(next_class_id));
 			info.modified_id = next_class_id ++;
+		}
+	}
+
+	// now that IDs have been assigned we need to look at merge entries and figure out the right ID to use
+	for (size_t idx = 0; idx < vinfo.size(); idx ++)
+	{
+		auto & info = vinfo[idx];
+
+		if (info.action == EAction::kMerge)
+		{
+			// look for the non-merge entry that has this name
+			for (size_t tmp = 0; tmp < vinfo.size(); tmp ++)
+			{
+				if (vinfo[tmp].action != EAction::kMerge and vinfo[tmp].modified_name == info.merge_to_name)
+				{
+					// we found the item we need to merge to!
+					info.modified_id = vinfo[tmp].modified_id;
+					dm::Log("class \"" + info.original_name + "\" is merged with #" + std::to_string(info.modified_id) + " \"" + info.modified_name + "\"");
+					break;
+				}
+			}
 		}
 	}
 
@@ -533,7 +657,7 @@ void dm::ClassIdWnd::rebuild_table()
 		}
 	}
 
-	apply_button.setEnabled(changes_to_apply);
+	apply_button.setEnabled(error_count == 0 and changes_to_apply);
 
 	table.updateContent();
 	table.repaint();
@@ -548,6 +672,8 @@ void dm::ClassIdWnd::count_images_and_marks()
 
 	try
 	{
+		error_count = 0;
+
 		VStr image_filenames;
 		VStr json_filenames;
 		VStr images_without_json;
@@ -565,12 +691,45 @@ void dm::ClassIdWnd::count_images_and_marks()
 				std::set<int> classes_found;
 
 				std::ifstream ifs(file.getFullPathName().toStdString());
-				while (ifs.good() and not threadShouldExit())
+				while (not threadShouldExit())
 				{
 					int class_id = -1;
-					float x, y, w, h;
+					float x = -1.0f;
+					float y = -1.0f;
+					float w = -1.0f;
+					float h = -1.0f;
+
 					ifs >> class_id >> x >> y >> w >> h;
-					if (class_id >= 0 and x > 0.0f and y > 0.0f and w > 0.0f and h > 0.0f)
+
+					if (not ifs.good())
+					{
+						break;
+					}
+
+					if (class_id < 0 or class_id >= (int)vinfo.size())
+					{
+						error_count ++;
+						dm::Log("ERROR: class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " is invalid");
+					}
+					else if (
+						x <= 0.0f or
+						y <= 0.0f or
+						w <= 0.0f or
+						h <= 0.0f)
+					{
+						error_count ++;
+						dm::Log("ERROR: coordinates for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " are invalid");
+					}
+					else if (
+						x - w / 2.0f < 0.0f or
+						x + w / 2.0f > 1.0f or
+						y - h / 2.0f < 0.0f or
+						y + h / 2.0f > 1.0f)
+					{
+						error_count ++;
+						dm::Log("ERROR: width or height for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " is invalid");
+					}
+					else
 					{
 						classes_found.insert(class_id);
 						count_annotations_per_class[class_id] ++;
@@ -582,6 +741,11 @@ void dm::ClassIdWnd::count_images_and_marks()
 					count_files_per_class[id] ++;
 				}
 			}
+		}
+
+		if (error_count)
+		{
+			apply_button.setTooltip("Cannot apply changes due to errors.  See log file for details.");
 		}
 	}
 	catch(const std::exception & e)

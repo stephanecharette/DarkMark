@@ -23,16 +23,13 @@ namespace dm
 			{
 				int			original_id;
 				std::string	original_name;
-				size_t		images;
-				size_t		count;
 				EAction		action;
+				std::string	merge_to_name; // merge to the class that has this name
 				int			modified_id;
 				std::string	modified_name;
 
 				Info() :
 					original_id(-1),
-					images(0),
-					count(0),
 					action(EAction::kNone),
 					modified_id(-1)
 				{
@@ -77,6 +74,8 @@ namespace dm
 
 			/// The key is the class ID, the val is the number of annotations found with that class.
 			std::map<int, size_t> count_annotations_per_class;
+
+			size_t error_count;
 
 			Component canvas;
 
