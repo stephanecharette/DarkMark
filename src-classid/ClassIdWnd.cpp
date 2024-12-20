@@ -14,7 +14,12 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 	up_button				("up"	, 0.75f, Colours::lightblue),
 	down_button				("down"	, 0.25f, Colours::lightblue),
 	apply_button			("Apply..."),
-	cancel_button			("Cancel")
+	cancel_button			("Cancel"),
+	done_looking_for_images	(false),
+	names_file_rewritten	(false),
+	number_of_annotations_deleted(0),
+	number_of_annotations_remapped(0),
+	number_of_txt_files_rewritten(0)
 {
 	setContentNonOwned		(&canvas, true	);
 	setUsingNativeTitleBar	(true			);
@@ -182,6 +187,15 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 		add_row("new class");
 		rebuild_table();
 	}
+	else if (button == &apply_button)
+	{
+		const bool result = NativeMessageBox::showOkCancelBox(MessageBoxIconType::QuestionIcon, "DarkMark Network Classes", "This will overwrite your " + File(names_fn).getFileName().toStdString() + " file, and possibly modify all of your annotations. You should make a backup of your project before making these modifications.\n\nDo you wish to proceed?");
+		if (result)
+		{
+			runThread(); // calls run() and waits for it to be done
+			closeButtonPressed();
+		}
+	}
 	else if (button == &cancel_button)
 	{
 		closeButtonPressed();
@@ -213,6 +227,135 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 
 void dm::ClassIdWnd::run()
 {
+	setEnabled(false);
+
+	setStatusMessage("Saving " + names_fn + "...");
+
+	std::map<size_t, std::string>	names;
+	std::set<size_t>				to_be_deleted;
+	std::map<size_t, size_t>		to_be_renumbered;
+
+	for (const auto & info : vinfo)
+	{
+		if (info.action == EAction::kDelete)
+		{
+			dm::Log("-> class to be deleted: #" + std::to_string(info.original_id));
+			to_be_deleted.insert(info.original_id);
+		}
+		else if (info.original_id != info.modified_id)
+		{
+			dm::Log("-> class #" + std::to_string(info.original_id) + " remapped to #" + std::to_string(info.modified_id));
+			to_be_renumbered[info.original_id] = info.modified_id;
+		}
+
+		if (info.action == EAction::kNone)
+		{
+			names[info.modified_id] = info.modified_name;
+		}
+	}
+
+	std::ofstream ofs(names_fn);
+	if (ofs.good())
+	{
+		for (const auto & [key, val] : names)
+		{
+			dm::Log("-> class #" + std::to_string(key) + ": \"" + val + "\"");
+			ofs << val << std::endl;
+		}
+	}
+	ofs.close();
+	names_file_rewritten = true;
+
+	if (to_be_deleted.size() > 0 or to_be_renumbered.size() > 0)
+	{
+		double work_completed = 0.0f;
+		const double work_to_be_done = all_images.size();
+
+		setStatusMessage("Processing " + String(all_images.size()) + " images...");
+
+		for (size_t idx = 0; idx < all_images.size() and not threadShouldExit(); idx ++)
+		{
+			dm::Log("idx=" + std::to_string(idx) + " fn=" + all_images[idx]);
+
+			setProgress(work_completed / work_to_be_done);
+			work_completed ++;
+
+			File image_filename(all_images[idx]);
+			File txt_filename = image_filename.withFileExtension(".txt");
+			if (not txt_filename.exists())
+			{
+				// nothing we can do, this image is not annotated
+				continue;
+			}
+
+			struct annotation
+			{
+				int class_idx;
+				double x;
+				double y;
+				double w;
+				double h;
+
+				annotation() :
+					class_idx(-1),
+					x(-1.0),
+					y(-1.0),
+					w(-1.0),
+					h(-1.0)
+				{
+					return;
+				}
+			};
+			std::vector<annotation> v;
+
+			bool modified = false;
+			std::ifstream ifs(txt_filename.getFullPathName().toStdString());
+			while (not threadShouldExit())
+			{
+				annotation a;
+				ifs >> a.class_idx >> a.x >> a.y >> a.w >> a.h;
+				if (not ifs.good())
+				{
+					break;
+				}
+
+				if (to_be_deleted.count(a.class_idx))
+				{
+					modified = true;
+					number_of_annotations_deleted ++;
+				}
+				else
+				{
+					if (to_be_renumbered.count(a.class_idx))
+					{
+						modified = true;
+						a.class_idx = to_be_renumbered[a.class_idx];
+						number_of_annotations_remapped ++;
+					}
+
+					// remember this annotation
+					v.push_back(a);
+				}
+			}
+
+			if (modified)
+			{
+				ofs.open(txt_filename.getFullPathName().toStdString());
+				ofs << std::fixed << std::setprecision(10);
+				for (const auto & a : v)
+				{
+					ofs << a.class_idx << " " << a.x << " " << a.y << " " << a.w << " " << a.h << std::endl;
+				}
+				ofs.close();
+				number_of_txt_files_rewritten ++;
+
+				File json_filename = txt_filename.withFileExtension(".json");
+				json_filename.deleteFile();
+			}
+		}
+	}
+
+	return;
 }
 
 
@@ -657,7 +800,7 @@ void dm::ClassIdWnd::rebuild_table()
 		}
 	}
 
-	apply_button.setEnabled(error_count == 0 and changes_to_apply);
+	apply_button.setEnabled(done_looking_for_images and error_count == 0 and next_class_id > 0 and changes_to_apply);
 
 	table.updateContent();
 	table.repaint();
@@ -746,6 +889,11 @@ void dm::ClassIdWnd::count_images_and_marks()
 		if (error_count)
 		{
 			apply_button.setTooltip("Cannot apply changes due to errors.  See log file for details.");
+		}
+		else
+		{
+			all_images.swap(image_filenames);
+			done_looking_for_images = true;
 		}
 	}
 	catch(const std::exception & e)

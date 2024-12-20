@@ -259,8 +259,21 @@ void dm::StartupWnd::buttonClicked(Button * button)
 			const auto dir = notebook_canvas->project_directory.toString();
 			if (dir.isEmpty() == false and fn.isEmpty() == false)
 			{
+				setEnabled(false);
 				ClassIdWnd wnd(dir, fn.toStdString());
 				wnd.runModalLoop();
+				setEnabled(true);
+				if (wnd.names_file_rewritten)
+				{
+					refresh_button.triggerClick();
+					AlertWindow::showMessageBox(MessageBoxIconType::InfoIcon, "DarkMark - " + notebook_canvas->tab_name.toString(),
+						"The .names file has been re-written.\n"
+						"Number of annotations deleted: "	+ String(wnd.number_of_annotations_deleted	) + "\n"
+						"Number of annotations remapped: "	+ String(wnd.number_of_annotations_remapped	) + "\n"
+						"Number of .txt files modified: "	+ String(wnd.number_of_txt_files_rewritten	) + "\n"
+						"\n"
+						"If you've deleted, merged, or altered the order of any of your classes, please remember to re-train your network!");
+				}
 			}
 		}
 	}
@@ -313,8 +326,10 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 				if (ok_to_proceed)
 				{
+					setEnabled(false);
 					PdfImportWindow piw(base_directory.toStdString(), v);
 					piw.runModalLoop();
+					setEnabled(true);
 					if (piw.number_of_imported_pages > 0)
 					{
 						// re-scan this project now that we have more image files
@@ -365,8 +380,10 @@ void dm::StartupWnd::buttonClicked(Button * button)
 
 				if (ok_to_proceed)
 				{
+					setEnabled(false);
 					VideoImportWindow viw(base_directory.toStdString(), v);
 					viw.runModalLoop();
+					setEnabled(true);
 					if (viw.number_of_processed_frames > 0)
 					{
 						// re-scan this project now that we have more image files

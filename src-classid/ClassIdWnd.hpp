@@ -88,5 +88,13 @@ namespace dm
 			TextButton cancel_button;
 
 			std::vector<Info> vinfo;
+
+			bool done_looking_for_images;
+			VStr all_images;
+
+			bool names_file_rewritten;
+			size_t number_of_annotations_deleted;
+			size_t number_of_annotations_remapped;
+			size_t number_of_txt_files_rewritten;
 	};
 }
