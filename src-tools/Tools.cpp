@@ -7,6 +7,7 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, VSt
 {
 	image_filenames.clear();
 	json_filenames.clear();
+	images_without_json.clear();
 
 	Log("finding all images and markup files in " + dir.getFullPathName().toStdString());
 
@@ -26,6 +27,7 @@ void dm::find_files(File dir, VStr & image_filenames, VStr & json_filenames, VSt
 	{
 		if (done)
 		{
+			dm::Log("was looking for images in " + dir.getFullPathName().toStdString() + " but aborting early since the \"done\" flag has been toggled");
 			break;
 		}
 

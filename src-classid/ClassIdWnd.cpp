@@ -80,17 +80,15 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 		centreWithSize(640, 400);
 	}
 
-	rebuild_table();
-
-	setVisible(true);
-
 	for (const auto & info : vinfo)
 	{
 		count_files_per_class[info.original_id]			= 0;
 		count_annotations_per_class[info.original_id]	= 0;
 	}
 
-	counting_thread = std::thread(&dm::ClassIdWnd::count_images_and_marks, this);
+	rebuild_table();
+
+	setVisible(true);
 
 	return;
 }
@@ -98,6 +96,8 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 
 dm::ClassIdWnd::~ClassIdWnd()
 {
+	Log("ClassId window is being closed; done=" + std::to_string(done) + " and threadShouldExit=" + std::to_string(threadShouldExit()));
+
 	done = true;
 	signalThreadShouldExit();
 	cfg().setValue("ClassIdWnd", getWindowStateAsString());
@@ -131,6 +131,8 @@ void dm::ClassIdWnd::add_row(const std::string & name)
 
 void dm::ClassIdWnd::closeButtonPressed()
 {
+	Log("ClassId window is being closed via close button");
+
 	setVisible(false);
 	exitModalState(0);
 
@@ -141,6 +143,8 @@ void dm::ClassIdWnd::closeButtonPressed()
 void dm::ClassIdWnd::userTriedToCloseWindow()
 {
 	// ALT+F4
+
+	Log("ClassId window is being closed via ALT+F4");
 
 	closeButtonPressed();
 
@@ -180,6 +184,25 @@ void dm::ClassIdWnd::resized()
 }
 
 
+void dm::ClassIdWnd::visibilityChanged()
+{
+	// by the time this callback runs, we can be certain the window fully exists
+
+	if (isVisible()				and
+		not done				and
+		not threadShouldExit()	and
+		not counting_thread.joinable())
+	{
+		Log("need to start the counting thread");
+		counting_thread = std::thread(&dm::ClassIdWnd::count_images_and_marks, this);
+	}
+
+	DocumentWindow::visibilityChanged();
+
+	return;
+}
+
+
 void dm::ClassIdWnd::buttonClicked(Button * button)
 {
 	if (button == &add_button)
@@ -189,15 +212,18 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 	}
 	else if (button == &apply_button)
 	{
+		dm::Log("apply button has been pressed!");
 		const bool result = NativeMessageBox::showOkCancelBox(MessageBoxIconType::QuestionIcon, "DarkMark Network Classes", "This will overwrite your " + File(names_fn).getFileName().toStdString() + " file, and possibly modify all of your annotations. You should make a backup of your project before making these modifications.\n\nDo you wish to proceed?");
 		if (result)
 		{
 			runThread(); // calls run() and waits for it to be done
+			dm::Log("forcing the window to close");
 			closeButtonPressed();
 		}
 	}
 	else if (button == &cancel_button)
 	{
+		dm::Log("cancel button has been pressed!");
 		closeButtonPressed();
 	}
 	else if (button == &up_button)
@@ -818,14 +844,14 @@ void dm::ClassIdWnd::count_images_and_marks()
 		error_count = 0;
 
 		VStr image_filenames;
-		VStr json_filenames;
-		VStr images_without_json;
+		VStr ignored_filenames;
 
-		find_files(dir, image_filenames, json_filenames, images_without_json, done);
+		find_files(dir, image_filenames, ignored_filenames, ignored_filenames, done);
+		ignored_filenames.clear();
 
-		dm::Log("counting thread: number of images found in " + dir.getFullPathName().toStdString() + ": " + std::to_string(image_filenames.size()));
+		dm::Log("counting thread: done=" + std::to_string(done) + ": number of images found in " + dir.getFullPathName().toStdString() + ": " + std::to_string(image_filenames.size()));
 
-		for (size_t idx = 0; idx < image_filenames.size() and not threadShouldExit(); idx ++)
+		for (size_t idx = 0; idx < image_filenames.size() and not done and not threadShouldExit(); idx ++)
 		{
 			auto & fn = image_filenames[idx];
 			File file = File(fn).withFileExtension(".txt");
@@ -889,8 +915,20 @@ void dm::ClassIdWnd::count_images_and_marks()
 			}
 		}
 
+		// display a bit of information on all the classes and annotations we found
+		for (const auto & [k, v] : count_files_per_class)
+		{
+			dm::Log("-> class #" + std::to_string(k) + ": " + std::to_string(v) + " files");
+		}
+
+		for (const auto & [k, v] : count_annotations_per_class)
+		{
+			dm::Log("-> class #" + std::to_string(k) + ": " + std::to_string(v) + " total annotations");
+		}
+
 		if (error_count)
 		{
+			dm::Log("-> errors found: " + std::to_string(error_count));
 			apply_button.setTooltip("Cannot apply changes due to errors.  See log file for details.");
 		}
 		else
@@ -902,9 +940,19 @@ void dm::ClassIdWnd::count_images_and_marks()
 	catch(const std::exception & e)
 	{
 		dm::Log(std::string("counting thread exception: ") + e.what());
+		error_count ++;
+	}
+	catch(...)
+	{
+		dm::Log("unknown exception caught in counting thread");
+		error_count ++;
 	}
 
-	Log("counting thread is exiting");
+	dm::Log("counting thread is exiting"
+		", done="				+ std::to_string(done)					+
+		", threadShouldExit="	+ std::to_string(threadShouldExit())	+
+		", errors="				+ std::to_string(error_count)			+
+		", images="				+ std::to_string(all_images.size())		);
 
 	return;
 }

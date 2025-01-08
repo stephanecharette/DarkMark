@@ -48,6 +48,7 @@ namespace dm
 			virtual void resized()						override;
 			virtual void buttonClicked(Button * button)	override;
 			virtual void run()							override;
+			virtual void visibilityChanged()			override;
 
 			virtual int getNumRows() override;
 			virtual void paintRowBackground(Graphics &g, int rowNumber, int width, int height, bool rowIsSelected) override;
@@ -59,7 +60,9 @@ namespace dm
 
 			void rebuild_table();
 
+			/// Used to stop the counting thread in cases where the window is closed early.
 			std::atomic<bool> done;
+
 			std::thread counting_thread;
 			void count_images_and_marks();
 
@@ -75,6 +78,10 @@ namespace dm
 			/// The key is the class ID, the val is the number of annotations found with that class.
 			std::map<int, size_t> count_annotations_per_class;
 
+			/** Set by the counting thread if any errors were found while looking through all of the annotations.  If there are
+			 * errors, then prevent the user from saving modifications to the classes.  User must fix errors first, to prevent
+			 * us making things worse by attempting to modify bad .txt annotation files.
+			 */
 			size_t error_count;
 
 			Component canvas;
@@ -87,9 +94,15 @@ namespace dm
 			TextButton apply_button;
 			TextButton cancel_button;
 
+			/// This is the content of the "table".
 			std::vector<Info> vinfo;
 
-			bool done_looking_for_images;
+			/// Flag will be set to @p true once the counting thread has finished looking at all the image annotations.
+			std::atomic<bool> done_looking_for_images;
+
+			/** All images which were found to have YOLO annotations.  This is set by the counting thread, and will only be
+			 * populated once the @ref done_looking_for_images flag has also been set.
+			 */
 			VStr all_images;
 
 			bool names_file_rewritten;
