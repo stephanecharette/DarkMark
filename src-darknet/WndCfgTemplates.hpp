@@ -51,6 +51,8 @@ namespace dm
 
 			virtual ~WndCfgTemplates();
 
+			virtual void visibilityChanged() override;
+
 			virtual void userTriedToCloseWindow() override;
 
 			virtual void resized() override;
@@ -84,5 +86,7 @@ namespace dm
 			TextButton help_button;
 			TextButton ok_button;
 			TextButton cancel_button;
+
+			bool must_start_thread;
 	};
 }

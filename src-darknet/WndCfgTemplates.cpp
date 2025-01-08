@@ -36,7 +36,8 @@ dm::WndCfgTemplates::WndCfgTemplates(Value & v) :
 		include_tiny_button("tiny"),
 		help_button("Help"),
 		ok_button("OK"),
-		cancel_button("Cancel")
+		cancel_button("Cancel"),
+		must_start_thread(true)
 {
 	setContentNonOwned(&canvas, false);
 
@@ -110,8 +111,6 @@ dm::WndCfgTemplates::WndCfgTemplates(Value & v) :
 
 	setVisible(true);
 
-	startThread();
-
 	return;
 }
 
@@ -124,6 +123,22 @@ dm::WndCfgTemplates::~WndCfgTemplates()
 	cfg().setValue("CfgTemplatesTable", table.getHeader().toString());
 
 	waitForThreadToExit(1000);
+
+	return;
+}
+
+
+void dm::WndCfgTemplates::visibilityChanged()
+{
+	// by the time this callback runs, we can be certain the window fully exists
+
+	if (must_start_thread)
+	{
+		must_start_thread = false;
+		startThread();
+	}
+
+	DocumentWindow::visibilityChanged();
 
 	return;
 }
