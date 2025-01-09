@@ -31,19 +31,20 @@ namespace dm
 
 			TooltipWindow tool_tip;
 
-			std::unique_ptr<Cfg>			cfg;
-			std::unique_ptr<DMWnd>			wnd;
-			std::unique_ptr<DarkHelp::NN>	darkhelp_nn;
-			std::unique_ptr<DMStatsWnd>		stats_wnd;
-			std::unique_ptr<AboutWnd>		about_wnd;
-			std::unique_ptr<DMJumpWnd>		jump_wnd;
-			std::unique_ptr<DMReviewWnd>	review_wnd;
-			std::unique_ptr<DMReviewIoUWnd>	review_iou_wnd;
-			std::unique_ptr<DarknetWnd>		darknet_wnd;
-			std::unique_ptr<StartupWnd>		startup_wnd;
-			std::unique_ptr<SettingsWnd>	settings_wnd;
-			std::unique_ptr<FilterWnd>		filter_wnd;
-			std::unique_ptr<ClassIdWnd>		class_id_wnd;
+			std::unique_ptr<Cfg>				cfg;
+			std::unique_ptr<DMWnd>				wnd;
+			std::unique_ptr<DarkHelp::NN>		darkhelp_nn;
+			std::unique_ptr<DMStatsWnd>			stats_wnd;
+			std::unique_ptr<AboutWnd>			about_wnd;
+			std::unique_ptr<DMJumpWnd>			jump_wnd;
+			std::unique_ptr<DMReviewWnd>		review_wnd;
+			std::unique_ptr<DMReviewIoUWnd>		review_iou_wnd;
+			std::unique_ptr<DarknetWnd>			darknet_wnd;
+			std::unique_ptr<StartupWnd>			startup_wnd;
+			std::unique_ptr<SettingsWnd>		settings_wnd;
+			std::unique_ptr<FilterWnd>			filter_wnd;
+			std::unique_ptr<ClassIdWnd>			class_id_wnd;
+			std::unique_ptr<WndCfgTemplates>	cfg_template_wnd;
 	};
 
 

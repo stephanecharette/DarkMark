@@ -51,8 +51,7 @@ namespace dm
 
 			virtual ~WndCfgTemplates();
 
-			virtual void visibilityChanged() override;
-
+			virtual void closeButtonPressed() override;
 			virtual void userTriedToCloseWindow() override;
 
 			virtual void resized() override;

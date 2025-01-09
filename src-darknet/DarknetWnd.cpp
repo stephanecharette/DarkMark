@@ -180,13 +180,11 @@ class CfgTemplateButton : public ButtonPropertyComponent
 
 		virtual void buttonClicked()
 		{
-			dm::WndCfgTemplates wnd(value);
-			const int result = wnd.runModalLoop();
+			dm::dmapp().darknet_wnd->setEnabled(false);
 
-			if (result == 0)
-			{
-				refresh(); // force the name change to show
-			}
+			dm::dmapp().cfg_template_wnd.reset(new dm::WndCfgTemplates(value));
+			dm::dmapp().cfg_template_wnd->setVisible(true);
+			dm::dmapp().cfg_template_wnd->toFront(true);
 		}
 
 		virtual String getButtonText () const
@@ -207,6 +205,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	ok_button(getText("OK")),
 	cancel_button(getText("Cancel"))
 {
+	template_button				= nullptr;
 	percentage_slider			= nullptr;
 	recalculate_anchors_toggle	= nullptr;
 	class_imbalance_toggle		= nullptr;
@@ -295,6 +294,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		u = new CfgTemplateButton(v_cfg_template);
 		setTooltip(u, "The darknet configuration file to use as a template for this project.");
 		properties.add(u);
+
+		template_button = u;
 
 		pp.addSection("darknet", properties, true);
 		properties.clear();
@@ -547,6 +548,8 @@ dm::DarknetWnd::~DarknetWnd()
 {
 	percentage_slider = nullptr;
 
+	dmapp().cfg_template_wnd.reset(nullptr);
+
 	if (dmapp().cli_options["editor"] == "gen-darknet")
 	{
 		// since our sole purpose was to run this window, we can completely exit from DarkMark
@@ -561,6 +564,7 @@ void dm::DarknetWnd::closeButtonPressed()
 {
 	// close button
 
+	dmapp().cfg_template_wnd.reset(nullptr);
 	dmapp().darknet_wnd.reset(nullptr);
 
 	return;
@@ -572,6 +576,7 @@ void dm::DarknetWnd::userTriedToCloseWindow()
 	// ALT+F4
 
 	dmapp().darknet_wnd.reset(nullptr);
+	dmapp().cfg_template_wnd.reset(nullptr);
 
 	return;
 }

@@ -93,6 +93,7 @@ namespace dm
 			TextButton ok_button;
 			TextButton cancel_button;
 
+			ButtonPropertyComponent * template_button;
 			SliderPropertyComponent * percentage_slider;
 			BooleanPropertyComponent * recalculate_anchors_toggle;
 			BooleanPropertyComponent * class_imbalance_toggle;

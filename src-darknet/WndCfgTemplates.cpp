@@ -109,6 +109,8 @@ dm::WndCfgTemplates::WndCfgTemplates(Value & v) :
 		restoreWindowStateFromString(cfg().getValue("CfgTemplatesWnd"));
 	}
 
+	startThread();
+
 	setVisible(true);
 
 	return;
@@ -124,21 +126,31 @@ dm::WndCfgTemplates::~WndCfgTemplates()
 
 	waitForThreadToExit(1000);
 
+	// since we're no longer a modal window, make sure the parent window is re-enabled
+	// otherwise the user will be locked out of the application
+	if (dm::dmapp().darknet_wnd)
+	{
+		dm::dmapp().darknet_wnd->setEnabled(true);
+	}
+
 	return;
 }
 
 
-void dm::WndCfgTemplates::visibilityChanged()
+void dm::WndCfgTemplates::closeButtonPressed()
 {
-	// by the time this callback runs, we can be certain the window fully exists
+	Log("Template window is being closed via close button");
 
-	if (must_start_thread)
+	setVisible(false);
+
+	if (dm::dmapp().darknet_wnd)
 	{
-		must_start_thread = false;
-		startThread();
+		// re-enable the darknet window which started us (fake modal mode)
+		dm::dmapp().darknet_wnd->setEnabled(true);
+		dm::dmapp().darknet_wnd->template_button->refresh(); // force the name change to show
 	}
 
-	DocumentWindow::visibilityChanged();
+	dmapp().cfg_template_wnd.reset(nullptr);
 
 	return;
 }
@@ -148,7 +160,9 @@ void dm::WndCfgTemplates::userTriedToCloseWindow()
 {
 	// ALT+F4
 
-	exitModalState(-1);
+	Log("template window is being closed via ALT+F4");
+
+	closeButtonPressed();
 
 	return;
 }
@@ -200,12 +214,14 @@ void dm::WndCfgTemplates::buttonClicked(Button * button)
 	}
 	else if (button == &cancel_button)
 	{
+		setEnabled(false);
 		userTriedToCloseWindow();
 	}
 	else if (button == &ok_button)
 	{
+		setEnabled(false);
 		value = selected_configuration_path_and_filename.c_str();
-		exitModalState(0);
+		userTriedToCloseWindow();
 	}
 	else if (button == &include_new_button or button == &include_yolo_button or button == &include_tiny_button)
 	{
