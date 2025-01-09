@@ -259,21 +259,14 @@ void dm::StartupWnd::buttonClicked(Button * button)
 			const auto dir = notebook_canvas->project_directory.toString();
 			if (dir.isEmpty() == false and fn.isEmpty() == false)
 			{
-				setEnabled(false);
-				ClassIdWnd wnd(dir, fn.toStdString());
-				wnd.runModalLoop();
-				setEnabled(true);
-				if (wnd.names_file_rewritten)
-				{
-					refresh_button.triggerClick();
-					AlertWindow::showMessageBox(MessageBoxIconType::InfoIcon, "DarkMark - " + notebook_canvas->tab_name.toString(),
-						"The .names file has been re-written.\n"
-						"Number of annotations deleted: "	+ String(wnd.number_of_annotations_deleted	) + "\n"
-						"Number of annotations remapped: "	+ String(wnd.number_of_annotations_remapped	) + "\n"
-						"Number of .txt files modified: "	+ String(wnd.number_of_txt_files_rewritten	) + "\n"
-						"\n"
-						"If you've deleted, merged, or altered the order of any of your classes, please remember to re-train your network!");
-				}
+				// modal windows are causing problems for some people, so convert this to an async window and
+				// try and behave somewhat like a modal by disabling all the controls on the parent window
+
+				setEnabled(false); // these will be re-enabled when the ClassIdWnd is destroyed
+
+				dmapp().class_id_wnd.reset(new ClassIdWnd(dir, fn.toStdString()));
+				dmapp().class_id_wnd->setVisible(true);
+				dmapp().class_id_wnd->toFront(true);
 			}
 		}
 	}

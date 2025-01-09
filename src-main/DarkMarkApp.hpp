@@ -43,6 +43,7 @@ namespace dm
 			std::unique_ptr<StartupWnd>		startup_wnd;
 			std::unique_ptr<SettingsWnd>	settings_wnd;
 			std::unique_ptr<FilterWnd>		filter_wnd;
+			std::unique_ptr<ClassIdWnd>		class_id_wnd;
 	};
 
 

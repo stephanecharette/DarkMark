@@ -90,6 +90,8 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 
 	setVisible(true);
 
+	counting_thread = std::thread(&dm::ClassIdWnd::count_images_and_marks, this);
+
 	return;
 }
 
@@ -105,6 +107,13 @@ dm::ClassIdWnd::~ClassIdWnd()
 	if (counting_thread.joinable())
 	{
 		counting_thread.join();
+	}
+
+	// since we're no longer a modal window, make sure the parent window is re-enabled
+	// otherwise the user will be locked out of the application
+	if (dmapp().startup_wnd)
+	{
+		dmapp().startup_wnd->setEnabled(true);
 	}
 
 	return;
@@ -134,7 +143,29 @@ void dm::ClassIdWnd::closeButtonPressed()
 	Log("ClassId window is being closed via close button");
 
 	setVisible(false);
-	exitModalState(0);
+
+	if (dmapp().startup_wnd)
+	{
+		// re-enable the launcher window which started us (fake modal mode)
+		dmapp().startup_wnd->setEnabled(true);
+
+		if (names_file_rewritten)
+		{
+			dmapp().startup_wnd->refresh_button.triggerClick();
+
+			AlertWindow::showMessageBoxAsync(MessageBoxIconType::InfoIcon,
+					getTitle(),
+					"The .names file has been saved.\n"
+					"\n"
+					"Number of annotations deleted: "	+ String(number_of_annotations_deleted	) + "\n"
+					"Number of annotations remapped: "	+ String(number_of_annotations_remapped	) + "\n"
+					"Number of .txt files modified: "	+ String(number_of_txt_files_rewritten	) + "\n"
+					"\n"
+					"If you've deleted, merged, or altered the order of any of your classes, please remember to re-train your network!");
+		}
+	}
+
+	dmapp().class_id_wnd.reset(nullptr);
 
 	return;
 }
@@ -184,25 +215,6 @@ void dm::ClassIdWnd::resized()
 }
 
 
-void dm::ClassIdWnd::visibilityChanged()
-{
-	// by the time this callback runs, we can be certain the window fully exists
-
-	if (isVisible()				and
-		not done				and
-		not threadShouldExit()	and
-		not counting_thread.joinable())
-	{
-		Log("need to start the counting thread");
-		counting_thread = std::thread(&dm::ClassIdWnd::count_images_and_marks, this);
-	}
-
-	DocumentWindow::visibilityChanged();
-
-	return;
-}
-
-
 void dm::ClassIdWnd::buttonClicked(Button * button)
 {
 	if (button == &add_button)
@@ -213,6 +225,7 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 	else if (button == &apply_button)
 	{
 		dm::Log("apply button has been pressed!");
+		setEnabled(false);
 		const bool result = NativeMessageBox::showOkCancelBox(MessageBoxIconType::QuestionIcon, "DarkMark Network Classes", "This will overwrite your " + File(names_fn).getFileName().toStdString() + " file, and possibly modify all of your annotations. You should make a backup of your project before making these modifications.\n\nDo you wish to proceed?");
 		if (result)
 		{
@@ -220,10 +233,15 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 			dm::Log("forcing the window to close");
 			closeButtonPressed();
 		}
+		else
+		{
+			setEnabled(true);
+		}
 	}
 	else if (button == &cancel_button)
 	{
 		dm::Log("cancel button has been pressed!");
+		setEnabled(false);
 		closeButtonPressed();
 	}
 	else if (button == &up_button)

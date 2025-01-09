@@ -48,7 +48,6 @@ namespace dm
 			virtual void resized()						override;
 			virtual void buttonClicked(Button * button)	override;
 			virtual void run()							override;
-			virtual void visibilityChanged()			override;
 
 			virtual int getNumRows() override;
 			virtual void paintRowBackground(Graphics &g, int rowNumber, int width, int height, bool rowIsSelected) override;
