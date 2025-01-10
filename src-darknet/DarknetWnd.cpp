@@ -202,6 +202,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	content(c),
 	info(c.project_info),
 	help_button(getText("Read Me!")),
+	youtube_button("YouTube", DrawableButton::ButtonStyle::ImageOnButtonBackground),
 	ok_button(getText("OK")),
 	cancel_button(getText("Cancel"))
 {
@@ -221,10 +222,12 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	canvas.addAndMakeVisible(pp);
 	canvas.addAndMakeVisible(help_button);
+	canvas.addAndMakeVisible(youtube_button);
 	canvas.addAndMakeVisible(ok_button);
 	canvas.addAndMakeVisible(cancel_button);
 
 	help_button		.addListener(this);
+	youtube_button	.addListener(this);
 	ok_button		.addListener(this);
 	cancel_button	.addListener(this);
 
@@ -234,6 +237,21 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	{
 		peer->setIcon(DarkMarkLogo());
 	}
+
+	DrawablePath path;
+
+	Path p;
+	// the rounded-corner red + white YouTube logo
+//	p.addRoundedRectangle(Rectangle<int>(6, 80, 500, 350), 70);
+	p.addTriangle(207, 183, 207, 332, 334, 257);
+	path.setPath(p);
+	path.setFill(Colours::white);
+
+	youtube_button.setImages(&path);
+	youtube_button.setTooltip("Watch the tutorial on YouTube.");
+	youtube_button.setColour(TextButton::ColourIds::buttonColourId, Colours::red);
+
+	help_button.setTooltip("Read the documentation on the web site.");
 
 	if (info.batch_size <= 1)
 	{
@@ -269,6 +287,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_mosaic						= info.enable_mosaic;
 	v_cutmix						= info.enable_cutmix;
 	v_mixup							= info.enable_mixup;
+	// debug options are not stored in config
+	v_verbose_output				= false;
 	v_keep_augmented_images			= false;
 	v_show_receptive_field			= false;
 
@@ -358,7 +378,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b = new BooleanPropertyComponent(v_tile_images, getText("tile images"), getText("tile images to match the network dimensions"));
 	setTooltip(b, "DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 	properties.add(b);
-	highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "Tiling is an advanced feature. If you select this option, you MUST also use DarkHelp for inference. Remember to enable \"tiling\" in DarkHelp, otherwise inference will not work."));
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "Tiling is an advanced feature. If you select this option, you MUST also use DarkHelp for inference. Remember to enable \"tiling\" in DarkHelp, otherwise inference may not work as expected."));
 	v_tile_images.addListener(this);
 
 	b = new BooleanPropertyComponent(v_zoom_images, getText("crop & zoom images"), getText("random crop and zoom images"));
@@ -516,10 +536,14 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	if (normal_interface)
 	{
+		b = new BooleanPropertyComponent(v_verbose_output, "verbose output", "verbose output");
+		setTooltip(b, "This adds the \"verbose\" flag when training.");
+		properties.add(b);
+
 		b = new BooleanPropertyComponent(v_keep_augmented_images, "keep images", "keep images");
 		setTooltip(b, "Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
 		properties.add(b);
-		highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "This is meant for debug purpose only, not for regular use."));
+		highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "This is meant for debug purpose only, not for regular use. This will cause an extreme number of new images to be saved to disk."));
 		v_keep_augmented_images.addListener(this);
 
 		b = new BooleanPropertyComponent(v_show_receptive_field, "show receptive field", "show receptive field");
@@ -553,6 +577,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	else
 	{
 		help_button.setVisible(false);
+		youtube_button.setVisible(false);
 		r = r.withSizeKeepingCentre(550, 500);
 	}
 
@@ -621,8 +646,11 @@ void dm::DarknetWnd::resized()
 	button_row.flexDirection = FlexBox::Direction::row;
 	button_row.justifyContent = FlexBox::JustifyContent::flexEnd;
 	button_row.items.add(FlexItem(help_button).withWidth(100.0));
+	button_row.items.add(FlexItem().withWidth(margin_size));
+	button_row.items.add(FlexItem(youtube_button).withWidth(30.0));
 	button_row.items.add(FlexItem().withFlex(1.0));
-	button_row.items.add(FlexItem(cancel_button).withWidth(100.0).withMargin(FlexItem::Margin(0, margin_size, 0, margin_size)));
+	button_row.items.add(FlexItem(cancel_button).withWidth(100.0));
+	button_row.items.add(FlexItem().withWidth(margin_size));
 	button_row.items.add(FlexItem(ok_button).withWidth(100.0));
 
 	FlexBox fb;
@@ -665,6 +693,12 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	if (button == &help_button)
 	{
 		URL("https://www.ccoderun.ca/DarkMark/darknet_output.html").launchInDefaultBrowser();
+		return;
+	}
+
+	if (button == &youtube_button)
+	{
+		URL("https://youtu.be/8Ms9T9Ue2g8").launchInDefaultBrowser();
 		return;
 	}
 
@@ -852,62 +886,50 @@ void dm::DarknetWnd::valueChanged(Value & value)
 	// go through all of the necessary property buttons and highlight any which are set opposite to what we expect
 	for (const auto & entry : highlight_conditions_and_messages)
 	{
-		// see if this is a button
+		bool must_be_highlited = false;
+		const bool has_colour = entry.component->isColourSpecified(PropertyComponent::ColourIds::backgroundColourId);
+
+		// see if this is a boolean toggle box
 		BooleanPropertyComponent * button = dynamic_cast<BooleanPropertyComponent *>(entry.component);
 		if (button)
 		{
 			const bool state = button->getState();
-			const bool has_colour = button->isColourSpecified(ButtonPropertyComponent::ColourIds::backgroundColourId);
 
-			if (state == entry.highlight_if_enabled and not has_colour)
+			if (state == entry.highlight_if_enabled)
 			{
-				button->setColour(ButtonPropertyComponent::ColourIds::backgroundColourId, Colours::red.withAlpha(0.5f));
-				repaint();
-
-				AttributedString str;
-				str.setText(entry.msg);
-				str.setColour(Colours::black);
-				str.setWordWrap(AttributedString::WordWrap::byWord);
-
-				bubble.showAt(button, str, 10000, true, false);
-			}
-			else if (state != entry.highlight_if_enabled and has_colour)
-			{
-				button->removeColour(ButtonPropertyComponent::ColourIds::backgroundColourId);
-				repaint();
+				must_be_highlited = true;
 			}
 		}
 
+		// next we check the slider controls
 		SliderPropertyComponent * slider = dynamic_cast<SliderPropertyComponent *>(entry.component);
 		if (slider)
 		{
 			const int value = slider->getValue();
-			const bool has_colour = slider->isColourSpecified(SliderPropertyComponent::ColourIds::backgroundColourId);
-			bool is_valid = true;
 
 			if ((entry.highlight_if_less_than > -1 and value < entry.highlight_if_less_than) or
 				(entry.highlight_if_more_than > -1 and value > entry.highlight_if_more_than))
 			{
-				is_valid = false;
+				must_be_highlited = true;
 			}
+		}
 
-			if (not is_valid and not has_colour)
-			{
-				slider->setColour(SliderPropertyComponent::ColourIds::backgroundColourId, Colours::red.withAlpha(0.5f));
-				repaint();
+		if (must_be_highlited and not has_colour)
+		{
+			entry.component->setColour(PropertyComponent::ColourIds::backgroundColourId, Colours::red.withAlpha(0.75f));
+			repaint();
 
-				AttributedString str;
-				str.setText(entry.msg);
-				str.setColour(Colours::black);
-				str.setWordWrap(AttributedString::WordWrap::byWord);
+			AttributedString str;
+			str.setText(entry.msg);
+			str.setColour(Colours::black);
+			str.setWordWrap(AttributedString::WordWrap::byWord);
 
-				bubble.showAt(slider, str, 10000, true, false);
-			}
-			else if (is_valid and has_colour)
-			{
-				slider->removeColour(SliderPropertyComponent::ColourIds::backgroundColourId);
-				repaint();
-			}
+			bubble.showAt(entry.component, str, 10000, true, false);
+		}
+		else if (not must_be_highlited and has_colour)
+		{
+			entry.component->removeColour(PropertyComponent::ColourIds::backgroundColourId);
+			repaint();
 		}
 	}
 
@@ -1271,7 +1293,7 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 
 	if (true)
 	{
-		std::string cmd = cfg().get_str("darknet_executable") + " detector -map" + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
+		std::string cmd = cfg().get_str("darknet_executable") + " detector -map" + (v_verbose_output.getValue() ? " -verbose" : "") + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
 		if (info.restart_training)
 		{
 			cmd += " " + cfg().get_str(content.cfg_prefix + "weights");

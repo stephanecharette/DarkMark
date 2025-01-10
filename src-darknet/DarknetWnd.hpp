@@ -82,6 +82,7 @@ namespace dm
 			Value v_mosaic;
 			Value v_cutmix;
 			Value v_mixup;
+			Value v_verbose_output;
 			Value v_keep_augmented_images;
 			Value v_show_receptive_field;
 
@@ -90,6 +91,7 @@ namespace dm
 			Component canvas;
 			PropertyPanel pp;
 			TextButton help_button;
+			DrawableButton youtube_button;
 			TextButton ok_button;
 			TextButton cancel_button;
 
