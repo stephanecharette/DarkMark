@@ -906,8 +906,9 @@ void dm::ClassIdWnd::count_images_and_marks()
 						w <= 0.0 or
 						h <= 0.0)
 					{
-						error_count ++;
-						dm::Log("ERROR: coordinates for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " on line #" + std::to_string(line_number) + " are invalid");
+						// ignore these errors...we're not changing the coordinates of anything just renumbering and merging things together
+//						error_count ++;
+						dm::Log("WARNING: coordinates for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " on line #" + std::to_string(line_number) + " are invalid");
 					}
 					else if (
 						// take into account rounding errors, especially when converting coordinates between float and double
@@ -916,8 +917,9 @@ void dm::ClassIdWnd::count_images_and_marks()
 						y - h / 2.0 < -0.000001 or
 						y + h / 2.0 >  1.000001)
 					{
-						error_count ++;
-						dm::Log("ERROR: width or height for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " on line #" + std::to_string(line_number) + " is invalid");
+						// ignore these errors...we're not changing the coordinates of anything just renumbering and merging things together
+//						error_count ++;
+						dm::Log("WARNING: width or height for class #" + std::to_string(class_id) + " in " + file.getFullPathName().toStdString() + " on line #" + std::to_string(line_number) + " is invalid");
 					}
 					else
 					{
