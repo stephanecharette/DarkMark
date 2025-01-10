@@ -49,7 +49,5 @@ namespace dm
 
 			/// The size -- in pixels -- of the triangle markers used to show the different image sets.
 			int triangle_size;
-
-			BubbleMessageComponent bubble;
 	};
 }

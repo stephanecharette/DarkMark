@@ -215,6 +215,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	setResizable			(true, false	);
 	setDropShadowEnabled	(true			);
 
+	addAndMakeVisible(bubble);
+	bubble.setColour(BubbleMessageComponent::ColourIds::backgroundColourId, Colours::yellow);
+	bubble.setColour(BubbleMessageComponent::ColourIds::outlineColourId, Colours::black);
+
 	canvas.addAndMakeVisible(pp);
 	canvas.addAndMakeVisible(help_button);
 	canvas.addAndMakeVisible(ok_button);
@@ -312,14 +316,20 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	s = new SliderPropertyComponent(v_batch_size, getText("batch size"), 1.0, 512.0, 1.0, 0.5, false);
 	setTooltip(s, "Batch size determines the number of images processed per iteration. Default is 64 images per iteration.");
 	properties.add(s);
+	highlight_conditions_and_messages.push_back(BubbleInfo(s, 64, -1, "The batch size when training a neural network should usually be set to 64."));
+	v_batch_size.addListener(this);
 
 	s = new SliderPropertyComponent(v_subdivisions, getText("subdivisions"), 1.0, 512.0, 1.0, 0.5, false);
 	setTooltip(s, "The number of images processed in parallel by the GPU is the batch size divided by subdivisions. Default is 8.");
 	properties.add(s);
+	highlight_conditions_and_messages.push_back(BubbleInfo(s, 1, 8, "For best results during training, the subdivisions should be as near to \"1\" as possible. The amount of available memory on your GPU may require you to set this higher. The higher the value, the less efficient training will be. See the YOLO FAQ for details."));
+	v_subdivisions.addListener(this);
 
 	s = new SliderPropertyComponent(v_iterations, getText("max_batches"), 1000.0, 1000000.0, 1.0, 0.5, false);
 	setTooltip(s, "The total number of iterations to run. As a general rule of thumb, at the very least this should be 2000x more than the number of classes defined.");
 	properties.add(s);
+	highlight_conditions_and_messages.push_back(BubbleInfo(s, 500 * (content.names.size() - 1), 5000 * (content.names.size() - 1), "Max batches should be set to approximately 2000 times the number of classes defined, or until the neural network reaches a reasonable plateau while training."));
+	v_iterations.addListener(this);
 
 	s = new SliderPropertyComponent(v_learning_rate, getText("learning_rate"), 0.000001, 0.999999, 0.000001, 0.25, false);
 	setTooltip(s, "The learning rate determines the step size at each iteration while moving toward a minimum of a loss function. Since it influences to what extent newly acquired information overrides old information, it metaphorically represents the speed at which a machine learning model \"learns\".");
@@ -336,8 +346,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	properties.clear();
 
 	b = new BooleanPropertyComponent(v_do_not_resize_images, getText("do not resize images"), getText("do not resize images"));
-	setTooltip(b, "Images will be left exactly as they are.  This means Darknet will be responsible for resizing them to match the network dimensions during training.");
+	setTooltip(b, "Images will be left exactly as they are. This means Darknet will be responsible for resizing them to match the network dimensions during training. This is not recommended.");
 	properties.add(b);
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "Images should generally be resized prior to training. If you select this option, the original images will be used to train the neural network which will cause training to take much longer than usual to complete."));
+	v_do_not_resize_images.addListener(this);
 
 	b = new BooleanPropertyComponent(v_resize_images, getText("resize images"), getText("resize images to match the network dimensions"));
 	setTooltip(b, "DarkMark will automatically resize all the images to match the network dimensions. This speeds up training since Darknet doesn't have to dynamically resize the images while training. This may be combined with the 'tile images' option.");
@@ -346,6 +358,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b = new BooleanPropertyComponent(v_tile_images, getText("tile images"), getText("tile images to match the network dimensions"));
 	setTooltip(b, "DarkMark will create new image tiles using the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
 	properties.add(b);
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "Tiling is an advanced feature. If you select this option, you MUST also use DarkHelp for inference. Remember to enable \"tiling\" in DarkHelp, otherwise inference will not work."));
+	v_tile_images.addListener(this);
 
 	b = new BooleanPropertyComponent(v_zoom_images, getText("crop & zoom images"), getText("random crop and zoom images"));
 	setTooltip(b, "DarkMark will randomly crop and zoom larger images to obtain tiles that match the network dimensions. Annotations will automatically be fixed up to match the tiles. This may be combined with the 'resize images' option.");
@@ -358,6 +372,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b = new BooleanPropertyComponent(v_train_with_all_images, getText("train with all images"), getText("train with all images"));
 	setTooltip(b, "Enable this option to use the full list of images for both training and validation, otherwise use the percentage defined below. If you are training your own custom network then you probably want to enable this.");
 	properties.add(b);
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, false, "It is highly recommended that this be kept \"on\". Turning it off likely doesn't work the way you think! See the YOLO FAQ for details."));
+	v_train_with_all_images.addListener(this);
 
 	s = new SliderPropertyComponent(v_training_images_percentage, getText("training images %"), 50.0, 100.0, 1.0);
 	setTooltip(s, "Percentage of images to use for training. The remaining images will be used for validation. Default is to use 80% of the images for training, and 20% for validation.");
@@ -371,6 +387,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b = new BooleanPropertyComponent(v_limit_validation_images, getText("limit validation images"), getText("limit validation images"));
 	setTooltip(b, "Limit the number of validation images to a maximum based on the number of classes. This should be disabled unless you are running into problems related to an extreme number of validation images.");
 	properties.add(b);
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "It is highly recommended that this be kept \"off\". This is an advanced feature meant to be used when encountering a specific problem while training. It can negatively impact the training of a neural network if enabled needlessly."));
+	v_limit_validation_images.addListener(this);
 
 	pp.addSection(getText("images"), properties, true);
 	properties.clear();
@@ -379,6 +397,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	setTooltip(b, "Recalculate the best anchors to use given the images, bounding boxes, and network dimensions. This should be enabled.");
 	recalculate_anchors_toggle = b;
 	properties.add(b);
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, false, "It is highly recommended that this be kept \"on\"."));
+	v_recalculate_anchors.addListener(this);
 
 	if (normal_interface)
 	{
@@ -397,6 +417,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 			b->setEnabled(false);
 		}
 		properties.add(b);
+		highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "This is an advanced feature, and may have a significant impact on how the neural network is trained. It is recommended that this be kept \"off\"."));
+		v_class_imbalance.addListener(this);
 	}
 	else
 	{
@@ -462,6 +484,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	b = new BooleanPropertyComponent(v_mosaic, getText("enable mosaic"), getText("mosaic"));
 	setTooltip(b, "WARNING: Issue #6105: \"Mosaic degrades accuracy for tiny model.\"");
 	properties.add(b);
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "Enabling this option may degrade the accuracy of the neural network."));
+	v_mosaic.addListener(this);
 
 	if (normal_interface)
 	{
@@ -495,10 +519,14 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		b = new BooleanPropertyComponent(v_keep_augmented_images, "keep images", "keep images");
 		setTooltip(b, "Save augmented images to disk for review. This adds the \"show_imgs\" flag when training.");
 		properties.add(b);
+		highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "This is meant for debug purpose only, not for regular use."));
+		v_keep_augmented_images.addListener(this);
 
 		b = new BooleanPropertyComponent(v_show_receptive_field, "show receptive field", "show receptive field");
 		setTooltip(b, "Display receptive field debug information on the console when using \"darknet detector test ...\"");
 		properties.add(b);
+		highlight_conditions_and_messages.push_back(BubbleInfo(b, true, "This is meant for debug purpose only, not for regular use."));
+		v_show_receptive_field.addListener(this);
 
 		pp.addSection("darknet debug", properties, false);
 		properties.clear();
@@ -818,6 +846,68 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		{
 			v_anchor_clusters = number_of_clusters;
 			recalculate_anchors_toggle->setEnabled(true);
+		}
+	}
+
+	// go through all of the necessary property buttons and highlight any which are set opposite to what we expect
+	for (const auto & entry : highlight_conditions_and_messages)
+	{
+		// see if this is a button
+		BooleanPropertyComponent * button = dynamic_cast<BooleanPropertyComponent *>(entry.component);
+		if (button)
+		{
+			const bool state = button->getState();
+			const bool has_colour = button->isColourSpecified(ButtonPropertyComponent::ColourIds::backgroundColourId);
+
+			if (state == entry.highlight_if_enabled and not has_colour)
+			{
+				button->setColour(ButtonPropertyComponent::ColourIds::backgroundColourId, Colours::red.withAlpha(0.5f));
+				repaint();
+
+				AttributedString str;
+				str.setText(entry.msg);
+				str.setColour(Colours::black);
+				str.setWordWrap(AttributedString::WordWrap::byWord);
+
+				bubble.showAt(button, str, 10000, true, false);
+			}
+			else if (state != entry.highlight_if_enabled and has_colour)
+			{
+				button->removeColour(ButtonPropertyComponent::ColourIds::backgroundColourId);
+				repaint();
+			}
+		}
+
+		SliderPropertyComponent * slider = dynamic_cast<SliderPropertyComponent *>(entry.component);
+		if (slider)
+		{
+			const int value = slider->getValue();
+			const bool has_colour = slider->isColourSpecified(SliderPropertyComponent::ColourIds::backgroundColourId);
+			bool is_valid = true;
+
+			if ((entry.highlight_if_less_than > -1 and value < entry.highlight_if_less_than) or
+				(entry.highlight_if_more_than > -1 and value > entry.highlight_if_more_than))
+			{
+				is_valid = false;
+			}
+
+			if (not is_valid and not has_colour)
+			{
+				slider->setColour(SliderPropertyComponent::ColourIds::backgroundColourId, Colours::red.withAlpha(0.5f));
+				repaint();
+
+				AttributedString str;
+				str.setText(entry.msg);
+				str.setColour(Colours::black);
+				str.setWordWrap(AttributedString::WordWrap::byWord);
+
+				bubble.showAt(slider, str, 10000, true, false);
+			}
+			else if (is_valid and has_colour)
+			{
+				slider->removeColour(SliderPropertyComponent::ColourIds::backgroundColourId);
+				repaint();
+			}
 		}
 	}
 

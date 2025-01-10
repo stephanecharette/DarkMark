@@ -67,7 +67,8 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	addAndMakeVisible(scrollfield);
 
 	addAndMakeVisible(bubble_message);
-	bubble_message.toFront(false);
+	bubble_message.setColour(BubbleMessageComponent::ColourIds::backgroundColourId, Colours::yellow);
+	bubble_message.setColour(BubbleMessageComponent::ColourIds::outlineColourId, Colours::black);
 
 	crosshair_colour = Colours::white;
 
@@ -2527,9 +2528,11 @@ dm::DMContent & dm::DMContent::show_message(const std::string & msg)
 	{
 		AttributedString str;
 		str.setText(msg);
-		str.setColour(Colours::white);
+		str.setColour(Colours::black);
+		str.setWordWrap(AttributedString::WordWrap::none);
 
 		const Rectangle<int> r(getWidth()/2, 1, 1, 1);
+		bubble_message.setAllowedPlacement(BubbleMessageComponent::BubblePlacement::below);
 		bubble_message.showAt(r, str, 4000, true, false);
 		Log("bubble message: " + msg);
 	}

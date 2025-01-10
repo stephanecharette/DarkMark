@@ -93,9 +93,52 @@ namespace dm
 			TextButton ok_button;
 			TextButton cancel_button;
 
+			BubbleMessageComponent bubble;
+
 			ButtonPropertyComponent * template_button;
 			SliderPropertyComponent * percentage_slider;
 			BooleanPropertyComponent * recalculate_anchors_toggle;
 			BooleanPropertyComponent * class_imbalance_toggle;
+
+			/** Certain fields show a bubble with additional details when selected or deselected.
+			 * This information is stored in this structure.
+			 */
+			struct BubbleInfo
+			{
+				public:
+
+					PropertyComponent * component;
+
+					// if the component is BooleanPropertyComponent, then:
+					bool highlight_if_enabled;
+
+					// if the component is SliderPropertyComponent, then:
+					int highlight_if_less_than;
+					int highlight_if_more_than;
+
+					// the message to be shown when the conditions above have triggered
+					std::string msg;
+
+					BubbleInfo(BooleanPropertyComponent * c, const bool state, const std::string & text) :
+						component(c),
+						highlight_if_enabled(state),
+						highlight_if_less_than(-1),
+						highlight_if_more_than(-1),
+						msg(text)
+					{
+						return;
+					}
+
+					BubbleInfo(SliderPropertyComponent * c, const int min, const int max, const std::string & text) :
+						component(c),
+						highlight_if_enabled(false),
+						highlight_if_less_than(min),
+						highlight_if_more_than(max),
+						msg(text)
+					{
+						return;
+					}
+			};
+			std::vector<BubbleInfo> highlight_conditions_and_messages;
 	};
 }

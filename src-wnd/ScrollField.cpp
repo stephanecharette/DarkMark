@@ -16,8 +16,6 @@ dm::ScrollField::ScrollField(DMContent & c) :
 
 	mouse_drag_is_enabled = false;
 
-	bubble.addToDesktop(ComponentPeer::StyleFlags::windowIsTemporary + ComponentPeer::StyleFlags::windowIgnoresKeyPresses);
-
 	return;
 }
 
@@ -299,11 +297,19 @@ void dm::ScrollField::mouseMove(const MouseEvent & event)
 			{
 				AttributedString str;
 				str.setText(iter.second);
-				str.setColour(Colours::white);
+				str.setColour(Colours::black);
 				str.setWordWrap(AttributedString::WordWrap::none);
 
-				const auto r = getScreenBounds();
-				bubble.showAt(juce::Rectangle<int>(r.getX(), r.getY() + y, 1, 1), str, 2000);
+				const Rectangle<int> r(content.getWidth() - getWidth(), y, 1, 1);
+
+				auto placement = BubbleMessageComponent::BubblePlacement::left;
+				if (r.getY() < 10)
+				{
+					// too close to the top of the window, move the bubble down
+					placement = BubbleMessageComponent::BubblePlacement::below;
+				}
+				content.bubble_message.setAllowedPlacement(placement);
+				content.bubble_message.showAt(r, str, 2000);
 				break;
 			}
 		}
