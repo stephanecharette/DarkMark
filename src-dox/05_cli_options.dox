@@ -5,6 +5,7 @@
 Command									| Examples																	| Description
 ----------------------------------------|---------------------------------------------------------------------------|------------
 @p add=&lt;path&gt;						| @p add=/home/bob/nn/cars													| Add the specified directory as a new project, then load that project as if @p load=... had been specified.
+@p annotation_area_size=&lt;number&gt;	| @p annotation_area_size=64												| Annotations of this size or less will be removed when @p remove_small_annotations has been enabled
 @p batch_size=&lt;number&gt;			| @p batch_size=64															| The batch size to use when generating the Darknet .cfg file.
 @p class_imbalance=&lt;bool&gt;			| @p class_imbalance=false													| Toggles the @p counter_per_class setting when generating the Darknet .cfg file.
 @p cutmix=&lt;bool&gt;					| @p cutmix=false															| Determines if image cutmix is enabled.
@@ -21,6 +22,7 @@ Command									| Examples																	| Description
 @p max_batches=&lt;number&gt;			| @p max_batches=20000														| The number of iterations to use when generating the Darknet .cfg file.
 @p mixup=&lt;bool&gt;					| @p mixup=false															| Determines if image mixup is enabled.
 @p mosaic=&lt;bool&gt;					| @p mosaic=false															| Determines if image mosaic is enabled.
+@p remove_small_annotations=&lt;bool&gt;| @p remove_small_annotations=true											| Determines if small annotations are removed when training
 @p resize_images=&lt;bool&gt;			| @p resize_images=true														| Determines if images are resized to match the network dimensions.  See @ref resize_images.
 @p restart_training=&lt;bool&gt;		| @p restart_training=false													| Determines if training should restart with the previous existing weights (when set to @p true) or start from scratch (when set to @p false).
 @p subdivisions=&lt;number&gt;			| @p subdivisions=2															| The number of subdivisions to use when generating the Darknet .cfg file.

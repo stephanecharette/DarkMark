@@ -38,7 +38,8 @@ namespace dm
 					size_t & number_of_resized_images		,
 					size_t & number_of_images_not_resized	,
 					size_t & number_of_tiles_created		,
-					size_t & number_of_zooms_created		);
+					size_t & number_of_zooms_created		,
+					size_t & number_of_dropped_annotations	);
 
 			void find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks, size_t & number_of_empty_images);
 
@@ -69,6 +70,8 @@ namespace dm
 			Value v_tile_images;
 			Value v_zoom_images;
 			Value v_limit_negative_samples;
+			Value v_remove_small_annotations;
+			Value v_annotation_area_size;
 			Value v_recalculate_anchors;
 			Value v_anchor_clusters;
 			Value v_class_imbalance;
@@ -101,6 +104,8 @@ namespace dm
 			SliderPropertyComponent * percentage_slider;
 			BooleanPropertyComponent * recalculate_anchors_toggle;
 			BooleanPropertyComponent * class_imbalance_toggle;
+			BooleanPropertyComponent * remove_small_annotations_toggle;
+			SliderPropertyComponent * annotation_area_size_slider;
 
 			/** Certain fields show a bubble with additional details when selected or deselected.
 			 * This information is stored in this structure.

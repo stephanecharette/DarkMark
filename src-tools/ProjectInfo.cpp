@@ -72,6 +72,8 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, true	);
 	tile_images					= cfg().get_bool	(cfg_prefix + "darknet_tile_images"				, false	);
 	zoom_images					= cfg().get_bool	(cfg_prefix + "darknet_zoom_images"				, true	);
+	remove_small_annotations	= cfg().get_bool	(cfg_prefix + "darknet_remove_small_annotations", true	);
+	annotation_area_size		= cfg().get_int		(cfg_prefix + "darknet_annotation_area_size"	, 64	);
 	limit_negative_samples		= cfg().get_bool	(cfg_prefix + "darknet_limit_negative_samples"	, true	);
 	recalculate_anchors			= cfg().get_bool	(cfg_prefix + "darknet_recalculate_anchors"		, true	);
 	anchor_clusters				= cfg().get_int		(cfg_prefix + "darknet_anchor_clusters"			, 9		);
@@ -108,6 +110,8 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("mixup"					))	enable_mixup			= toBool(options.at("mixup"						));
 	if (options.count("flip"					))	enable_flip				= toBool(options.at("flip"						));
 	if (options.count("restart_training"		))	restart_training		= toBool(options.at("restart_training"			));
+	if (options.count("remove_small_annotations"))	remove_small_annotations= toBool(options.at("remove_small_annotations"	));
+	if (options.count("annotation_area_size"	))	annotation_area_size	= toInt(options.at("annotation_area_size"		));
 
 	if (options.count("resize_images") and toBool(options.at("resize_images")) == true)
 	{
@@ -116,6 +120,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	else if (options.count("do_not_resize_images") and toBool(options.at("do_not_resize_images")) == true)
 	{
 		resize_images = false;
+		remove_small_annotations = false;
 	}
 
 	// handle the special restrictions between the 3 "image resizing" modes since they're all related
@@ -128,6 +133,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 		resize_images	= false;
 		tile_images		= false;
 		zoom_images		= false;
+		remove_small_annotations = false;
 	}
 
 	try

@@ -41,6 +41,8 @@ namespace dm
 			bool		zoom_images;				///< Zoom images.
 			/// @}
 
+			bool		remove_small_annotations;	///< whether extremely tiny annotations should be removed
+			int			annotation_area_size;		///< annotations of this size and less will be removed
 			bool		limit_negative_samples;		///< whether negative samples will be limited to 50% of the training images
 			bool		recalculate_anchors;		///< whether darknet will be called to recalculate anchors
 			int			anchor_clusters;			///< number of anchor clusters to use (default is 9)

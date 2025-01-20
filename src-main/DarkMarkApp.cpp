@@ -494,7 +494,8 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				key == "height"					or
 				key == "max_batches"			or
 				key == "batch_size"				or
-				key == "subdivisions"			))
+				key == "subdivisions"			or
+				key == "annotation_area_size"	))
 		{
 			// no further validation performed here
 		}
@@ -512,7 +513,8 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 				key == "cutmix"						or
 				key == "mixup"						or
 				key == "flip"						or
-				key == "restart_training"			))
+				key == "restart_training"			or
+				key == "remove_small_annotations"	))
 		{
 			// no further validation performed here
 		}

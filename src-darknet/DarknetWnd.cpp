@@ -53,6 +53,7 @@ class SaveTask : public ThreadWithProgressWindow
 				size_t number_of_images_not_resized		= 0;
 				size_t number_of_tiles_created			= 0;
 				size_t number_of_zooms_created			= 0;
+				size_t number_of_dropped_annotations	= 0;
 
 				setStatusMessage(dm::getText("Creating training and validation files..."));
 				wnd.create_Darknet_training_and_validation_files(
@@ -67,7 +68,8 @@ class SaveTask : public ThreadWithProgressWindow
 					number_of_images_resized,
 					number_of_images_not_resized,
 					number_of_tiles_created,
-					number_of_zooms_created);
+					number_of_zooms_created,
+					number_of_dropped_annotations);
 
 				setStatusMessage(dm::getText("Creating configuration files and shell scripts..."));
 				setProgress(0.333);
@@ -138,6 +140,18 @@ class SaveTask : public ThreadWithProgressWindow
 				{
 					ss	<< "NOTE: The number of negative samples (empty images) seems unusually high: " << (int)std::round(100.0 * percentage) << "%." << std::endl
 						<< std::endl;
+				}
+
+				if (wnd.info.remove_small_annotations)
+				{
+					if (number_of_dropped_annotations == 0)
+					{
+						ss << "No annotations were dropped." << std::endl << std::endl;
+					}
+					else
+					{
+						ss << "WARNING: The number of dropped lines (annotations are too small): " << number_of_dropped_annotations << "." << std::endl << std::endl;
+					}
 				}
 
 				ss << "Run " << wnd.info.command_filename << " to start the training.";
@@ -274,6 +288,8 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_tile_images					= info.tile_images;
 	v_zoom_images					= info.zoom_images;
 	v_limit_negative_samples		= info.limit_negative_samples;
+	v_remove_small_annotations		= info.remove_small_annotations;
+	v_annotation_area_size			= info.annotation_area_size;
 	v_recalculate_anchors			= info.recalculate_anchors;
 	v_anchor_clusters				= info.anchor_clusters;
 	v_class_imbalance				= info.class_imbalance;
@@ -297,6 +313,9 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	// when this value is toggled, we need to enable/disable the image percentage slider
 	v_train_with_all_images	.addListener(this);
+
+	v_remove_small_annotations.addListener(this);
+	v_annotation_area_size.addListener(this);
 
 	// counters_per_class depends on this being enabled
 	v_recalculate_anchors	.addListener(this);
@@ -402,6 +421,18 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	{
 		s->setEnabled(false);
 	}
+	properties.add(s);
+
+	b = new BooleanPropertyComponent(v_remove_small_annotations, getText("remove small annotations"), getText("remove small annotations"));
+	setTooltip(b, "Remove annoations which have an *area* (multiply width & height) equal to or less than the size described below. This should be enabled.");
+	highlight_conditions_and_messages.push_back(BubbleInfo(b, false, "For best results during training, annotations smaller than 100 square pixels (e.g., 10x10) should be removed. The value that works best for your network is not an exact number but depends on factors such as the configuration used and the amount of contrast in your images & objects."));
+	remove_small_annotations_toggle = b;
+	properties.add(b);
+
+	s = new SliderPropertyComponent(v_annotation_area_size, getText("annotations to remove"), 16.0, 400.0, 1.0);
+	setTooltip(s, "Annotations with an area (multiply width & height) equal to or less than this will be removed. For example, to remove annotations smaller than 10x10 pixels, select \"100\".");
+	highlight_conditions_and_messages.push_back(BubbleInfo(s, 64, -1, "For best results during training, annotations smaller than 100 square pixels (e.g., 10x10) should be removed. The value that works best for your network is not an exact number but depends on factors such as the configuration used and the amount of contrast in your images & objects."));
+	annotation_area_size_slider = s;
 	properties.add(s);
 
 	b = new BooleanPropertyComponent(v_limit_validation_images, getText("limit validation images"), getText("limit validation images"));
@@ -572,13 +603,13 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	if (normal_interface)
 	{
-		r = r.withSizeKeepingCentre(550, 650);
+		r = r.withSizeKeepingCentre(550, 700);
 	}
 	else
 	{
 		help_button.setVisible(false);
 		youtube_button.setVisible(false);
-		r = r.withSizeKeepingCentre(550, 500);
+		r = r.withSizeKeepingCentre(550, 550);
 	}
 
 	setBounds(r);
@@ -763,6 +794,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_resize_images"			, v_resize_images				);
 	cfg().setValue(content.cfg_prefix + "darknet_tile_images"			, v_tile_images					);
 	cfg().setValue(content.cfg_prefix + "darknet_zoom_images"			, v_zoom_images					);
+	cfg().setValue(content.cfg_prefix + "darknet_remove_small_annotations", v_remove_small_annotations	);
+	cfg().setValue(content.cfg_prefix + "darknet_annotation_area_size"	, v_annotation_area_size		);
 	cfg().setValue(content.cfg_prefix + "darknet_limit_negative_samples", v_limit_negative_samples		);
 	cfg().setValue(content.cfg_prefix + "darknet_recalculate_anchors"	, v_recalculate_anchors			);
 	cfg().setValue(content.cfg_prefix + "darknet_anchor_clusters"		, v_anchor_clusters				);
@@ -794,6 +827,8 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.tile_images				= v_tile_images				.getValue();
 	info.zoom_images				= v_zoom_images				.getValue();
 	info.limit_negative_samples		= v_limit_negative_samples	.getValue();
+	info.remove_small_annotations	= v_remove_small_annotations.getValue();
+	info.annotation_area_size		= v_annotation_area_size	.getValue();
 	info.recalculate_anchors		= v_recalculate_anchors		.getValue();
 	info.anchor_clusters			= v_anchor_clusters			.getValue();
 	info.class_imbalance			= v_class_imbalance			.getValue();
@@ -836,7 +871,7 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		else if (not v_resize_images.getValue() and not v_tile_images.getValue() and not v_zoom_images.getValue())
 		{
 			v_resize_images	= true;
-			v_tile_images	= true;
+//			v_tile_images	= true;
 			v_zoom_images	= true;
 		}
 	}
@@ -850,6 +885,19 @@ void dm::DarknetWnd::valueChanged(Value & value)
 		{
 			v_do_not_resize_images = true;
 		}
+	}
+
+	if (not v_do_not_resize_images.getValue())
+	{
+		remove_small_annotations_toggle->setEnabled(true);
+
+		annotation_area_size_slider->setEnabled(v_remove_small_annotations.getValue());
+	}
+	else
+	{
+		v_remove_small_annotations = false;
+		remove_small_annotations_toggle->setEnabled(false);
+		annotation_area_size_slider->setEnabled(false);
 	}
 
 	if (value.refersToSameSourceAs(v_recalculate_anchors))
@@ -912,6 +960,12 @@ void dm::DarknetWnd::valueChanged(Value & value)
 			{
 				must_be_highlited = true;
 			}
+		}
+
+		// if a control is disabled, then get rid of any highlighting
+		if (not entry.component->isEnabled())
+		{
+			must_be_highlited = false;
 		}
 
 		if (must_be_highlited and not has_colour)
@@ -1000,7 +1054,7 @@ void dm::DarknetWnd::create_Darknet_configuration_file(ThreadWithProgressWindow 
 		 * as the 98th attempt!  Also keep track of the time in case it is taking too long and we want to abort.
 		 */
 		std::time_t now = std::time(nullptr);
-		const std::time_t end_time = now + 30;
+		const std::time_t end_time = now + 60;
 		const size_t max_attempts = 100;
 		float best_avg_iou = 0.0f;
 
@@ -1073,7 +1127,8 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 		size_t & number_of_resized_images		,
 		size_t & number_of_images_not_resized	,
 		size_t & number_of_tiles_created		,
-		size_t & number_of_zooms_created		)
+		size_t & number_of_zooms_created		,
+		size_t & number_of_dropped_annotations	)
 {
 	if (true)
 	{
@@ -1096,6 +1151,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	number_of_images_not_resized	= 0;
 	number_of_tiles_created			= 0;
 	number_of_zooms_created			= 0;
+	number_of_dropped_annotations	= 0;
 
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache");
 	if (dir.exists())
@@ -1169,7 +1225,7 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 			work_done ++;
 			progress_window.setProgress(work_done / work_to_do);
 
-			const auto fn = all_output_images[idx];
+			const auto & fn = all_output_images[idx];
 			if (File(fn).withFileExtension(".txt").getSize() == 0)
 			{
 				negative_samples.push_back(fn);
@@ -1193,6 +1249,74 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 			all_output_images.swap(negative_samples);
 			all_output_images.insert(all_output_images.end(), annotated_images.begin(), annotated_images.end());
 			std::shuffle(all_output_images.begin(), all_output_images.end(), get_random_engine());
+		}
+	}
+
+	if (info.do_not_resize_images == false and info.remove_small_annotations)
+	{
+		// go through all of the annotations and see if anything needs to be dropped
+		double work_done = 0.0;
+		double work_to_do = all_output_images.size() + 1.0;
+		progress_window.setProgress(0.0);
+		progress_window.setStatusMessage(dm::getText("Looking for annotations too small to detect..."));
+
+		const double image_width = info.image_width;
+		const double image_height = info.image_height;
+
+		for (size_t idx = 0; idx < all_output_images.size(); idx ++)
+		{
+			work_done ++;
+			progress_window.setProgress(work_done / work_to_do);
+
+			const auto txt = std::filesystem::path(all_output_images[idx]).replace_extension(".txt");
+			if (std::filesystem::file_size(txt) == 0)
+			{
+				continue;
+			}
+
+			std::stringstream ss;
+			ss << std::fixed << std::setprecision(10);
+
+			size_t lines_dropped_in_this_file = 0;
+			size_t lines_kept_in_this_file = 0;
+			std::ifstream ifs(txt.string());
+			int class_id = -1;
+			double cx = -1.0;
+			double cy = -1.0;
+			double w = -1.0;
+			double h = -1.0;
+			while (ifs.good())
+			{
+				ifs >> class_id >> cx >> cy >> w >> h;
+				if (class_id >= 0 and cx > 0.0 and cy > 0.0 and w > 0.0 and h > 0.0)
+				{
+					const int annotation_width = std::round(image_width * w);
+					const int annotation_height = std::round(image_height * h);
+					const int area = annotation_width * annotation_height;
+
+					if (area <= info.annotation_area_size)
+					{
+						// this annotation is too small, so don't bother remembering it (we'll re-write the .txt file without this line)
+						Log(txt.string() + ": dropping annotation (too small): class #" + std::to_string(class_id) + " w=" + std::to_string(annotation_width) + " h=" + std::to_string(annotation_height) + " area=" + std::to_string(area) + " limit=" + std::to_string(info.annotation_area_size));
+						number_of_dropped_annotations ++;
+						lines_dropped_in_this_file ++;
+						continue;
+					}
+
+					// otherwise, remember this annotation
+					lines_kept_in_this_file ++;
+					ss << class_id << " " << cx << " " << cy << " " << w << " " << h << std::endl;
+				}
+			}
+			ifs.close();
+
+			if (lines_dropped_in_this_file > 0)
+			{
+				// we must have decided to drop an annotation, so re-write the .txt file
+				Log(txt.string() + ": dropped=" + std::to_string(lines_dropped_in_this_file) + " retained=" + std::to_string(lines_kept_in_this_file));
+				std::ofstream ofs(txt.string());
+				ofs << ss.str();
+			}
 		}
 	}
 
@@ -1230,12 +1354,13 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	}
 
 	number_of_annotated_images = all_output_images.size() - number_of_empty_images;
-	Log("total number of annotated images ......... " + std::to_string(number_of_annotated_images	));
-	Log("total number of marks .................... " + std::to_string(number_of_marks				));
-	Log("total number of empty images ............. " + std::to_string(number_of_empty_images		));
-	Log("total number of training images .......... " + std::to_string(number_of_files_train) + " (" + info.train_filename + ")");
-	Log("total number of validation images ........ " + std::to_string(number_of_files_valid) + " (" + info.valid_filename + ")");
-	Log("cap validation images .................... " + std::string(info.limit_validation_images ? "true" : "false"));
+	Log("total number of annotated images ............ " + std::to_string(number_of_annotated_images	));
+	Log("total number of marks ....................... " + std::to_string(number_of_marks - number_of_dropped_annotations));
+	Log("total number of dropped marks (too small) ... " + std::to_string(number_of_dropped_annotations));
+	Log("total number of empty images ................ " + std::to_string(number_of_empty_images		));
+	Log("total number of training images ............. " + std::to_string(number_of_files_train) + " (" + info.train_filename + ")");
+	Log("total number of validation images ........... " + std::to_string(number_of_files_valid) + " (" + info.valid_filename + ")");
+	Log("cap validation images ....................... " + std::string(info.limit_validation_images ? "true" : "false"));
 
 	std::ofstream fs_train(info.train_filename);
 	std::ofstream fs_valid(info.valid_filename);
