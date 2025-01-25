@@ -295,6 +295,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_class_imbalance				= info.class_imbalance;
 	v_restart_training				= info.restart_training;
 	v_delete_temp_weights			= info.delete_temp_weights;
+	v_save_weights					= info.save_weights;
 	v_saturation					= info.saturation;
 	v_exposure						= info.exposure;
 	v_hue							= info.hue;
@@ -504,6 +505,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		setTooltip(b, "Delete the temporary weights (1000, 2000, 3000, etc) and keep only the best and final weights.");
 		properties.add(b);
 
+		s = new SliderPropertyComponent(v_save_weights, getText("how often to save weights"), 0.0, 10000.0, 1.0);
+		setTooltip(s, "Number of iterations to elapse before weights are saved to disk.  When set to zero, Darknet will automatically calculate a value to use.  This feature requires Darknet V4 or newer.");
+		properties.add(s);
+
 		pp.addSection(getText("weights"), properties, false);
 		properties.clear();
 	}
@@ -511,6 +516,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	{
 		v_restart_training = false;
 		v_delete_temp_weights = false;
+		v_save_weights = 0;
 	}
 
 	s = new SliderPropertyComponent(v_saturation, getText("saturation"), 0.0, 10.0, 0.001);
@@ -802,6 +808,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_class_imbalance"		, v_class_imbalance				);
 	cfg().setValue(content.cfg_prefix + "darknet_restart_training"		, v_restart_training			);
 	cfg().setValue(content.cfg_prefix + "darknet_delete_temp_weights"	, v_delete_temp_weights			);
+	cfg().setValue(content.cfg_prefix + "darknet_save_weights"			, v_save_weights				);
 	cfg().setValue(content.cfg_prefix + "darknet_saturation"			, v_saturation					);
 	cfg().setValue(content.cfg_prefix + "darknet_exposure"				, v_exposure					);
 	cfg().setValue(content.cfg_prefix + "darknet_hue"					, v_hue							);
@@ -834,6 +841,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.class_imbalance			= v_class_imbalance			.getValue();
 	info.restart_training			= v_restart_training		.getValue();
 	info.delete_temp_weights		= v_delete_temp_weights		.getValue();
+	info.save_weights				= v_save_weights			.getValue();
 	info.saturation					= v_saturation				.getValue();
 	info.exposure					= v_exposure				.getValue();
 	info.hue						= v_hue						.getValue();
@@ -1419,6 +1427,10 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 	if (true)
 	{
 		std::string cmd = cfg().get_str("darknet_executable") + " detector -map" + (v_verbose_output.getValue() ? " -verbose" : "") + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
+		if (info.save_weights > 0)
+		{
+			cmd += " --save-weights " + std::to_string(info.save_weights);
+		}
 		if (info.restart_training)
 		{
 			cmd += " " + cfg().get_str(content.cfg_prefix + "weights");

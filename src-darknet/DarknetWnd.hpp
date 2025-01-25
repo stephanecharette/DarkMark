@@ -77,6 +77,7 @@ namespace dm
 			Value v_class_imbalance;
 			Value v_restart_training;
 			Value v_delete_temp_weights;
+			Value v_save_weights;
 			Value v_saturation;
 			Value v_exposure;
 			Value v_hue;

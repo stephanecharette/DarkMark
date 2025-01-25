@@ -49,6 +49,7 @@ namespace dm
 			bool		class_imbalance;			///< whether counters_per_class will be added to each yolo section
 			bool		restart_training;			///< whether training should use the previous *_best.weights file or start new
 			bool		delete_temp_weights;		///< whether the temporary .weights files should be deleted once training has finished
+			int			save_weights;				///< how often Darknet should save .weights file, or set to zero to use default settings
 			float		saturation;
 			float		exposure;
 			float		hue;						///< between 0.0 and 1.0

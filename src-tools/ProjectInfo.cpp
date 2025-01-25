@@ -80,6 +80,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	class_imbalance				= cfg().get_bool	(cfg_prefix + "darknet_class_imbalance"			, false	);
 	restart_training			= cfg().get_bool	(cfg_prefix + "darknet_restart_training"		, false	);
 	delete_temp_weights			= cfg().get_bool	(cfg_prefix + "darknet_delete_temp_weights"		, false	);
+	save_weights				= cfg().get_int		(cfg_prefix + "darknet_save_weights"			, 0		);
 	saturation					= cfg().get_double	(cfg_prefix + "darknet_saturation"				, 1.50	);
 	exposure					= cfg().get_double	(cfg_prefix + "darknet_exposure"				, 1.50	);
 	hue							= cfg().get_double	(cfg_prefix + "darknet_hue"						, 0.10	);
