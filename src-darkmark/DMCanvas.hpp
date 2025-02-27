@@ -29,5 +29,11 @@ namespace dm
 
 			/// Link to the parent which manages the content, including all the marks.
 			DMContent & content;
+
+		private:
+			// For the rubber-band mass-delete area:
+			juce::Point<int> dragStart;
+			juce::Point<int> dragCurrent;
+			cv::Rect selectionRect;
 	};
 }

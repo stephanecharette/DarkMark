@@ -250,48 +250,65 @@ void dm::CrosshairComponent::mouseDown(const MouseEvent & event)
 
 void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 {
-	mouse_previous_loc	= mouse_current_loc;
-	mouse_current_loc	= event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
+	mouse_previous_loc  = mouse_current_loc;
+	mouse_current_loc   = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
 
 	if (mouse_drag_is_enabled and mouse_drag_rectangle != invalid_rectangle)
 	{
-		// re-orient the rectangle so TL is smaller than BR, otherwise we'll get a negative width/height which confuses things
-		const int x1 = mouse_drag_rectangle.getTopLeft().x;
-		const int y1 = mouse_drag_rectangle.getTopLeft().y;
+		// re-orient the rectangle so TL is smaller than BR
+		const int x1 = mouse_drag_rectangle.getX();
+		const int y1 = mouse_drag_rectangle.getY();
 		const int x2 = mouse_current_loc.x;
 		const int y2 = mouse_current_loc.y;
 
-		mouse_drag_rectangle.setLeft	(std::min(x1, x2));
-		mouse_drag_rectangle.setTop		(std::min(y1, y2));
-		mouse_drag_rectangle.setRight	(std::max(x1, x2));
-		mouse_drag_rectangle.setBottom	(std::max(y1, y2));
+		mouse_drag_rectangle.setLeft(std::min(x1, x2));
+		mouse_drag_rectangle.setTop(std::min(y1, y2));
+		mouse_drag_rectangle.setRight(std::max(x1, x2));
+		mouse_drag_rectangle.setBottom(std::max(y1, y2));
 
-		if (mouse_drag_rectangle.getWidth() > 2 and mouse_drag_rectangle.getHeight() > 2)
+		if (mouse_drag_rectangle.getWidth() > 2 && mouse_drag_rectangle.getHeight() > 2)
 		{
+			// If we’re in mass-delete mode, we’ll handle that inside mouseDragFinished().
 			mouseDragFinished(mouse_drag_rectangle, event);
 		}
 	}
 
-	mouse_drag_rectangle		= invalid_rectangle;
-	mouse_drag_offset			= cv::Point(0, 0);
-	need_to_rebuild_cache_image	= true;
+	mouse_drag_rectangle = invalid_rectangle;
+	mouse_drag_offset = cv::Point(0, 0);
+	need_to_rebuild_cache_image = true;
 
 	repaint();
-
-	return;
 }
 
-
-void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
+void dm::CrosshairComponent::mouseDrag(const MouseEvent &event)
 {
-	mouse_previous_loc	= mouse_current_loc;
-	mouse_current_loc	= event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
+	// If we’re in mass-delete mode, just update the rectangle and repaint.
+	if (content.mass_delete_mode_active)
+	{
+		// Update mouse_current_loc with any offset:
+		mouse_current_loc = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
+
+		// Update the width/height of mouse_drag_rectangle
+		const auto p1 = mouse_drag_rectangle.getTopLeft();
+		const auto p2 = mouse_current_loc;
+		const auto w = p2.x - p1.x;
+		const auto h = p2.y - p1.y;
+		mouse_drag_rectangle.setWidth(w);
+		mouse_drag_rectangle.setHeight(h);
+
+		repaint(); // so we can see the rubber-band box in paint()
+		return;	   // <-- skip the normal bounding-box logic below
+	}
+
+	// Otherwise
+	mouse_previous_loc = mouse_current_loc;
+	mouse_current_loc = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
 
 	if (mouse_drag_rectangle == invalid_rectangle or
 		mouse_drag_rectangle.getX() == -1 or
 		mouse_drag_rectangle.getY() == -1 or
 		(mouse_drag_rectangle.getX() >= 0 and mouse_drag_rectangle.getY() >= 0 and
-			(mouse_drag_rectangle.getWidth() == 0 or mouse_drag_rectangle.getHeight() == 0)))
+		 (mouse_drag_rectangle.getWidth() == 0 or mouse_drag_rectangle.getHeight() == 0)))
 	{
 		// looks like this is the start of a new mouse drag
 		need_to_rebuild_cache_image = true;
@@ -306,10 +323,7 @@ void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 	mouse_drag_rectangle.setHeight(h);
 
 	repaint();
-
-	return;
 }
-
 
 void dm::CrosshairComponent::mouseWheelMove(const MouseEvent & event, const MouseWheelDetails & wheel)
 {

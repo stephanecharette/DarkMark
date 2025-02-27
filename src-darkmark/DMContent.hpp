@@ -293,6 +293,7 @@ namespace dm
 
 			// merge mode
 			bool merge_mode_active = false;
+			bool mass_delete_mode_active = false;
 			std::vector<Mark> merge_start_marks;  // Holds marks from the first key frame.
 			size_t merge_start_index = 0;           // Holds the index of the first key frame.
 			
@@ -302,5 +303,14 @@ namespace dm
 								  const std::vector<Mark>& endMarks,
 								  int numIntermediateFrames);
 
+			cv::Rect2d convertToNormalized(const cv::Rect & areaInScreenCoords);
+
+			int showClassSelectionMenu();
+			void massDeleteMarksForward(const cv::Rect2d &selectionArea, int classIdx, int framesAhead);
+
+			int askUserForNumberOfFrames();
+			void handleMassDeleteArea(const cv::Rect &areaInScreenCoords);
+			int massDeleteMarks(const cv::Rect2d &selectionArea, int classIdx);
+			
 	};
 }

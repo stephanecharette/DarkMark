@@ -2,10 +2,8 @@
 
 #include "DarkMark.hpp"
 
-
-dm::DMCanvas::DMCanvas(DMContent & c) :
-	CrosshairComponent(c),
-	content(c)
+dm::DMCanvas::DMCanvas(DMContent &c)
+	: CrosshairComponent(c), content(c), dragStart(0, 0), dragCurrent(0, 0), selectionRect(0, 0, 0, 0)
 {
 	setName("ImageCanvas");
 
@@ -16,7 +14,6 @@ dm::DMCanvas::DMCanvas(DMContent & c) :
 
 	return;
 }
-
 
 dm::DMCanvas::~DMCanvas()
 {
@@ -398,6 +395,17 @@ void dm::DMCanvas::rebuild_cache_image()
 void dm::DMCanvas::mouseDown(const MouseEvent & event)
 {
 	CrosshairComponent::mouseDown(event);
+	if (content.mass_delete_mode_active)
+	{
+		// Use the same coordinate system you do for normal bounding boxes:
+		dragStart = event.getPosition();
+		dragCurrent = dragStart;
+		selectionRect = cv::Rect();
+
+		// If you want to do a “rubber band” box, you'll handle updates in mouseDrag()
+		// and finalize in mouseUp(). So skip the rest of the normal logic:
+		return;
+	}
 
 	const cv::Point p(
 		mouse_current_loc.x + zoom_image_offset.x,
@@ -546,6 +554,17 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 
 void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event)
 {
+	if (content.mass_delete_mode_active)
+	{
+
+
+
+		cv::Rect r(drag_rect.getX(), drag_rect.getY(), drag_rect.getWidth(), drag_rect.getHeight());
+		content.handleMassDeleteArea(r);
+
+		return; // skip the normal single-mark bounding-box code
+	}
+
 	double midx			= drag_rect.getCentreX() + zoom_image_offset.x;
 	double midy			= drag_rect.getCentreY() + zoom_image_offset.y;
 	double width		= drag_rect.getWidth();
