@@ -359,7 +359,7 @@ void dm::DMCanvas::rebuild_cache_image()
 #endif
 
 		// this next line is what tells the crosshair component what portion of the image we want to show on the screen
-		zoom_image_offset = r.tl();
+		// zoom_image_offset = r.tl();
 	}
 
 //	Log(std::string(__PRETTY_FUNCTION__) + ": zoom image offset: x=" + std::to_string(zoom_image_offset.x) + " y=" + std::to_string(zoom_image_offset.y));
@@ -395,6 +395,26 @@ void dm::DMCanvas::rebuild_cache_image()
 void dm::DMCanvas::mouseDown(const MouseEvent & event)
 {
 	CrosshairComponent::mouseDown(event);
+
+	// If SHIFT is down, we enter “panning” mode.
+	if (event.mods.isShiftDown())
+	{
+		panning_active = true;
+
+		// Remember where the mouse was clicked.
+		pan_start = event.getPosition();
+
+		// Save the current offset so we know how much to move as we drag.
+		saved_offset = juce::Point<int>(
+			content.canvas.zoom_image_offset.x,
+			content.canvas.zoom_image_offset.y);
+
+		// Optionally change the mouse cursor to a “hand”:
+		setMouseCursor(MouseCursor::DraggingHandCursor);
+
+		return; // Skip normal single‐mark or mass‐delete logic
+	}
+
 	if (content.mass_delete_mode_active)
 	{
 		// Use the same coordinate system you do for normal bounding boxes:
@@ -611,3 +631,4 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect, const Mouse
 
 	return;
 }
+

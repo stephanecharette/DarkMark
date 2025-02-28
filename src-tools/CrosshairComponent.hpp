@@ -75,5 +75,11 @@ namespace dm
 			 * Normally, this value will be (0, 0) unless the image is zoomed in.
 			 */
 			cv::Point zoom_image_offset;
+
+			bool panning_active = false;   // Are we currently panning (SHIFT held on mouseDown)?
+			juce::Point<int> pan_start;	   // Mouse position where we started panning
+			juce::Point<int> saved_offset; // The original zoom_image_offset at the start of panning
+
+			void clampZoomOffset(); // Helper to keep the image in range
 	};
 }

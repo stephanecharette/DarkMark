@@ -237,6 +237,25 @@ void dm::CrosshairComponent::mouseExit(const MouseEvent & event)
 
 void dm::CrosshairComponent::mouseDown(const MouseEvent & event)
 {
+	// If SHIFT is down, activate "panning" mode instead of normal logic.
+	if (event.mods.isShiftDown())
+	{
+		panning_active = true;
+
+		// Remember where the mouse was clicked.
+		pan_start = event.getPosition();
+
+		// Save the current offset so we know how much to move as we drag.
+		saved_offset = juce::Point<int>(
+			zoom_image_offset.x,
+			zoom_image_offset.y);
+
+		// Optionally change the cursor to a hand icon
+		setMouseCursor(MouseCursor::DraggingHandCursor);
+
+		return; // Skip normal bounding-box or mass-delete logic
+	}
+
 	mouse_previous_loc	= mouse_current_loc;
 	mouse_current_loc	= event.getPosition();
 	mouse_drag_offset	= cv::Point(0, 0);
@@ -250,6 +269,14 @@ void dm::CrosshairComponent::mouseDown(const MouseEvent & event)
 
 void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 {
+	if (panning_active)
+	{
+		// We’re done panning now
+		panning_active = false;
+		setMouseCursor(MouseCursor::NormalCursor);
+		return; // skip normal bounding-box or mass-delete finalize
+	}
+
 	mouse_previous_loc  = mouse_current_loc;
 	mouse_current_loc   = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
 
@@ -282,6 +309,23 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 
 void dm::CrosshairComponent::mouseDrag(const MouseEvent &event)
 {
+	// If SHIFT-based panning is active, move the image instead of drawing rectangles.
+	if (panning_active)
+	{
+		// Figure out how far the mouse has moved
+		juce::Point<int> delta = event.getPosition() - pan_start;
+
+		// Move zoom_image_offset in the opposite direction
+		zoom_image_offset.x = saved_offset.x - delta.x;
+		zoom_image_offset.y = saved_offset.y - delta.y;
+
+		// Prevent scrolling beyond the edges
+		clampZoomOffset();
+
+		repaint();
+		return; // Skip bounding-box or mass-delete logic
+	}
+
 	// If we’re in mass-delete mode, just update the rectangle and repaint.
 	if (content.mass_delete_mode_active)
 	{
@@ -380,4 +424,21 @@ void dm::CrosshairComponent::timerCallback()
 	content.load_image(content.image_filename_index);
 
 	return;
+}
+
+void dm::CrosshairComponent::clampZoomOffset()
+{
+	// If the user has zoomed in, scaled_image can be bigger than the component size.
+	int maxX = std::max(0, content.scaled_image.cols - getWidth());
+	int maxY = std::max(0, content.scaled_image.rows - getHeight());
+
+	if (zoom_image_offset.x < 0)
+		zoom_image_offset.x = 0;
+	else if (zoom_image_offset.x > maxX)
+		zoom_image_offset.x = maxX;
+
+	if (zoom_image_offset.y < 0)
+		zoom_image_offset.y = 0;
+	else if (zoom_image_offset.y > maxY)
+		zoom_image_offset.y = maxY;
 }
