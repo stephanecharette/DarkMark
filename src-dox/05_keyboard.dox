@@ -15,15 +15,18 @@ Key							| Saves Modified Marks First	| Description
 @p ENTER (or @p RETURN)		|								| Display the 'class' menu (see @p 'c' key).
 @p DEL						|								| Delete the currently selected marking.
 @p BACKSPACE				|								| Same as @p DEL.
+@p SHIFT                    |                               | Hold while clicking and dragging to pan the image while zoomed in.
 @p SHIFT + @p DEL			| no							| Delete the current image from disk.  Moves the image to the trash, removing it from the data set.  Be careful, this @em does @em not prompt!
 @p ESC						| yes							| Cancels "zoom" if active, otherwise quit from DarkMark.
 @p F1						|								| About DarkMark.
 @p TAB						|								| Move focus to the next marking.
 @p SHIFT + @p TAB			|								| Move focus to the previous marking.
 @p +						|								| Zoom image +10%.  Can be pressed repeatedly.
+@p =                        |                               | Zoom image +10%.  Can be pressed repeatedly.
 @p SHIFT + @p +				|								| Zoom image 500%.
 @p -						|								| Zoom image -10%.  Can be pressed repeatedly.
 @p SPACE					|								| Toggle between automatic zoom and manual zoom (see @p '-', @p '+', and @p 'ESC' keys).
+@p `                        |                               | Toggle merge mode. Take two marks across a gap of frames and interpolate the marks in between them by both location and size.
 @p a (lowercase)			|								| Accept all Darknet predictions (if any) for the current image as actual markings.
 @p A (uppercase)			|								| Accept only the currently-selected prediction and discard all other predictions.  If none are selected, then this behaves like @p 'a' where all predictions are accepted.
 @p b (lowercase)			|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
@@ -40,12 +43,14 @@ Key							| Saves Modified Marks First	| Description
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).
 @p n						| yes							| Mark image as empty ("none") and move to the next image.
+@p o                        |                               | Enter mass delete mode to define an area of marks to be deleted across a specified number of frames.
 @p p						|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)
 @p r (lowercase)			| yes							| Randomly shuffle the images and load the first image.
 @p R (uppercase)			| yes							| Sort images alphabetically.
 @p s (lowercase)			|								| Save the current image, with the markings (if any) to a new filename.  Think of this as "screenshot".  Screenshots must be saved in either @p .jpg or @p .png file format (default is @p PNG).
 @p S (uppercase)			|								| Same as @p 's' (lowercase) but the file will be saved at 100% zoom, not at the current zoom level.
 @p t						| yes							| Toggle image tiling.  See @ref ImageSize.
+@p u                        |                               | Copy a selected mark forward a specified number of frames.
 @p w						|								| Toggle black-and-white mode. Images remain unchanged on disk, but shown in black-and-white (not greyscale!) in the main DarkMark window.  This can be useful when annotating images of text documents.
 @p y (lowercase)			|								| Copy marks from previous (alphabetical) marked up image.
 @p Y (uppercase)			|								| Copy marks from next (alphabetical) marked up image.
