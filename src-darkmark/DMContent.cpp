@@ -3089,12 +3089,12 @@ void dm::DMContent::interpolateMarks(
 
 cv::Rect2d dm::DMContent::convertToNormalized(const cv::Rect &areaInScreenCoords)
 {
-	// For example, if you want to interpret areaInScreenCoords in “scaled image” space:
 	double imgW = scaled_image_size.width;
 	double imgH = scaled_image_size.height;
 
-	double x = areaInScreenCoords.x / imgW;
-	double y = areaInScreenCoords.y / imgH;
+	// Add the zoom offset before normalizing:
+	double x = (areaInScreenCoords.x + canvas.zoom_image_offset.x) / imgW;
+	double y = (areaInScreenCoords.y + canvas.zoom_image_offset.y) / imgH;
 	double w = areaInScreenCoords.width / imgW;
 	double h = areaInScreenCoords.height / imgH;
 
@@ -3252,6 +3252,7 @@ void dm::DMContent::handleMassDeleteArea(const cv::Rect &areaInScreenCoords)
 	}
 
 	show_message("DEBUG: Mass delete area completed");
+	mass_delete_mode_active = false;
 }
 
 void dm::DMContent::copySelectedMarkForward()
