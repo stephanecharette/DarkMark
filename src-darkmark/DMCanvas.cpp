@@ -191,7 +191,7 @@ void dm::DMCanvas::rebuild_cache_image()
 		cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
 		// draw the drag corners (only if the annotation is large enough to accomodate them)
-		if (mouse_drag_is_active == false and is_selected and tmp.cols > content.corner_size * 2 and tmp.rows > content.corner_size * 2)
+		if (is_selected && tmp.cols > content.corner_size*2 && tmp.rows > content.corner_size*2)
 		{
 			tmp = content.scaled_image(r);
 			cv::circle(tmp, cv::Point(0				, 0				), content.corner_size, colour, CV_FILLED, cv::LINE_AA);
@@ -391,150 +391,180 @@ void dm::DMCanvas::rebuild_cache_image()
 	return;
 }
 
-
-void dm::DMCanvas::mouseDown(const MouseEvent & event)
+void dm::DMCanvas::mouseDown(const MouseEvent &event)
 {
+	// Let the base crosshair see the event. That way if we do a fallback bounding box, it’s ready.
 	CrosshairComponent::mouseDown(event);
 
-	// If SHIFT is down, we enter “panning” mode.
+	// 1) SHIFT => panning
 	if (event.mods.isShiftDown())
 	{
 		panning_active = true;
-
-		// Remember where the mouse was clicked.
 		pan_start = event.getPosition();
-
-		// Save the current offset so we know how much to move as we drag.
 		saved_offset = juce::Point<int>(
 			content.canvas.zoom_image_offset.x,
 			content.canvas.zoom_image_offset.y);
 
-		// Optionally change the mouse cursor to a “hand”:
 		setMouseCursor(MouseCursor::DraggingHandCursor);
-
-		return; // Skip normal single‐mark or mass‐delete logic
+		return; // skip everything else
 	}
 
+	// 2) Mass‐delete rubber‐band
 	if (content.mass_delete_mode_active)
 	{
-		// Use the same coordinate system you do for normal bounding boxes:
 		dragStart = event.getPosition();
 		dragCurrent = dragStart;
 		selectionRect = cv::Rect();
-
-		// If you want to do a “rubber band” box, you'll handle updates in mouseDrag()
-		// and finalize in mouseUp(). So skip the rest of the normal logic:
-		return;
+		return; // skip everything else
 	}
 
+	// 3) If user right‐clicked anywhere, we want to show a popup menu (like old code).
+	//    We'll do it at the end so we can still pick a mark first if needed.
+
+	// 4) Convert to “scaled‐image” coords
 	const cv::Point p(
 		mouse_current_loc.x + zoom_image_offset.x,
 		mouse_current_loc.y + zoom_image_offset.y);
 
-//	Log(std::string(__PRETTY_FUNCTION__) + ": p.x=" + std::to_string(p.x) + " p.y=" + std::to_string(p.y));
-
+	// Save old selection
 	const auto previous_selected_mark = content.selected_mark;
+	content.selected_mark = -1;
 
-//	const auto shift_mod	= event.mods.isShiftDown();
-	content.selected_mark	= -1;
-	int index_to_delete		= -1;
-
-	// find all of the marks beneath the mouse location, and remember the one with the *smallest* area so
-	// that if we have a tiny mark within a larger mark, this will select the smaller (harder to click) mark
+	// For overlapping marks, choose the smallest area
 	int smallest_area = INT_MAX;
-	for (size_t idx = 0; index_to_delete == -1 and idx < content.marks.size(); idx ++)
-	{
-		Mark & m = content.marks.at(idx);
-		cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
-#if 0
-		Log(std::string(__PRETTY_FUNCTION__) + ": rect #" + std::to_string(idx) + ":" +
-				" x=" + std::to_string(r.x) +
-				" y=" + std::to_string(r.y) +
-				" w=" + std::to_string(r.width) +
-				" h=" + std::to_string(r.height));
-#endif
+	int best_idx = -1; // which mark we might select
 
-		if (r.contains(p))
+	// 5) The user might be inside the “selected” mark => corner resizing or entire reposition
+	//    We'll handle that first if they are indeed inside the selected mark.
+
+	// Step (a): If there is a valid selected_mark, check if user clicked inside it:
+	if (previous_selected_mark >= 0 &&
+		previous_selected_mark < (int)content.marks.size())
+	{
+		Mark &selMark = content.marks[previous_selected_mark];
+		cv::Rect selRect = selMark.get_bounding_rect(content.scaled_image_size);
+
+		if (selRect.contains(p))
 		{
-			// corner dragging should only be done on "real" marks, not predictions
-			if (m.is_prediction == false)
+			// => user clicked inside the bounding box of the “currently selected” mark
+			// Check if near a corner => resizing
+			if (!selMark.is_prediction)
 			{
-				// figure out which corner is nearest to the mouse click
+				// find nearest corner
 				auto best_corner = ECorner::kTL;
-				auto best_len = std::numeric_limits<double>::infinity();
-				for (const auto type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
+				double best_len = std::numeric_limits<double>::infinity();
+				for (auto corner_type : {ECorner::kTL, ECorner::kTR, ECorner::kBR, ECorner::kBL})
 				{
-					const cv::Point corner_point = m.get_corner(type);
-					const double len = std::hypot(corner_point.x - p.x, corner_point.y - p.y);
-					if (len < best_len)
+					cv::Point corner_pt = selMark.get_corner(corner_type);
+					double dist = std::hypot(
+						double(corner_pt.x - p.x),
+						double(corner_pt.y - p.y));
+					if (dist < best_len)
 					{
-						best_corner = type;
-						best_len = len;
+						best_len = dist;
+						best_corner = corner_type;
 					}
 				}
-
-				// check to see if the "best" corner we identified above is usable
-				const cv::Point corner_point = m.get_corner(best_corner);
-
-				if (std::round(best_len) <= content.corner_size)
+				if (best_len <= content.corner_size)
 				{
-					// we've clicked on a corner!
+					// corner resizing
+					resizingActive = true;
+					resizingCorner = best_corner;
+					resizingOriginalNormRect = selMark.get_normalized_bounding_rect();
 
-					const auto opposite_corner = static_cast<ECorner>((static_cast<int>(best_corner) + 2) % 4);
-					const cv::Point opposite_point = m.get_corner(opposite_corner) - zoom_image_offset;
+					// selected_mark remains the same
+					content.selected_mark = previous_selected_mark;
+					content.most_recent_class_idx = selMark.class_idx;
+					content.most_recent_size = selMark.get_normalized_bounding_rect().size();
 
-					mouse_drag_rectangle.setPosition(opposite_point.x, opposite_point.y);
-
-					index_to_delete = static_cast<int>(idx);
-
-					// remember the offset between where we clicked, and where the actual corner is located -- this will need to be applied to each mouse event
-					mouse_drag_offset = corner_point - p;
+					// If user right‐clicked corner, show menu
+					if (event.mods.isPopupMenu())
+					{
+						content.create_popup_menu().showMenuAsync(PopupMenu::Options());
+					}
+					return; // skip fallback bounding box
 				}
 			}
 
-			// if this isn't a corner click, see if we've clicked inside a mark
-			if (index_to_delete == -1)
+			// If not near a corner => we want to “repositionActive” the entire bounding box
+			repositionActive = true;
+			repositionDragStart = event.getPosition();
+			repositionOriginalNormRect = selMark.get_normalized_bounding_rect();
+
+			// Keep it selected
+			content.selected_mark = previous_selected_mark;
+			content.most_recent_class_idx = selMark.class_idx;
+			content.most_recent_size = selMark.get_normalized_bounding_rect().size();
+
+			// If user right‐clicked inside the center, show menu
+			if (event.mods.isPopupMenu())
 			{
-				if ((content.marks_are_shown and m.is_prediction == false) or
-					(content.predictions_are_shown and m.is_prediction))
+				content.create_popup_menu().showMenuAsync(PopupMenu::Options());
+			}
+			return; // skip bounding box creation
+		}
+	}
+
+	// 6) If we get here, the user did NOT click inside the currently selected mark’s bounding box.
+	//    So let's see if they clicked a different mark => we simply re‐select that mark.
+	for (size_t idx = 0; idx < content.marks.size(); idx++)
+	{
+		// skip if it’s the old selected mark we already checked
+		if ((int)idx == previous_selected_mark)
+			continue;
+
+		Mark &m = content.marks[idx];
+		cv::Rect r = m.get_bounding_rect(content.scaled_image_size);
+
+		if (r.contains(p))
+		{
+			// if user marks are shown or predictions are shown, we might pick it
+			if ((content.marks_are_shown && !m.is_prediction) ||
+				(content.predictions_are_shown && m.is_prediction))
+			{
+				int area = r.area();
+				if (area < smallest_area)
 				{
-					const int area = r.area();
-					if (area < smallest_area)
-					{
-						smallest_area = area;
-						content.selected_mark = idx;
-						content.most_recent_class_idx = m.class_idx;
-						content.most_recent_size = m.get_normalized_bounding_rect().size();
-					}
+					smallest_area = area;
+					best_idx = (int)idx;
 				}
 			}
 		}
 	}
-
-	if (index_to_delete >= 0)
+	if (best_idx >= 0)
 	{
-		content.most_recent_class_idx = content.marks[index_to_delete].class_idx;
-		content.marks.erase(content.marks.begin() + index_to_delete);
-		content.selected_mark = -1;
-		content.need_to_save = true;
-		mouseDrag(event);
-	}
+		// We found a different mark => just select it. We do NOT reposition or resize it.
+		content.selected_mark = best_idx;
 
-	if (previous_selected_mark != content.selected_mark)
-	{
-		const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx % content.annotation_colours.size());
+		Mark &picked = content.marks[best_idx];
+		content.most_recent_class_idx = picked.class_idx;
+		content.most_recent_size = picked.get_normalized_bounding_rect().size();
+
+		const auto &opencv_colour = content.annotation_colours.at(
+			content.most_recent_class_idx % content.annotation_colours.size());
 		content.crosshair_colour = Colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 		content.rebuild_image_and_repaint();
+
+		// If right‐click, show menu
+		if (event.mods.isPopupMenu())
+		{
+			content.create_popup_menu().showMenuAsync(PopupMenu::Options());
+		}
+		return; // skip bounding box creation
 	}
 
+	// 7) If user right‐clicked empty space, show menu
 	if (event.mods.isPopupMenu())
 	{
 		content.create_popup_menu().showMenuAsync(PopupMenu::Options());
+		return; // done
 	}
 
+	// 8) If we STILL haven't done anything, we let the base crosshair code create a new bounding box if the user drags.
+	//    We've already called CrosshairComponent::mouseDown(event) at the start,
+	//    so the base class is ready to track the bounding box for mouseDrag().
 	return;
 }
-
 
 void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 {
@@ -574,6 +604,16 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 
 void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event)
 {
+
+	// If we are currently repositioning an existing mark,
+	// then we do NOT want to create a new bounding box at all.
+	if (repositionActive)
+	{
+		// Just bail out early to avoid overwriting the user’s reposition
+		// with the “new mark” logic that used to be here.
+		return;
+	}
+
 	if (content.mass_delete_mode_active)
 	{
 
@@ -632,3 +672,147 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect, const Mouse
 	return;
 }
 
+// DMCanvas.cpp
+
+bool dm::DMCanvas::isInCenterRegion(const juce::Rectangle<int> &rect, int x, int y, double marginFactor) const
+{
+	// Define margins as a fraction of the rectangle’s dimensions.
+	int marginX = static_cast<int>(rect.getWidth() * marginFactor);
+	int marginY = static_cast<int>(rect.getHeight() * marginFactor);
+
+	// Create a "central" region by leaving out margins from each side.
+	juce::Rectangle<int> centerRegion(rect.getX() + marginX,
+									  rect.getY() + marginY,
+									  rect.getWidth() - 2 * marginX,
+									  rect.getHeight() - 2 * marginY);
+	return centerRegion.contains(x, y);
+}
+
+void dm::DMCanvas::mouseDrag(const MouseEvent &event)
+{
+	if (resizingActive)
+	{
+		// The user is dragging a corner
+		Mark &selMark = content.marks[content.selected_mark];
+
+		// Original bounding rect
+		cv::Rect2d oldNormRect = resizingOriginalNormRect;
+
+		// Convert the old rect from normalized → absolute coords (scaled image):
+		double imgW = (double)content.scaled_image_size.width;
+		double imgH = (double)content.scaled_image_size.height;
+
+		cv::Rect2d oldAbsRect(
+			oldNormRect.x * imgW,
+			oldNormRect.y * imgH,
+			oldNormRect.width * imgW,
+			oldNormRect.height * imgH);
+
+		// Current mouse in scaled coords
+		cv::Point scaledPt(
+			event.x + content.canvas.zoom_image_offset.x,
+			event.y + content.canvas.zoom_image_offset.y);
+
+		// We'll pin the opposite corner and move the corner being dragged:
+		cv::Point2d newTL = oldAbsRect.tl();
+		cv::Point2d newBR = oldAbsRect.br();
+
+		switch (resizingCorner)
+		{
+		case ECorner::kTL:
+			newTL.x = (double)scaledPt.x;
+			newTL.y = (double)scaledPt.y;
+			break;
+		case ECorner::kTR:
+			newTL.y = (double)scaledPt.y; // top
+			newBR.x = (double)scaledPt.x; // right
+			break;
+		case ECorner::kBR:
+			newBR.x = (double)scaledPt.x;
+			newBR.y = (double)scaledPt.y;
+			break;
+		case ECorner::kBL:
+			newTL.x = (double)scaledPt.x; // left
+			newBR.y = (double)scaledPt.y; // bottom
+			break;
+		}
+
+		// Ensure we have a valid rectangle with positive width/height
+		double x1 = std::min(newTL.x, newBR.x);
+		double y1 = std::min(newTL.y, newBR.y);
+		double x2 = std::max(newTL.x, newBR.x);
+		double y2 = std::max(newTL.y, newBR.y);
+
+		cv::Rect2d newAbsRect(x1, y1, x2 - x1, y2 - y1);
+
+		// Convert back to normalized
+		cv::Rect2d newNorm(
+			newAbsRect.x / imgW,
+			newAbsRect.y / imgH,
+			newAbsRect.width / imgW,
+			newAbsRect.height / imgH);
+
+		// If needed, clamp to [0..1]
+		// e.g. newNorm.x = std::max(0.0, std::min(newNorm.x, 1.0 - newNorm.width));
+
+		// Update the mark
+		selMark.normalized_all_points = {
+			{newNorm.x, newNorm.y},
+			{newNorm.x + newNorm.width, newNorm.y},
+			{newNorm.x + newNorm.width, newNorm.y + newNorm.height},
+			{newNorm.x, newNorm.y + newNorm.height}};
+		selMark.rebalance();
+
+		// Repaint
+		content.rebuild_image_and_repaint();
+		return;
+	}
+	else if (repositionActive)
+	{
+		// Existing reposition logic
+		juce::Point<int> delta = event.getPosition() - repositionDragStart;
+		double ndx = (double)delta.x / (double)getWidth();
+		double ndy = (double)delta.y / (double)getHeight();
+
+		cv::Rect2d newNormRect = repositionOriginalNormRect;
+		newNormRect.x += ndx;
+		newNormRect.y += ndy;
+
+		Mark &selMark = content.marks[content.selected_mark];
+		selMark.normalized_all_points = {
+			{newNormRect.x, newNormRect.y},
+			{newNormRect.x + newNormRect.width, newNormRect.y},
+			{newNormRect.x + newNormRect.width, newNormRect.y + newNormRect.height},
+			{newNormRect.x, newNormRect.y + newNormRect.height}};
+		selMark.rebalance();
+		content.rebuild_image_and_repaint();
+		return;
+	}
+
+	// Otherwise, fallback => new bounding box
+	CrosshairComponent::mouseDrag(event);
+}
+
+void dm::DMCanvas::mouseUp(const MouseEvent &event)
+{
+	if (resizingActive)
+	{
+		resizingActive = false;
+		// The user finished resizing, so let's reset any "mouse_drag_rectangle" if you used it
+		mouse_drag_rectangle = invalid_rectangle;
+
+		content.need_to_save = true;
+		return;
+	}
+	else if (repositionActive)
+	{
+		repositionActive = false;
+		// Possibly also reset "mouse_drag_rectangle" if you want
+		mouse_drag_rectangle = invalid_rectangle;
+
+		content.need_to_save = true;
+		return;
+	}
+
+	CrosshairComponent::mouseUp(event);
+}

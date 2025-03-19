@@ -23,12 +23,17 @@ namespace dm
 
 			virtual void rebuild_cache_image();
 
-			virtual void mouseDown(const MouseEvent & event) override;
-			virtual void mouseDoubleClick(const MouseEvent & event) override;
-			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event) override;
+			virtual void mouseDown(const MouseEvent &event) override;
+			void mouseDrag(const juce::MouseEvent &event) override;
+			void mouseUp(const juce::MouseEvent &event) override;
+
+			virtual void mouseDoubleClick(const MouseEvent &event) override;
+			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent &event) override;
+			// A helper function to check if a point is in the central region of a rectangle.
+			bool isInCenterRegion(const juce::Rectangle<int> &rect, int x, int y, double marginFactor = 0.25) const;
 
 			/// Link to the parent which manages the content, including all the marks.
-			DMContent & content;
+			DMContent &content;
 
 			bool panning_active = false;   // Are we currently panning?
 			juce::Point<int> pan_start;	   // Mouse position where panning began
@@ -40,5 +45,17 @@ namespace dm
 			juce::Point<int> dragStart;
 			juce::Point<int> dragCurrent;
 			cv::Rect selectionRect;
+
+			// For repositioning
+			cv::Rect2d repositionOriginalNormRect; // Original normalized bounding rectangle of the mark
+
+			bool resizingActive = false;		   ///< true when we are corner‐dragging to resize
+			ECorner resizingCorner = ECorner::kTL; ///< which corner is being dragged
+			cv::Rect2d resizingOriginalNormRect;   ///< the mark’s original normalized rect before resizing
+			cv::Point resizeDragStartScaled;	   ///< the mouseDown location in scaled coords, if needed
+
+			bool repositionActive = false;
+			juce::Point<int> repositionDragStart; // starting mouse position (in canvas pixels)
+			cv::Point2d markDragStartNormalized;  // starting top-left of the mark (normalized)
 	};
 }
