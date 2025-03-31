@@ -5,7 +5,8 @@
 
 dm::DMCanvas::DMCanvas(DMContent & c) :
 	CrosshairComponent(c),
-	content(c)
+	content(c),
+	is_panning(false)
 {
 	setName("ImageCanvas");
 
@@ -26,7 +27,7 @@ dm::DMCanvas::~DMCanvas()
 
 void dm::DMCanvas::rebuild_cache_image()
 {
-//	Log("redrawing layers...");
+	//	Log("redrawing layers...");
 
 	//						blue   green red
 	const cv::Scalar black	(0x00, 0x00, 0x00);
@@ -122,7 +123,7 @@ void dm::DMCanvas::rebuild_cache_image()
 	}
 
 	bool mouse_drag_is_active = false;
-	if (mouse_drag_rectangle != invalid_rectangle)
+	if (is_panning == false and mouse_drag_rectangle != invalid_rectangle)
 	{
 		// user is dragging the mouse to create a point, so hide predictions
 //		Log("dragging detected, turning off predictons in image cache");
@@ -399,6 +400,15 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 {
 	CrosshairComponent::mouseDown(event);
 
+	if (event.mods.isCtrlDown())
+	{
+		is_panning = true;
+		content.selected_mark = -1;
+		setMouseCursor(MouseCursor::DraggingHandCursor);
+
+		return;
+	}
+
 	const cv::Point p(
 		mouse_current_loc.x + zoom_image_offset.x,
 		mouse_current_loc.y + zoom_image_offset.y);
@@ -538,8 +548,53 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 }
 
 
+void dm::DMCanvas::mouseDrag(const MouseEvent & event)
+{
+	CrosshairComponent::mouseDrag(event);
+
+	if (is_panning)
+	{
+		// offset is the TL corner of the zoomed image
+		const auto delta = mouse_current_loc - mouse_previous_loc;
+		zoom_image_offset.x -= delta.x;
+		zoom_image_offset.y -= delta.y;
+
+		// don't allow panning past the edges of the image
+		const int image_width	= content.scaled_image.cols;
+		const int image_height	= content.scaled_image.rows;
+		const int canvas_width	= content.canvas.getWidth();
+		const int canvas_height	= content.canvas.getHeight();
+
+		// +5 gives it a bit of a rubber-band effect to help identify the border when panning
+		if (zoom_image_offset.x + canvas_width	> image_width)	zoom_image_offset.x = 5 + image_width - canvas_width;
+		if (zoom_image_offset.y + canvas_height	> image_height)	zoom_image_offset.y = 5 + image_height - canvas_height;
+		if (zoom_image_offset.x					< 0)			zoom_image_offset.x = 0;
+		if (zoom_image_offset.y					< 0)			zoom_image_offset.y = 0;
+
+		repaint();
+	}
+
+	return;
+}
+
+
 void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event)
 {
+	if (is_panning)
+	{
+		is_panning = false;
+
+		content.zoom_point_of_interest.x = (zoom_image_offset.x + (content.canvas.getWidth()  / 2)) / content.current_zoom_factor;
+		content.zoom_point_of_interest.y = (zoom_image_offset.y + (content.canvas.getHeight() / 2)) / content.current_zoom_factor;
+		zoom_image_offset = {0, 0};
+
+		content.rebuild_image_and_repaint();
+
+		setMouseCursor(MouseCursor::NormalCursor);
+
+		return;
+	}
+
 	double midx			= drag_rect.getCentreX() + zoom_image_offset.x;
 	double midy			= drag_rect.getCentreY() + zoom_image_offset.y;
 	double width		= drag_rect.getWidth();

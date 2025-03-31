@@ -82,7 +82,7 @@ void dm::CrosshairComponent::paint(Graphics & g)
 		const int w = getWidth();
 		g.drawImage(cached_image, 0, 0, w, h, zoom_image_offset.x, zoom_image_offset.y, w, h);
 
-		if (mouse_drag_is_enabled and mouse_drag_rectangle != invalid_rectangle)
+		if (mouse_drag_is_enabled and mouse_drag_rectangle != invalid_rectangle and content.canvas.is_panning == false)
 		{
 			// The problem is if the user is moving the mouse upwards, or to the left, then we have a negative width
 			// and/or height.  If that is the case, we need to reverse the points because when given a negative size,
@@ -98,9 +98,6 @@ void dm::CrosshairComponent::paint(Graphics & g)
 			if (y1 > y2) { std::swap(y1, y2); }
 
 			juce::Rectangle<int> r(x1, y1, x2 - x1, y2 - y1);
-
-//			const auto & opencv_colour = content.annotation_colours.at(content.most_recent_class_idx % ...);
-//			const juce::Colour colour(opencv_colour[2], opencv_colour[1], opencv_colour[0]);
 
 			g.setColour(content.crosshair_colour);
 			g.drawRect(r, 1);

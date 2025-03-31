@@ -23,7 +23,7 @@ Key							| Saves Modified Marks First	| Description
 @p +						|								| Zoom image +10%.  Can be pressed repeatedly.
 @p SHIFT + @p +				|								| Zoom image 500%.
 @p -						|								| Zoom image -10%.  Can be pressed repeatedly.
-@p SPACE					|								| Toggle between automatic zoom and manual zoom (see @p '-', @p '+', and @p 'ESC' keys).
+@p SPACE					|								| Toggle between automatic zoom and manual zoom (see @p '-', @p '+', @p 'ESC' keys, and @p CTRL below).
 @p a (lowercase)			|								| Accept all Darknet predictions (if any) for the current image as actual markings.
 @p A (uppercase)			|								| Accept only the currently-selected prediction and discard all other predictions.  If none are selected, then this behaves like @p 'a' where all predictions are accepted.
 @p b (lowercase)			|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
@@ -55,10 +55,12 @@ Key							| Saves Modified Marks First	| Description
 @p ALT + @p 0-9				|								| Set the class ID of the currently selected mark to the value 20-29 (specified key + 20).
 @p CTRL + @p ALT + @p 0-9	|								| Set the class ID of the currently selected mark to the value 30-39 (specified key + 30).
 
-In addition to these keyboard shortcuts, note the following mouse-click behaviour:
+In addition to these keyboard shortcuts, note the following mouse behaviour:
 
-@li When you click on an existing mark, the application remembers both the class and the size of the selected mark.  If you then double-click on an image, DarkMark assumes you want to create a new marking of the same size, and with the same class.  The new marking is positioned so the mouse click is at the center of the mark.  This can be useful if images have a large number of repeating objects which must each be marked.
+@li When you click on an existing mark, the application remembers both the class and the size of the selected mark.  If you then double-click on an image, DarkMark assumes you want to create a new mark of the same size, and with the same class.  The new mark is positioned so the mouse click is at the center.  This can be useful if images have a large number of repeating objects.
 
 @li While resizing an existing mark, you can hold down @p SHIFT to alter the snap behaviour.  If snap is disabled, then holding down @p SHIFT when you let go of the mouse button will temporarily enable snapping.  If snap is enabled, then holding down @p SHIFT when you let go of the mouse button will temporarily disable snapping.
+
+@li While dragging the mouse on a zoomed-in image, hold down @p CTRL to pan the image.  (Or press @p SPACE to zoom out and back in.)
 
 */

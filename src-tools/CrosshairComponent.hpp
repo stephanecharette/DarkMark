@@ -71,8 +71,9 @@ namespace dm
 			juce::Image cached_image;
 			bool need_to_rebuild_cache_image;
 
-			/** The top-left offset into the image so we know what needs to be displayed.
-			 * Normally, this value will be (0, 0) unless the image is zoomed in.
+			/** The top-left offset into the zoomed image so we know what needs to be displayed.
+			 * Normally, this value will be (0, 0) unless the image is zoomed in.  This value is
+			 * in the coordinate space of the zoomed image, not the original image.
 			 */
 			cv::Point zoom_image_offset;
 	};

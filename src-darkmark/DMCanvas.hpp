@@ -25,9 +25,13 @@ namespace dm
 
 			virtual void mouseDown(const MouseEvent & event) override;
 			virtual void mouseDoubleClick(const MouseEvent & event) override;
+			virtual void mouseDrag(const MouseEvent & event) override;
 			virtual void mouseDragFinished(juce::Rectangle<int> drag_rect, const MouseEvent & event) override;
 
 			/// Link to the parent which manages the content, including all the marks.
 			DMContent & content;
+
+			/// If the CTRL key is held down while zooming, then we'll pan the image instead of creating a bounding box.
+			bool is_panning;
 	};
 }
