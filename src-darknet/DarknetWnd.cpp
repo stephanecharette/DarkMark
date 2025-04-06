@@ -1013,8 +1013,6 @@ void dm::DarknetWnd::create_Darknet_configuration_file(ThreadWithProgressWindow 
 	const float hue						= info.hue;
 	const int angle						= info.angle;
 	const size_t number_of_iterations	= info.iterations;
-	const size_t step1					= std::round(0.8 * number_of_iterations);
-	const size_t step2					= std::round(0.9 * number_of_iterations);
 	const size_t batch					= info.batch_size;
 	const size_t subdivisions			= info.subdivisions;
 //	const size_t filters				= number_of_classes * 3 + 15;
@@ -1037,7 +1035,7 @@ void dm::DarknetWnd::create_Darknet_configuration_file(ThreadWithProgressWindow 
 		{"saturation"		, std::to_string(saturation)							},
 		{"exposure"			, std::to_string(exposure)								},
 		{"max_batches"		, std::to_string(number_of_iterations)					},
-		{"steps"			, std::to_string(step1) + "," + std::to_string(step2)	},
+		{"scales"			, "0.2,0.1"												},
 		{"batch"			, std::to_string(batch)									},
 		{"subdivisions"		, std::to_string(subdivisions)							},
 		{"height"			, std::to_string(height)								},
@@ -1049,6 +1047,32 @@ void dm::DarknetWnd::create_Darknet_configuration_file(ThreadWithProgressWindow 
 	{
 		m["show_receptive_field"] = "1";
 	}
+
+	std::set<size_t> steps =
+	{
+		static_cast<size_t>(std::round(0.8f * number_of_iterations)),
+		static_cast<size_t>(std::round(0.9f * number_of_iterations))
+	};
+
+	if (v_restart_training.getValue().operator bool())
+	{
+		steps.insert(std::round(0.5f * number_of_iterations));
+		steps.insert(std::round(0.6f * number_of_iterations));
+		steps.insert(std::round(0.7f * number_of_iterations));
+		m["scales"] = "0.5,0.4,0.3,0.2,0.1";
+		m["burn_in"] = "0";
+	}
+
+	std::string str;
+	for (const auto s : steps)
+	{
+		if (str.size())
+		{
+			str += ",";
+		}
+		str += std::to_string(s);
+	}
+	m["steps"] = str;
 
 	cfg_handler.modify_all_sections("[net]", m);
 
