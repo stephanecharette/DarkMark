@@ -35,6 +35,9 @@ void dm::DMContentImageFilenameSort::run()
 		return;
 	}
 
+	// first thing we need to do is sort alphabetically so we can maintain a predictable order between images (issue #38)
+	std::sort(content.image_filenames.begin(), content.image_filenames.end());
+
 	std::map<std::string, float> m;
 
 	const std::time_t now = std::time(nullptr);
@@ -173,7 +176,7 @@ void dm::DMContentImageFilenameSort::run()
 
 		setProgress(0.0);
 
-		std::sort(content.image_filenames.begin(), content.image_filenames.end(),
+		std::stable_sort(content.image_filenames.begin(), content.image_filenames.end(),
 					[&](const auto & lhs, const auto & rhs)
 					{
 						if (threadShouldExit())
