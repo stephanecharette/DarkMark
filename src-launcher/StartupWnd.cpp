@@ -11,7 +11,7 @@ dm::StartupWnd::StartupWnd() :
 		import_video_button("Import video..."),
 		import_pdf_button("Import PDF..."),
 		open_folder_button("Open folder..."),
-		class_id_button("Class IDs..."),
+		class_id_button("Dataset..."),
 		refresh_button("Refresh"),
 		ok_button("Load..."),
 		cancel_button("Cancel")
@@ -283,6 +283,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
 		if (notebook_canvas)
 		{
+			setEnabled(false);
 			const auto base_directory = notebook_canvas->project_directory.toString();
 			FileChooser fc("Select one or more PDF document to import...", base_directory, "*.pdf");
 			if (fc.browseForMultipleFilesToOpen())
@@ -331,12 +332,14 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				}
 			}
 		}
+		setEnabled(true);
 	}
 	else if (button == &import_video_button)
 	{
 		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
 		if (notebook_canvas)
 		{
+			setEnabled(false);
 			const auto base_directory = notebook_canvas->project_directory.toString();
 			FileChooser fc("Select one or more video to import...", base_directory, "*");
 			if (fc.browseForMultipleFilesToOpen())
@@ -385,6 +388,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				}
 			}
 		}
+		setEnabled(true);
 	}
 	else if (button == &add_button)
 	{
@@ -398,6 +402,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		}
 		else
 		{
+			setEnabled(false);
 			dir = File::getSpecialLocation(File::SpecialLocationType::userHomeDirectory);
 
 			// attempt to default to the parent directory of the active tab (if we have a tab)
@@ -510,6 +515,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		}
 
 		updateButtons();
+		setEnabled(true);
 	}
 	else if (button == &delete_button)
 	{
@@ -517,6 +523,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(tab_index));
 		if (notebook_canvas)
 		{
+			setEnabled(false);
 			File dir(notebook_canvas->project_directory.toString());
 
 			int result = AlertWindow::showYesNoCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark Project Deletion",
@@ -570,6 +577,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 				}
 			}
 		}
+		setEnabled(true);
 		updateButtons();
 	}
 	else if (button == &ok_button)
