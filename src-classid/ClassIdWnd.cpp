@@ -13,13 +13,17 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 	add_button				("Add Row"),
 	up_button				("up"	, 0.75f, Colours::lightblue),
 	down_button				("down"	, 0.25f, Colours::lightblue),
+	export_button			("Export..."),
 	apply_button			("Apply..."),
 	cancel_button			("Cancel"),
 	done_looking_for_images	(false),
+	is_exporting			(false),
+	export_all_images		(false),
 	names_file_rewritten	(false),
 	number_of_annotations_deleted(0),
 	number_of_annotations_remapped(0),
-	number_of_txt_files_rewritten(0)
+	number_of_txt_files_rewritten(0),
+	number_of_files_copied	(0)
 {
 	setContentNonOwned		(&canvas, true	);
 	setUsingNativeTitleBar	(true			);
@@ -30,6 +34,7 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 	canvas.addAndMakeVisible(add_button);
 	canvas.addAndMakeVisible(up_button);
 	canvas.addAndMakeVisible(down_button);
+	canvas.addAndMakeVisible(export_button);
 	canvas.addAndMakeVisible(apply_button);
 	canvas.addAndMakeVisible(cancel_button);
 
@@ -45,8 +50,11 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 	table.getHeader().setPopupMenuActive(false);
 	table.setModel(this);
 
+	add_button		.setTooltip("Add a new row to the bottom of the .names file.");
 	up_button		.setTooltip("Move the selected class up.");
 	down_button		.setTooltip("Move the selected class down.");
+	export_button	.setTooltip("Export the entire dataset -- including the images -- with the changes shown above to a brand new project.  The current dataset will remain unchanged.");
+	apply_button	.setTooltip("Apply the changes shown above to the current dataset.");
 
 	up_button		.setVisible(false);
 	down_button		.setVisible(false);
@@ -54,6 +62,7 @@ dm::ClassIdWnd::ClassIdWnd(File project_dir, const std::string & fn) :
 	add_button		.addListener(this);
 	up_button		.addListener(this);
 	down_button		.addListener(this);
+	export_button	.addListener(this);
 	apply_button	.addListener(this);
 	cancel_button	.addListener(this);
 
@@ -149,7 +158,20 @@ void dm::ClassIdWnd::closeButtonPressed()
 		// re-enable the launcher window which started us (fake modal mode)
 		dmapp().startup_wnd->setEnabled(true);
 
-		if (names_file_rewritten)
+		if (is_exporting)
+		{
+			AlertWindow::showMessageBoxAsync(MessageBoxIconType::InfoIcon,
+					getTitle(),
+					"The dataset has been exported to:\n"
+					"\n" +
+					String(export_directory.c_str()) + "\n"
+					"\n"
+					"Number of files copied: "			+ String(number_of_files_copied			) + "\n"
+					"Number of annotations deleted: "	+ String(number_of_annotations_deleted	) + "\n"
+					"Number of annotations remapped: "	+ String(number_of_annotations_remapped	) + "\n"
+					"Number of .txt files modified: "	+ String(number_of_txt_files_rewritten	) + "\n");
+		}
+		else  if (names_file_rewritten)
 		{
 			dmapp().startup_wnd->refresh_button.triggerClick();
 
@@ -198,6 +220,8 @@ void dm::ClassIdWnd::resized()
 	button_row.items.add(FlexItem(up_button)		.withWidth(50.0));
 	button_row.items.add(FlexItem(down_button)		.withWidth(50.0));
 	button_row.items.add(FlexItem()					.withFlex(1.0));
+	button_row.items.add(FlexItem(export_button)	.withWidth(100.0));
+	button_row.items.add(FlexItem()					.withWidth(margin_size));
 	button_row.items.add(FlexItem(apply_button)		.withWidth(100.0));
 	button_row.items.add(FlexItem()					.withWidth(margin_size));
 	button_row.items.add(FlexItem(cancel_button)	.withWidth(100.0));
@@ -222,11 +246,43 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 		add_row("new class");
 		rebuild_table();
 	}
+	else if (button == &export_button)
+	{
+		dm::Log("export button has been pressed!");
+		setEnabled(false);
+
+		const auto name = std::filesystem::path(names_fn).stem().string();
+
+		const int result = NativeMessageBox::show(
+			MessageBoxOptions().
+				withAssociatedComponent(this).
+				withIconType(MessageBoxIconType::QuestionIcon).
+				withMessage("This will export both images and annotations to create a brand new dataset.\n\nWhich images from the \"" + name + "\" dataset should be exported to the new dataset?").
+				withTitle("DarkMark Export New Dataset").
+				withButton("All Images"				).
+				withButton("Only Annotated Images"	).
+				withButton("Cancel"					));
+
+		// cancel button seems to always be "0" even when specified last, other buttons are "1" and "2"
+		if (result > 0)
+		{
+			is_exporting = true;
+			export_all_images = (result == 1);
+			runThread(); // calls run() and waits for it to be done
+			dm::Log("forcing the window to close");
+			closeButtonPressed();
+		}
+		else
+		{
+			// cancelled action
+			setEnabled(true);
+		}
+	}
 	else if (button == &apply_button)
 	{
 		dm::Log("apply button has been pressed!");
 		setEnabled(false);
-		const bool result = NativeMessageBox::showOkCancelBox(MessageBoxIconType::QuestionIcon, "DarkMark Network Classes", "This will overwrite your " + File(names_fn).getFileName().toStdString() + " file, and possibly modify all of your annotations. You should make a backup of your project before making these modifications.\n\nDo you wish to proceed?");
+		const bool result = NativeMessageBox::showOkCancelBox(MessageBoxIconType::QuestionIcon, "DarkMark Modify Dataset", "This will overwrite your " + File(names_fn).getFileName().toStdString() + " file, and possibly modify all of your annotations. You should make a backup of your project before making these modifications.\n\nDo you wish to proceed?");
 		if (result)
 		{
 			runThread(); // calls run() and waits for it to be done
@@ -269,11 +325,119 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 }
 
 
+namespace
+{
+	void cp_files(const std::filesystem::path & src, const std::filesystem::path & dst)
+	{
+		// this will copy both the image and the .txt annotation file (if it exists)
+
+		if (src.empty())
+		{
+			throw std::invalid_argument("cannot copy file (src is empty)");
+		}
+		if (dst.empty())
+		{
+			throw std::invalid_argument("cannot copy file (dst is empty)");
+		}
+		if (src == dst)
+		{
+			throw std::invalid_argument("cannot copy file (src and dst are the same)");
+		}
+		if (not std::filesystem::exists(src))
+		{
+			throw std::invalid_argument("src file does not exist: " + src.string());
+		}
+
+		std::error_code ec;
+		std::filesystem::create_directories(dst.parent_path(), ec);
+		if (ec)
+		{
+			throw std::filesystem::filesystem_error("error creating subdirectory", src, dst, ec);
+		}
+
+		dm::VStr extensions;
+		extensions.push_back(src.extension().string());
+		extensions.push_back(".txt");
+		for (const auto & ext : extensions)
+		{
+			const auto f1 = std::filesystem::path(src).replace_extension(ext);
+			const auto f2 = std::filesystem::path(dst).replace_extension(ext);
+
+			if (std::filesystem::exists(f1))
+			{
+				bool success = std::filesystem::copy_file(f1, f2, ec);
+				if (ec or not success)
+				{
+					dm::Log("failed to copy " + f1.string() + " to " + f2.string() + ": " + ec.message());
+					throw std::filesystem::filesystem_error("file copy failed", f1, f2, ec);
+				}
+				std::filesystem::last_write_time(f2, std::filesystem::last_write_time(f1), ec); // we don't care if this call fails
+			}
+		}
+
+		return;
+	}
+}
+
+
+void dm::ClassIdWnd::run_export()
+{
+	const std::filesystem::path source = dir.getFullPathName().toStdString();
+	const std::filesystem::path target = (source.string() + "_export_" + Time::getCurrentTime().formatted("%Y-%m-%d_%H-%M-%S").toStdString());
+	export_directory = target;
+
+	Log("export dataset src=" + source.string());
+	Log("export dataset dst=" + target.string());
+
+	setStatusMessage("Exporting files to " + target.string() + "...");
+
+	// in addition to the images in "all_images" and annotations, we also need to copy the .cfg file(s)
+	for (const auto & entry : std::filesystem::directory_iterator(source))
+	{
+		if (entry.is_regular_file() and
+			entry.file_size() > 0 and
+			entry.path().extension() == ".cfg")
+		{
+			const std::filesystem::path dst = target / entry.path().filename();
+
+			cp_files(entry.path(), dst);
+		}
+	}
+
+	// remember the new .names file so it gets saved in the right location in run()
+	names_fn = (target / std::filesystem::relative(names_fn, source)).string();
+
+	VStr dst_images;
+	dst_images.reserve(all_images.size());
+	double work_completed = 0.0f;
+	const double work_to_be_done = all_images.size();
+
+	for (size_t idx = 0; idx < all_images.size() and not threadShouldExit(); idx ++)
+	{
+		setProgress(work_completed / work_to_be_done);
+		work_completed ++;
+
+		std::filesystem::path src = all_images[idx];
+		std::filesystem::path dst = target / std::filesystem::relative(src, source);
+
+		if (export_all_images or std::filesystem::exists(std::filesystem::path(src).replace_extension(".txt")))
+		{
+			// this will copy both the image and the .txt annotation file (if it exists)
+			cp_files(src, dst);
+			number_of_files_copied ++;
+			dst_images.push_back(dst.string());
+		}
+	}
+
+	all_images.swap(dst_images);
+
+	return;
+}
+
+
 void dm::ClassIdWnd::run()
 {
 	setEnabled(false);
-
-	setStatusMessage("Saving " + names_fn + "...");
 
 	std::map<size_t, std::string>	names;
 	std::set<size_t>				to_be_deleted;
@@ -296,6 +460,11 @@ void dm::ClassIdWnd::run()
 		{
 			names[info.modified_id] = info.modified_name;
 		}
+	}
+
+	if (is_exporting)
+	{
+		run_export();
 	}
 
 	std::ofstream ofs(names_fn);
@@ -844,7 +1013,8 @@ void dm::ClassIdWnd::rebuild_table()
 		}
 	}
 
-	apply_button.setEnabled(done_looking_for_images and error_count == 0 and next_class_id > 0 and changes_to_apply);
+	export_button	.setEnabled(done_looking_for_images and error_count == 0 and next_class_id > 0);
+	apply_button	.setEnabled(done_looking_for_images and error_count == 0 and next_class_id > 0 and changes_to_apply);
 
 	table.updateContent();
 	table.repaint();
@@ -949,12 +1119,14 @@ void dm::ClassIdWnd::count_images_and_marks()
 		if (error_count)
 		{
 			dm::Log("-> errors found: " + std::to_string(error_count));
+			export_button.setTooltip("Cannot export dataset due to errors.  See log file for details.");
 			apply_button.setTooltip("Cannot apply changes due to errors.  See log file for details.");
 		}
 		else
 		{
 			all_images.swap(image_filenames);
 			done_looking_for_images = true;
+			rebuild_table();
 		}
 	}
 	catch(const std::exception & e)

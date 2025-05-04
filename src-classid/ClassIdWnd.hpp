@@ -57,6 +57,8 @@ namespace dm
 			virtual Component * refreshComponentForCell(int rowNumber, int columnId, bool isRowSelected, Component * existingComponentToUpdate) override;
 			virtual String getCellTooltip(int rowNumber, int columnId) override;
 
+			void run_export();
+
 			void rebuild_table();
 
 			/// Used to stop the counting thread in cases where the window is closed early.
@@ -69,7 +71,7 @@ namespace dm
 			File dir;
 
 			/// The filename that contains all of the class names.
-			const std::string names_fn;
+			std::string names_fn;
 
 			/// The key is the class ID, the val is the number of files found with that class.
 			std::map<int, size_t> count_files_per_class;
@@ -90,6 +92,7 @@ namespace dm
 			TextButton add_button;
 			ArrowButton up_button;
 			ArrowButton down_button;
+			TextButton export_button;
 			TextButton apply_button;
 			TextButton cancel_button;
 
@@ -104,9 +107,14 @@ namespace dm
 			 */
 			VStr all_images;
 
+			bool is_exporting;
+			bool export_all_images;
 			bool names_file_rewritten;
 			size_t number_of_annotations_deleted;
 			size_t number_of_annotations_remapped;
 			size_t number_of_txt_files_rewritten;
+			size_t number_of_files_copied;
+
+			std::filesystem::path export_directory;
 	};
 }
