@@ -3,6 +3,7 @@
 #include "DarkMark.hpp"
 
 #include <magic.h>
+#include <darknet.hpp>
 
 #include "json.hpp"
 using json = nlohmann::json;
@@ -235,18 +236,7 @@ void dm::DMContentReview::run()
 				// so now we have r1 and r2, and since we're looping over "all_rectangles" at some
 				// point r1 == r2 which we'll need to take into account when we calculate the sum
 
-				// see: https://stackoverflow.com/questions/9324339/how-much-do-two-rectangles-overlap/9325084
-				const auto tl1 = r1.tl();	// blue_triangle
-				const auto tl2 = r2.tl();	// orange_triangle
-				const auto br1 = r1.br();	// blue_circle
-				const auto br2 = r2.br();	// orange_circle
-
-				const double intersecting_area = std::max(0, std::min(br2.x, br1.x) - std::max(tl2.x, tl1.x)) * std::max(0, std::min(br2.y, br1.y) - std::max(tl2.y, tl1.y));
-				const double a1 = r1.area();
-				const double a2 = r2.area();
-				const double intersection_over_union = intersecting_area / std::max(1.0, (a1 + std::min(a2, intersecting_area) - intersecting_area));
-				review_info.overlap_sum += intersection_over_union;
-//				Log(fn + ": intersection_over_union=" + std::to_string(intersection_over_union));
+				review_info.overlap_sum += Darknet::iou(r1, r2);
 			}
 
 			if (review_info.overlap_sum >= 1.0)

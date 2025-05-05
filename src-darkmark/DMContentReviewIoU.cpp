@@ -2,26 +2,10 @@
 
 #include "DarkMark.hpp"
 
+#include <darknet.hpp>
+
 #include "json.hpp"
 using json = nlohmann::json;
-
-
-double IoU(const cv::Rect r1, const cv::Rect r2)
-{
-	// see: https://stackoverflow.com/questions/9324339/how-much-do-two-rectangles-overlap/9325084
-
-	const auto tl1 = r1.tl();	// blue_triangle
-	const auto tl2 = r2.tl();	// orange_triangle
-	const auto br1 = r1.br();	// blue_circle
-	const auto br2 = r2.br();	// orange_circle
-
-	const double intersecting_area = std::max(0, std::min(br2.x, br1.x) - std::max(tl2.x, tl1.x)) * std::max(0, std::min(br2.y, br1.y) - std::max(tl2.y, tl1.y));
-	const double a1 = r1.area();
-	const double a2 = r2.area();
-	const double intersection_over_union = intersecting_area / std::max(1.0, (a1 + std::min(a2, intersecting_area) - intersecting_area));
-
-	return intersection_over_union;
-}
 
 
 dm::DMContentReviewIoU::DMContentReviewIoU(dm::DMContent & c) :
@@ -150,7 +134,7 @@ void dm::DMContentReviewIoU::run()
 				}
 
 				// if we get here then the class index matches, so now compare the IoU
-				const double iou = IoU(mark_r, pred.rect);
+				const double iou = Darknet::iou(mark_r, pred.rect);
 				if (iou > 0.0)
 				{
 					mm.insert({iou, idx});
