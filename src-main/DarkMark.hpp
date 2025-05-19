@@ -9,6 +9,7 @@
 #include <chrono>
 #include <random>
 #include <algorithm>
+#include <filesystem>
 #include <DarkHelp.hpp>
 #include <JuceHeader.h>
 
