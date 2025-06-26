@@ -780,6 +780,20 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		show_message("user marks: " + std::string(show_marks ? "visible" : "hidden"));
 		return true;
 	}
+	else if (key.getTextCharacter() == '`')
+	{
+		if (!merge_mode_active)
+		{
+			startMergeMode();
+		}
+		else
+		{
+			merge_mode_active = false;
+			merge_start_marks.clear();
+			show_message("Merge mode canceled.");
+		}
+		return true;
+	}
 	else if (keychar == 'l')
 	{
 		EToggle toggle = static_cast<EToggle>( (int(show_labels) + 1) % 3 );
@@ -2822,4 +2836,206 @@ bool dm::DMContent::snap_annotation(int idx)
 	}
 
 	return adjusted;
+}
+
+// ---------------------------------------------------------------------------
+// Merge mode methods for DMContent
+// ---------------------------------------------------------------------------
+void dm::DMContent::startMergeMode()
+{
+	// Turn on the merge mode and clear any leftover data.
+	merge_mode_active = true;
+	merge_start_marks.clear();
+
+	show_message("Merge mode activated. Double-click to select the FIRST key frame.");
+}
+
+void dm::DMContent::selectMergeKeyFrame()
+{
+	if (!merge_mode_active)
+		return; // Do nothing if we're not in merge mode.
+
+	// Are we picking the FIRST key frame?
+	if (merge_start_marks.empty())
+	{
+		// Make sure the user has actually clicked a valid bounding box:
+		if (selected_mark < 0 || selected_mark >= static_cast<int>(marks.size()))
+		{
+			show_message("No mark selected. Double-click on a bounding box first.");
+			return;
+		}
+
+		// Instead of storing ALL marks, store just the one that was clicked:
+		merge_start_marks.clear();
+		merge_start_marks.push_back(marks[selected_mark]);
+
+		merge_start_index = image_filename_index;
+
+		show_message("First key frame selected. Now navigate to the SECOND key frame and double-click to merge.");
+	}
+	else
+	{
+		// This is the SECOND key frame.
+		if (selected_mark < 0 || selected_mark >= static_cast<int>(marks.size()))
+		{
+			show_message("No mark selected in second key frame. Merge cancelled.");
+			return;
+		}
+
+		size_t merge_end_index = image_filename_index;
+
+		// Calculate how many frames are in between.
+		int numIntermediate = 0;
+		if (merge_end_index > merge_start_index)
+			numIntermediate = static_cast<int>(merge_end_index - merge_start_index - 1);
+		else if (merge_start_index > merge_end_index)
+			numIntermediate = static_cast<int>(merge_start_index - merge_end_index - 1);
+
+		if (numIntermediate < 1)
+		{
+			show_message("No intermediate frames to merge. Merge cancelled.");
+		}
+		else
+		{
+			// Again, store only the single bounding box from the second frame:
+			std::vector<Mark> endMarkVec;
+			endMarkVec.push_back(marks[selected_mark]);
+
+			// Now interpolate from merge_start_marks[0] to endMarkVec[0].
+			interpolateMarks(merge_start_marks, endMarkVec, numIntermediate);
+			show_message("Merge complete—intermediate annotations interpolated.");
+		}
+
+		// Reset merge mode so we don't accidentally keep merging.
+		merge_mode_active = false;
+		merge_start_marks.clear();
+	}
+}
+
+void dm::DMContent::interpolateMarks(
+	const std::vector<Mark> &startMarks,
+	const std::vector<Mark> &endMarks,
+	int /*numIntermediateFrames*/)
+{
+	// Basic sanity checks.
+	if (startMarks.empty() || endMarks.empty())
+	{
+		Log("Interpolation error: one of the key frames has no mark.");
+		return;
+	}
+
+	// Because we pushed_back only one Mark in each vector:
+	const Mark &startMark = startMarks.front();
+	const Mark &endMark = endMarks.front();
+
+	// Retrieve the normalized bounding rects from the key frames.
+	cv::Rect2d r1 = startMark.get_normalized_bounding_rect();
+	cv::Rect2d r2 = endMark.get_normalized_bounding_rect();
+
+	// Save the class info from the start mark (or whichever you prefer).
+	size_t retained_class = startMark.class_idx;
+	std::string retained_name = startMark.name;
+	std::string retained_desc = startMark.description;
+
+	// Determine which way we’re interpolating (startIdx < endIdx or vice versa).
+	size_t startIdx = merge_start_index;
+	size_t endIdx = image_filename_index;
+
+	if (startIdx == endIdx ||
+		(startIdx + 1 >= endIdx && endIdx >= startIdx) ||
+		(endIdx + 1 >= startIdx && startIdx >= endIdx))
+	{
+		Log("No intermediate frames available.");
+		return;
+	}
+
+	// Lambda to process one intermediate frame index:
+	auto processFrame = [&](size_t frameIdx, float t)
+	{
+		// Load that frame so we can figure out image dimensions, etc.
+		load_image(frameIdx, /* full_load= */ true, /* display_immediately= */ true);
+
+		cv::Size curSize = original_image.size();
+
+		// Compute center points of r1 & r2.
+		cv::Point2d c1(r1.x + r1.width * 0.5, r1.y + r1.height * 0.5);
+		cv::Point2d c2(r2.x + r2.width * 0.5, r2.y + r2.height * 0.5);
+
+		// Linear interpolation for center:
+		cv::Point2d cInterp;
+		cInterp.x = c1.x + t * (c2.x - c1.x);
+		cInterp.y = c1.y + t * (c2.y - c1.y);
+
+		// Linear interpolation for width & height:
+		double wInterp = r1.width + t * (r2.width - r1.width);
+		double hInterp = r1.height + t * (r2.height - r1.height);
+
+		// Build the new normalized rect from center & size.
+		cv::Rect2d rInterpNorm;
+		rInterpNorm.x = cInterp.x - wInterp * 0.5;
+		rInterpNorm.y = cInterp.y - hInterp * 0.5;
+		rInterpNorm.width = wInterp;
+		rInterpNorm.height = hInterp;
+
+		// Convert normalized → absolute pixel coords:
+		cv::Rect absRect(
+			static_cast<int>(rInterpNorm.x * curSize.width),
+			static_cast<int>(rInterpNorm.y * curSize.height),
+			static_cast<int>(rInterpNorm.width * curSize.width),
+			static_cast<int>(rInterpNorm.height * curSize.height));
+
+		// Create a new Mark with the interpolated rect.
+		Mark interp = startMark;
+		interp.image_dimensions = curSize;
+		interp.set(absRect);
+
+		// Keep the class info from the start mark (or whichever you prefer).
+		interp.class_idx = retained_class;
+		interp.name = retained_name;
+		interp.description = retained_desc;
+
+		// Insert the new annotation. We do *not* erase other marks in that frame.
+		marks.push_back(interp);
+		need_to_save = true;
+		save_json();
+		save_text();
+
+		Log("Frame " + std::to_string(frameIdx) + ": Interpolated annotation created.");
+	};
+
+	// Walk from startIdx+1 to endIdx-1 (or reverse).
+	if (startIdx < endIdx)
+	{
+		for (size_t frameIdx = startIdx + 1; frameIdx < endIdx; ++frameIdx)
+		{
+			float t = float(frameIdx - startIdx) / float(endIdx - startIdx);
+			processFrame(frameIdx, t);
+		}
+	}
+	else
+	{
+		// If we’re going backward in the image list:
+		for (size_t frameIdx = startIdx - 1; frameIdx > endIdx; --frameIdx)
+		{
+			float t = float(startIdx - frameIdx) / float(startIdx - endIdx);
+			processFrame(frameIdx, t);
+		}
+	}
+
+	// Finally, rebuild the display for the current frame.
+	rebuild_image_and_repaint();
+}
+
+cv::Rect2d dm::DMContent::convertToNormalized(const cv::Rect &areaInScreenCoords)
+{
+	double imgW = scaled_image_size.width;
+	double imgH = scaled_image_size.height;
+
+	// Add the zoom offset before normalizing:
+	double x = (areaInScreenCoords.x + canvas.zoom_image_offset.x) / imgW;
+	double y = (areaInScreenCoords.y + canvas.zoom_image_offset.y) / imgH;
+	double w = areaInScreenCoords.width / imgW;
+	double h = areaInScreenCoords.height / imgH;
+
+	return cv::Rect2d(x, y, w, h);
 }

@@ -527,6 +527,12 @@ void dm::DMCanvas::mouseDoubleClick(const MouseEvent & event)
 	}
 #endif
 
+	if (content.merge_mode_active)
+	{
+		content.selectMergeKeyFrame();
+		return; // Skip normal mark creation.
+	}
+
 	double x = double(event.x + zoom_image_offset.x) / cached_image.getWidth();
 	double y = double(event.y + zoom_image_offset.y) / cached_image.getHeight();
 
