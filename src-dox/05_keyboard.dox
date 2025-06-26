@@ -24,6 +24,7 @@ Key							| Saves Modified Marks First	| Description
 @p SHIFT + @p +				|								| Zoom image 500%.
 @p -						|								| Zoom image -10%.  Can be pressed repeatedly.
 @p SPACE					|								| Toggle between automatic zoom and manual zoom (see @p '-', @p '+', @p 'ESC' keys, and @p CTRL below).
+@p `                        |                               | Toggle merge mode. Take two marks across a gap of frames and interpolate the marks in between them by both location and size.
 @p a (lowercase)			|								| Accept all Darknet predictions (if any) for the current image as actual markings.
 @p A (uppercase)			|								| Accept only the currently-selected prediction and discard all other predictions.  If none are selected, then this behaves like @p 'a' where all predictions are accepted.
 @p b (lowercase)			|								| Toggle @em bold mode.  All markings will be displayed in "bold", making it easier to review.
