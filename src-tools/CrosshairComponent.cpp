@@ -253,8 +253,8 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 	if (mouse_drag_is_enabled and mouse_drag_rectangle != invalid_rectangle)
 	{
 		// re-orient the rectangle so TL is smaller than BR, otherwise we'll get a negative width/height which confuses things
-		const int x1 = mouse_drag_rectangle.getTopLeft().x;
-		const int y1 = mouse_drag_rectangle.getTopLeft().y;
+		const int x1 = mouse_drag_rectangle.getX();
+		const int y1 = mouse_drag_rectangle.getY();
 		const int x2 = mouse_current_loc.x;
 		const int y2 = mouse_current_loc.y;
 
@@ -275,14 +275,32 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 
 	repaint();
 
-	return;
 }
 
 
 void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 {
-	mouse_previous_loc	= mouse_current_loc;
-	mouse_current_loc	= event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
+	// If we’re in mass-delete mode, just update the rectangle and repaint.
+	if (content.mass_delete_mode_active)
+	{
+		// Update mouse_current_loc with any offset:
+		mouse_current_loc = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
+
+		// Update the width/height of mouse_drag_rectangle
+		const auto p1 = mouse_drag_rectangle.getTopLeft();
+		const auto p2 = mouse_current_loc;
+		const auto w = p2.x - p1.x;
+		const auto h = p2.y - p1.y;
+		mouse_drag_rectangle.setWidth(w);
+		mouse_drag_rectangle.setHeight(h);
+
+		repaint(); // so we can see the rubber-band box in paint()
+		return;	   // <-- skip the normal bounding-box logic below
+	}
+
+	// Otherwise
+	mouse_previous_loc = mouse_current_loc;
+	mouse_current_loc = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
 
 	if (mouse_drag_rectangle == invalid_rectangle or
 		mouse_drag_rectangle.getX() == -1 or
@@ -304,7 +322,6 @@ void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 
 	repaint();
 
-	return;
 }
 
 

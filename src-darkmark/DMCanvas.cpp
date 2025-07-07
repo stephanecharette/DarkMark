@@ -6,7 +6,10 @@
 dm::DMCanvas::DMCanvas(DMContent & c) :
 	CrosshairComponent(c),
 	content(c),
-	is_panning(false)
+	is_panning(false),
+	dragStart(0, 0),
+	dragCurrent(0, 0),
+	selectionRect(0, 0, 0, 0)
 {
 	setName("ImageCanvas");
 
@@ -400,6 +403,18 @@ void dm::DMCanvas::mouseDown(const MouseEvent & event)
 {
 	CrosshairComponent::mouseDown(event);
 
+	if (content.mass_delete_mode_active)
+	{
+		// Use the same coordinate system you do for normal bounding boxes:
+		dragStart = event.getPosition();
+		dragCurrent = dragStart;
+		selectionRect = cv::Rect();
+
+		// If you want to do a “rubber band” box, you'll handle updates in mouseDrag()
+		// and finalize in mouseUp(). So skip the rest of the normal logic:
+		return;
+	}
+
 	if (event.mods.isCtrlDown())
 	{
 		is_panning = true;
@@ -599,6 +614,15 @@ void dm::DMCanvas::mouseDragFinished(juce::Rectangle<int> drag_rect, const Mouse
 		setMouseCursor(MouseCursor::NormalCursor);
 
 		return;
+	}
+
+	if (content.mass_delete_mode_active)
+	{
+
+		cv::Rect r(drag_rect.getX(), drag_rect.getY(), drag_rect.getWidth(), drag_rect.getHeight());
+		content.handleMassDeleteArea(r);
+
+		return; // skip the normal single-mark bounding-box code
 	}
 
 	double midx			= drag_rect.getCentreX() + zoom_image_offset.x;

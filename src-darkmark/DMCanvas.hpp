@@ -33,5 +33,12 @@ namespace dm
 
 			/// If the CTRL key is held down while zooming, then we'll pan the image instead of creating a bounding box.
 			bool is_panning;
+
+			
+		private:
+			// For the rubber-band mass-delete area:
+			juce::Point<int> dragStart;
+			juce::Point<int> dragCurrent;
+			cv::Rect selectionRect;
 	};
 }
