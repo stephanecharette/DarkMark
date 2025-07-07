@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.10.26-1	| 2025-07-07	| Added "merge mode" to interpolate the position of a mark moving across multiple consecutive frames.
 1.10.17-1	| 2025-01-19	| Added @p remove_small_annotations and @p annotation_area_size to @ref CLI.
 1.10.7-1	| 2024-12-20	| Added new window to rename, reorder, merge, and delete classes from neural network.
 1.10.6-1	| 2024-12-07	| Several new ways to sort images using the output from the "Review IoU" window.
