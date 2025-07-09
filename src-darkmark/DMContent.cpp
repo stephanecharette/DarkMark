@@ -644,6 +644,12 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 			merge_start_marks.clear();
 			return true;
 		}
+		else if (mass_delete_mode_active)
+		{
+			show_message("Mass-delete mode cancelled.");
+			mass_delete_mode_active = false;
+			return true;
+		}
 
 		dmapp().wnd->closeButtonPressed();
 		return true;
@@ -792,7 +798,7 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	else if (keychar == 'o')
 	{
 		// If mass-delete mode is off, turn it on. Otherwise, turn it off.
-		if (!mass_delete_mode_active)
+		if (not mass_delete_mode_active)
 		{
 			mass_delete_mode_active = true;
 			show_message("Mass-delete mode activated. Click and drag to select an area.");
@@ -2093,12 +2099,13 @@ PopupMenu dm::DMContent::create_class_menu()
 	// const bool is_enabled = (selected_mark >= 0 and (size_t)selected_mark < marks.size() ? true : false);
 
 	bool always_enable = (mass_delete_mode_active == true);
-	bool is_enabled_when_selected = (selected_mark >= 0 && (size_t)selected_mark < marks.size());
-	bool is_enabled = always_enable || is_enabled_when_selected;
+	bool is_enabled_when_selected = (selected_mark >= 0 and (size_t)selected_mark < marks.size());
+	bool is_enabled = always_enable or is_enabled_when_selected;
 	int selected_class_idx = -1;
 	if (is_enabled_when_selected)
-	{ // Only access marks if we have a valid selection
-		const Mark &m = marks.at(selected_mark);
+	{
+		// Only access marks if we have a valid selection
+		const Mark & m = marks.at(selected_mark);
 		selected_class_idx = (int)m.class_idx;
 	}
 
@@ -2139,7 +2146,9 @@ PopupMenu dm::DMContent::create_class_menu()
 		{
 			// Normal mode, use the lambda callback
 			m.addItem(name, is_enabled, is_ticked, [&, idx]
-					  { this->set_class(idx); });
+			{
+				this->set_class(idx);
+			} );
 		}
 	}
 
@@ -3092,8 +3101,6 @@ cv::Rect2d dm::DMContent::convertToNormalized(const cv::Rect & areaInScreenCoord
 }
 
 
-
-
 int dm::DMContent::showClassSelectionMenu()
 {
 	PopupMenu menu = create_class_menu();
@@ -3111,12 +3118,14 @@ int dm::DMContent::showClassSelectionMenu()
 	return result - 1;
 }
 
-void dm::DMContent::massDeleteMarksForward(const cv::Rect2d &selectionArea, int classIdx, int framesAhead)
+
+size_t dm::DMContent::massDeleteMarksForward(const cv::Rect2d &selectionArea, int classIdx, int framesAhead)
 {
 	// current index is the frame we’re on
 	size_t startIndex = image_filename_index;
+	size_t counter = 0;
 
-	for (size_t i = 1; i <= (size_t)framesAhead; ++i)
+	for (size_t i = 0; i <= (size_t)framesAhead; ++i)
 	{
 		size_t newIndex = startIndex + i;
 		if (newIndex >= image_filenames.size())
@@ -3129,25 +3138,19 @@ void dm::DMContent::massDeleteMarksForward(const cv::Rect2d &selectionArea, int 
 		load_image(newIndex, /* full_load= */ true, /* display_immediately= */ true);
 
 		// 2. massDeleteMarks() using the same area/class
-		size_t countDeleted = massDeleteMarks(selectionArea, classIdx);
-
-		// 3. If anything was deleted, save the .json
-		if (countDeleted > 0)
-		{
-			need_to_save = true;
-			save_json();
-			save_text();
-		}
+		counter += massDeleteMarks(selectionArea, classIdx);
 	}
 
 	// Finally, reload the original frame so user sees where they started
 	load_image(startIndex, /* full_load= */ true, /* display_immediately= */ true);
+
+	return counter;
 }
+
 
 int dm::DMContent::askUserForNumberOfFrames()
 {
-	// Pseudocode using JUCE AlertWindow, or your own method:
-	AlertWindow w("Mass Delete", "How many future frames to apply this deletion?", AlertWindow::QuestionIcon);
+	AlertWindow w("Mass Delete", "In addition to the current frame, this mass deletion should apply to how many more frames?", AlertWindow::QuestionIcon);
 	w.addTextEditor("num_frames", "0"); // default 0 means only this frame
 	w.addButton("OK", 1);
 	w.addButton("Cancel", 0);
@@ -3157,64 +3160,53 @@ int dm::DMContent::askUserForNumberOfFrames()
 		String text = w.getTextEditor("num_frames")->getText();
 		int n = text.getIntValue();
 		if (n < 0)
+		{
 			n = 0; // clamp negative to 0
+		}
 		return n;
 	}
 	return -1; // user canceled
 }
 
-int dm::DMContent::massDeleteMarks(const cv::Rect2d &selectionArea, int classIdx)
+
+size_t dm::DMContent::massDeleteMarks(const cv::Rect2d &selectionArea, int classIdx)
 {
-	int countDeleted = 0;
+	size_t count_deleted = 0;
 
 	for (auto it = marks.begin(); it != marks.end();)
 	{
 		if (static_cast<int>(it->class_idx) == classIdx)
 		{
-
 			cv::Rect2d markRect = it->get_normalized_bounding_rect();
 
-			bool fullyInside =
-				(markRect.x >= selectionArea.x) &&
-				(markRect.y >= selectionArea.y) &&
-				(markRect.x + markRect.width <= selectionArea.x + selectionArea.width) &&
-				(markRect.y + markRect.height <= selectionArea.y + selectionArea.height);
+			const bool fully_inside =
+				(markRect.x >= selectionArea.x) and
+				(markRect.y >= selectionArea.y) and
+				(markRect.x + markRect.width	<= selectionArea.x + selectionArea.width) and
+				(markRect.y + markRect.height	<= selectionArea.y + selectionArea.height);
 
-			if (fullyInside)
+			if (fully_inside)
 			{
 				it = marks.erase(it);
-				countDeleted++;
+				count_deleted ++;
+				need_to_save = true;
 				continue;
 			}
 		}
 		++it;
 	}
 
-	if (countDeleted > 0)
-	{
-		need_to_save = true;
-		rebuild_image_and_repaint();
-		show_message("Deleted " + std::to_string(countDeleted) + " marks of class " + names[classIdx]);
-	}
-	else
-	{
-		show_message("No marks deleted.");
-	}
-
-	return countDeleted;
+	return count_deleted;
 }
+
 
 void dm::DMContent::handleMassDeleteArea(const cv::Rect &areaInScreenCoords)
 {
-	show_message("DEBUG: Starting mass delete area");
-
 	// Convert to normalized coords
 	auto normalizedArea = convertToNormalized(areaInScreenCoords);
 
 	// Let user pick a class
-	show_message("DEBUG: About to show class selection menu");
 	int massDeleteClassIdx = showClassSelectionMenu();
-	show_message("DEBUG: Class selection result: " + std::to_string(massDeleteClassIdx));
 
 	if (massDeleteClassIdx < 0)
 	{
@@ -3223,9 +3215,7 @@ void dm::DMContent::handleMassDeleteArea(const cv::Rect &areaInScreenCoords)
 	}
 
 	// Ask user for how many future frames to delete from
-	show_message("DEBUG: About to ask for number of frames");
 	int framesAhead = askUserForNumberOfFrames();
-	show_message("DEBUG: Frames ahead result: " + std::to_string(framesAhead));
 
 	if (framesAhead < 0)
 	{
@@ -3233,18 +3223,14 @@ void dm::DMContent::handleMassDeleteArea(const cv::Rect &areaInScreenCoords)
 		return;
 	}
 
-	// Perform mass delete in the current frame
-	show_message("DEBUG: About to delete marks in current frame");
-	massDeleteMarks(normalizedArea, massDeleteClassIdx);
+	const auto saved_show_predictions = show_predictions;
+	toggle_show_predictions(EToggle::kOff);
 
-	// If user requested additional frames, do it
-	if (framesAhead > 0)
-	{
-		show_message("DEBUG: About to delete marks in " + std::to_string(framesAhead) + " future frames");
-		massDeleteMarksForward(normalizedArea, massDeleteClassIdx, framesAhead);
-	}
-
-	show_message("DEBUG: Mass delete area completed");
-
+	const auto counter = massDeleteMarksForward(normalizedArea, massDeleteClassIdx, framesAhead);
 	mass_delete_mode_active = false;
+	toggle_show_predictions(saved_show_predictions);
+
+	show_message("Number of marks of type \"" + names[massDeleteClassIdx] + "\" deleted: " + std::to_string(counter) + ".");
+
+	return;
 }

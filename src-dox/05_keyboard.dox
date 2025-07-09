@@ -41,6 +41,7 @@ Key							| Saves Modified Marks First	| Description
 @p l						|								| Cycle between the various label modes (on, off, auto).
 @p m						|								| Toggle hiding/showing the marks.  This may also impact showing predictions if it is set to @p auto (see @p 'p' key).
 @p n						| yes							| Mark image as empty ("none") and move to the next image.
+@p o 						| yes							| Mass delete predictions from multiple images.
 @p p						|								| Toggle Darknet predictions.  This can be used to force DarkMark to show the Darknet predictions even on images that have already been marked.  Darknet predictions are never saved to the @p .json or @p .txt files, they have to be accepted first.  (See @p 'a' key.)
 @p r (lowercase)			| yes							| Randomly shuffle the images and load the first image.
 @p R (uppercase)			| yes							| Sort images alphabetically.
@@ -60,7 +61,7 @@ In addition to these keyboard shortcuts, note the following mouse behaviour:
 
 @li When you click on an existing mark, the application remembers both the class and the size of the selected mark.  If you then double-click on an image, DarkMark assumes you want to create a new mark of the same size, and with the same class.  The new mark is positioned so the mouse click is at the center.  This can be useful if images have a large number of repeating objects.
 
-@li While resizing an existing mark, you can hold down @p SHIFT to alter the snap behaviour.  If snap is disabled, then holding down @p SHIFT when you let go of the mouse button will temporarily enable snapping.  If snap is enabled, then holding down @p SHIFT when you let go of the mouse button will temporarily disable snapping.
+@li While creating a new mark or resizing an existing mark, you can hold down @p SHIFT to alter the snap behaviour.  If snap is disabled, then holding down @p SHIFT when you let go of the mouse button will temporarily enable snapping.  If snap is enabled, then holding down @p SHIFT when you let go of the mouse button will temporarily disable snapping.  (Snapping is usually toggled with @p d and @p D.)
 
 @li While dragging the mouse on a zoomed-in image, hold down @p CTRL to pan the image.  (Or press @p SPACE to zoom out and back in.)
 

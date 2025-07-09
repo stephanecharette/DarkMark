@@ -310,10 +310,10 @@ namespace dm
 			cv::Rect2d convertToNormalized(const cv::Rect & areaInScreenCoords);
 
 			int showClassSelectionMenu();
-			void massDeleteMarksForward(const cv::Rect2d &selectionArea, int classIdx, int framesAhead);
+			size_t massDeleteMarksForward(const cv::Rect2d &selectionArea, int classIdx, int framesAhead);
 
 			int askUserForNumberOfFrames();
 			void handleMassDeleteArea(const cv::Rect &areaInScreenCoords);
-			int massDeleteMarks(const cv::Rect2d &selectionArea, int classIdx);
+			size_t massDeleteMarks(const cv::Rect2d &selectionArea, int classIdx);
 	};
 }

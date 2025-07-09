@@ -280,25 +280,6 @@ void dm::CrosshairComponent::mouseUp(const MouseEvent & event)
 
 void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 {
-	// If we’re in mass-delete mode, just update the rectangle and repaint.
-	if (content.mass_delete_mode_active)
-	{
-		// Update mouse_current_loc with any offset:
-		mouse_current_loc = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
-
-		// Update the width/height of mouse_drag_rectangle
-		const auto p1 = mouse_drag_rectangle.getTopLeft();
-		const auto p2 = mouse_current_loc;
-		const auto w = p2.x - p1.x;
-		const auto h = p2.y - p1.y;
-		mouse_drag_rectangle.setWidth(w);
-		mouse_drag_rectangle.setHeight(h);
-
-		repaint(); // so we can see the rubber-band box in paint()
-		return;	   // <-- skip the normal bounding-box logic below
-	}
-
-	// Otherwise
 	mouse_previous_loc = mouse_current_loc;
 	mouse_current_loc = event.getPosition() + juce::Point<int>(mouse_drag_offset.x, mouse_drag_offset.y);
 
@@ -322,6 +303,7 @@ void dm::CrosshairComponent::mouseDrag(const MouseEvent & event)
 
 	repaint();
 
+	return;
 }
 
 
