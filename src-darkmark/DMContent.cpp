@@ -941,8 +941,14 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 			image_is_completely_empty = true;
 			need_to_save = true;
 
-			// pretend as if PAGEDOWN was pressed so we move to the next image
-			return keyPressed(KeyPress::createFromDescription("page down"));
+			if (cfg().get_bool("move_to_next_image_after_n"))
+			{
+				// pretend as if PAGEDOWN was pressed so we move to the next image
+				return keyPressed(KeyPress::createFromDescription("page down"));
+			}
+			// reload the image so we can see the result of marking it as a negative sample
+			load_image(image_filename_index);
+			return true;
 		}
 
 		show_message("delete annotations before marking the image as empty");
