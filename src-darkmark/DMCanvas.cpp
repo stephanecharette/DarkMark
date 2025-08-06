@@ -172,7 +172,8 @@ void dm::DMCanvas::rebuild_cache_image()
 
 		cv::Mat tmp = content.scaled_image(r).clone();
 
-		if (content.shade_rectangles)
+		// only shade in rect‐mode
+		if (!content.use_large_dots && content.shade_rectangles)
 		{
 			const double shade_divider = (is_selected ? 4.0 : 2.0);
 			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, CV_FILLED);
@@ -181,16 +182,26 @@ void dm::DMCanvas::rebuild_cache_image()
 			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, tmp);
 		}
 
-		cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
-
-		if (m.is_prediction)
+		// now draw dot or rect
+		if (content.use_large_dots)
 		{
-			// draw an "X" through the middle of the rectangle
-			cv::line(tmp, cv::Point(0, 0), cv::Point(tmp.cols, tmp.rows), colour, 1, cv::LINE_8);
-			cv::line(tmp, cv::Point(0, tmp.rows), cv::Point(tmp.cols, 0), colour, 1, cv::LINE_8);
+			cv::Point center(tmp.cols / 2, tmp.rows / 2);
+			int radius = 10; // 20px diameter
+			cv::circle(tmp, center, radius, colour, cv::FILLED, cv::LINE_AA);
+		}
+		else
+		{
+			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
+			if (m.is_prediction)
+			{
+				cv::line(tmp, {0, 0}, {tmp.cols, tmp.rows}, colour, 1, cv::LINE_8);
+				cv::line(tmp, {0, tmp.rows}, {tmp.cols, 0}, colour, 1, cv::LINE_8);
+			}
 		}
 
-		const double alpha = (mouse_drag_is_active == false and (is_selected or content.all_marks_are_bold) ? 1.0 : content.alpha_blend_percentage);
+		const double alpha = (mouse_drag_is_active == false && (is_selected || content.all_marks_are_bold)
+								  ? 1.0
+								  : content.alpha_blend_percentage);
 		const double beta = 1.0 - alpha;
 		cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
@@ -207,31 +218,31 @@ void dm::DMCanvas::rebuild_cache_image()
 		// We calculate the width and height of the text compared to the mark rectangle to determine if the label
 		// would end up being bigger than the mark.  If the label is >= the size of the mark rectangle, then
 		// we'll skip displaying the label when the mode is set to "auto".
-		int baseline = 0;
-		const auto text_size = cv::getTextSize(name, fontface, fontscale, fontthickness, &baseline);
-
-		// draw the label (if the area is large enough to warrant a label)
-		if	(mouse_drag_is_active == false and
-				(content.show_labels == EToggle::kOn	or
-				(content.show_labels == EToggle::kAuto	and
-					(is_selected or
-						(	text_size.width		<= tmp.cols and
-							text_size.height	<= tmp.rows
-						)
-					)
-				)))
+		// only draw labels in rectangle‐mode
+		if (!content.use_large_dots)
 		{
-			// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
-			const int x_offset = r.width - text_size.width - 2;
+			int baseline = 0;
+			const auto text_size = cv::getTextSize(
+				name, fontface, fontscale, fontthickness, &baseline);
 
-			// Rectangle for the label needs the TL and BR coordinates.
-			// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
-			cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + baseline + 2);
-			if (is_selected or content.all_marks_are_bold or text_rect.br().y >= content.scaled_image.rows)
+			if (mouse_drag_is_active == false &&
+				(content.show_labels == EToggle::kOn ||
+				 (content.show_labels == EToggle::kAuto &&
+				  (is_selected ||
+				   (text_size.width <= tmp.cols &&
+					text_size.height <= tmp.rows)))))
 			{
-				// move the text label above the rectangle
-				text_rect.y = r.y - text_size.height - baseline;
-			}
+				// slide the label to the right so it lines up with the right-hand-side border of the bounding rect
+				const int x_offset = r.width - text_size.width - 2;
+
+				// Rectangle for the label needs the TL and BR coordinates.
+				// But putText() needs the BL point where to start writing the text, and we want to add a 1x1 pixel border
+				cv::Rect text_rect = cv::Rect(x_offset + r.x, r.y, text_size.width + 2, text_size.height + baseline + 2);
+				if (is_selected or content.all_marks_are_bold or text_rect.br().y >= content.scaled_image.rows)
+				{
+					// move the text label above the rectangle
+					text_rect.y = r.y - text_size.height - baseline;
+				}
 
 #if 0
 			Log("scaled image cols=" + std::to_string(content.scaled_image.cols) + " rows=" + std::to_string(content.scaled_image.rows));
@@ -270,6 +281,7 @@ void dm::DMCanvas::rebuild_cache_image()
 			tmp = cv::Mat(text_rect.size(), CV_8UC3, colour);
 			cv::putText(tmp, name, cv::Point(1, tmp.rows - 5), fontface, fontscale, black, fontthickness, cv::LINE_AA);
 			cv::addWeighted(tmp, alpha, content.scaled_image(text_rect), beta, 0, content.scaled_image(text_rect));
+		}
 		}
 	}
 

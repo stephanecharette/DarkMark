@@ -975,6 +975,15 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		}
 		return true;
 	}
+	else if (keychar == 'v')
+    {
+        use_large_dots = ! use_large_dots;
+        
+        show_message(std::string("dot-mode: ") + (use_large_dots ? "on" : "off"));
+        rebuild_image_and_repaint();
+        return true;
+    }
+
 	else if (keychar == 'w')
 	{
 		toggle_black_and_white_mode();
