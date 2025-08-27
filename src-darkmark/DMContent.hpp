@@ -315,5 +315,6 @@ namespace dm
 			int askUserForNumberOfFrames();
 			void handleMassDeleteArea(const cv::Rect &areaInScreenCoords);
 			size_t massDeleteMarks(const cv::Rect2d &selectionArea, int classIdx);
+			void copySelectedMarkForward();
 	};
 }

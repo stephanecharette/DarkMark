@@ -975,6 +975,11 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 		}
 		return true;
 	}
+	else if (keychar == 'u')
+	{
+		copySelectedMarkForward();
+		return true;
+	}
 	else if (keychar == 'w')
 	{
 		toggle_black_and_white_mode();
@@ -3239,4 +3244,87 @@ void dm::DMContent::handleMassDeleteArea(const cv::Rect &areaInScreenCoords)
 	show_message("Number of marks of type \"" + names[massDeleteClassIdx] + "\" deleted: " + std::to_string(counter) + ".");
 
 	return;
+}
+
+
+void dm::DMContent::copySelectedMarkForward()
+{
+	// 1. Ensure we have a valid selected_mark
+	if (selected_mark < 0 || selected_mark >= (int)marks.size())
+	{
+		show_message("No mark selected. Please select a bounding box first.");
+		return;
+	}
+
+	// 2. Ask user how many frames to copy forward
+	AlertWindow w("Copy Mark", "How many future frames to copy this mark into?", AlertWindow::QuestionIcon);
+	w.addTextEditor("num_frames", "0"); // default 0 => do nothing
+	w.addButton("OK", 1);
+	w.addButton("Cancel", 0);
+
+	if (w.runModalLoop() != 1)
+	{
+		// user canceled
+		show_message("Copy cancelled.");
+		return;
+	}
+
+	String text = w.getTextEditor("num_frames")->getText();
+	int framesAhead = text.getIntValue();
+	if (framesAhead <= 0)
+	{
+		show_message("Copy cancelled. Number of frames must be > 0.");
+		return;
+	}
+
+	// 3. Get the currently selected mark
+	Mark &originalMark = marks[selected_mark];
+
+	// Make a copy of its normalized data
+	const auto original_points = originalMark.normalized_all_points;
+	const auto original_corner_points = originalMark.normalized_corner_points;
+	const auto original_class_idx = originalMark.class_idx;
+	const auto original_name = originalMark.name;
+	const auto original_description = originalMark.description;
+
+	// 4. We'll copy this mark into the next N frames
+	size_t startIndex = image_filename_index;
+
+	for (int i = 1; i <= framesAhead; ++i)
+	{
+		size_t newIndex = startIndex + i;
+		if (newIndex >= image_filenames.size())
+		{
+			show_message("Reached the end of the image list. Stopping copy.");
+			break;
+		}
+
+		// Load next frame (in "full_load" mode)
+		load_image(newIndex, /* full_load= */ true, /* display_immediately= */ true);
+
+		// Create a new Mark with the same normalized points
+		Mark newMark;
+		newMark.class_idx = original_class_idx;
+		newMark.name = original_name;
+		newMark.description = original_description;
+		newMark.image_dimensions = original_image.size();
+		newMark.normalized_all_points = original_points;
+		newMark.normalized_corner_points = original_corner_points;
+		newMark.is_prediction = false;
+
+		// If you want to ensure any out-of-bounds points get clamped, do:
+		newMark.rebalance();
+
+		marks.push_back(newMark);
+
+		need_to_save = true;
+		save_json();
+		save_text();
+	}
+
+	// 5. Finally, re-load the original frame so the user returns to where they started
+	load_image(startIndex, /* full_load= */ true, /* display_immediately= */ true);
+
+	show_message("Copied mark forward " + std::to_string(framesAhead) +
+				 " frame" + (framesAhead == 1 ? "" : "s") + ".");
 }
