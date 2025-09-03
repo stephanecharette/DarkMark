@@ -172,7 +172,7 @@ void dm::DMCanvas::rebuild_cache_image()
 
 		cv::Mat tmp = content.scaled_image(r).clone();
 
-		if (content.shade_rectangles)
+		if (content.shade_rectangles and not content.show_dots)
 		{
 			const double shade_divider = (is_selected ? 4.0 : 2.0);
 			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, CV_FILLED);
@@ -181,7 +181,14 @@ void dm::DMCanvas::rebuild_cache_image()
 			cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, tmp);
 		}
 
-		cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
+		if (is_selected or content.show_dots == false)
+		{
+			cv::rectangle(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), colour, thickness, cv::LINE_8);
+		}
+		else
+		{
+			cv::circle(tmp, {tmp.cols/2, tmp.rows/2}, 10 * thickness, colour, cv::FILLED, cv::LINE_8);
+		}
 
 		if (m.is_prediction)
 		{
@@ -212,6 +219,7 @@ void dm::DMCanvas::rebuild_cache_image()
 
 		// draw the label (if the area is large enough to warrant a label)
 		if	(mouse_drag_is_active == false and
+				content.show_dots == false and
 				(content.show_labels == EToggle::kOn	or
 				(content.show_labels == EToggle::kAuto	and
 					(is_selected or

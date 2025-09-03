@@ -78,11 +78,11 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 	insert_if_not_exist("erode_kernel_size"				, 2													);
 	insert_if_not_exist("erode_iterations"				, 1													);
 	insert_if_not_exist("move_to_next_image_after_n"	, true												);
-
 	insert_if_not_exist("heatmap_enabled"				, false												);
 	insert_if_not_exist("heatmap_alpha_blend"			, 0.5												);
 	insert_if_not_exist("heatmap_threshold"				, 0.1												);
 	insert_if_not_exist("heatmap_visualize"				, 2													);
+	insert_if_not_exist("show_dots"						, false												);
 
 	// see at the bottom of this method where these two are initialized
 	insert_if_not_exist("darknet_executable"			, ""												);

@@ -63,6 +63,8 @@ namespace dm
 
 			DMContent & toggle_bold_labels();
 
+			DMContent & toggle_dot_mode();
+
 			DMContent & toggle_show_predictions(const EToggle toggle);
 
 			DMContent & toggle_show_marks();
@@ -216,6 +218,7 @@ namespace dm
 			bool need_to_save;
 			bool show_mouse_pointer;
 			bool IoU_info_found;
+			bool show_dots;
 			int corner_size;
 			int selected_mark;
 

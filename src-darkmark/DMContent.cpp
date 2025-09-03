@@ -34,6 +34,7 @@ dm::DMContent::DMContent(const std::string & prefix) :
 	need_to_save(false),
 	show_mouse_pointer(cfg().get_bool("show_mouse_pointer")),
 	IoU_info_found(false),
+	show_dots(cfg().get_bool("show_dots")),
 	corner_size(cfg().get_int("corner_size")),
 	selected_mark(-1),
 	images_are_loading(false),
@@ -1163,6 +1164,16 @@ dm::DMContent & dm::DMContent::toggle_bold_labels()
 }
 
 
+dm::DMContent & dm::DMContent::toggle_dot_mode()
+{
+	show_dots = !show_dots;
+	cfg().setValue("show_dots", show_dots);
+	rebuild_image_and_repaint();
+
+	return *this;
+}
+
+
 dm::DMContent & dm::DMContent::toggle_show_predictions(const EToggle toggle)
 {
 	if (show_predictions != toggle)
@@ -2215,7 +2226,9 @@ PopupMenu dm::DMContent::create_popup_menu()
 	view.addItem("auto show darknet predictions"	, (show_predictions != EToggle::kAuto	), (show_predictions == EToggle::kAuto	), std::function<void()>( [&]{ toggle_show_predictions(EToggle::kAuto);	} ));
 	view.addSeparator();
 	view.addItem("show darknet processing time"		, (show_predictions != EToggle::kOff	), (show_processing_time				), std::function<void()>( [&]{ toggle_show_processing_time();			} ));
+	view.addItem("bold"								, true									, all_marks_are_bold					,  std::function<void()>( [&]{ toggle_bold_labels();					} ));
 	view.addSeparator();
+	view.addItem("display using a single dot"		, true									, show_dots								,  std::function<void()>( [&]{ toggle_dot_mode();						} ));
 	view.addItem("display using black-and-white"	, true									, black_and_white_mode_enabled			,  std::function<void()>( [&]{ toggle_black_and_white_mode();			} ));
 	view.addItem("show annotations"					, true									, show_marks							,  std::function<void()>( [&]{ toggle_show_marks();						} ));
 	view.addItem("show heatmap"						, true									, heatmap_enabled						,  std::function<void()>( [&]{ toggle_heatmaps();						} ));
