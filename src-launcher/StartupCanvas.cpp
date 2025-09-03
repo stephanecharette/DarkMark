@@ -236,7 +236,7 @@ void dm::StartupCanvas::initialize_on_thread()
 		number_of_json		= String(json_counter) + " (" + String(std::round(100.0 * json_counter / (image_counter == 0 ? 1 : image_counter))) + "%)";
 	}
 
-	if (initialize_everything and image_filenames.empty() == false)
+	if (not done and initialize_everything and image_filenames.empty() == false)
 	{
 		auto image = ImageCache::getFromFile(File(image_filenames[std::rand() % image_filenames.size()]));
 		thumbnail.setImage(image, RectanglePlacement::xLeft);
@@ -244,7 +244,7 @@ void dm::StartupCanvas::initialize_on_thread()
 
 	find_all_darknet_files();
 
-	if (initialize_everything)
+	if (not done and initialize_everything)
 	{
 		calculate_size_of_directory();
 
@@ -281,7 +281,7 @@ void dm::StartupCanvas::initialize_on_thread()
 				}
 			}
 
-			if (empty_images)
+			if (not done and empty_images)
 			{
 				// since we have some empty images, update the text counter to include those stats as well
 				const int percentage = std::round(100.0 * empty_images / json_filenames.size());
@@ -297,7 +297,7 @@ void dm::StartupCanvas::initialize_on_thread()
 			std::stringstream ss;
 			ss << std::fixed << std::setprecision(1);
 			ss << count;
-			if (classes > 0 and count > 0 and json_filenames.size() > empty_images)
+			if (not done and classes > 0 and count > 0 and json_filenames.size() > empty_images)
 			{
 				const double average_marks_per_class = static_cast<double>(count) / static_cast<double>(classes);
 				const double average_marks_per_image = static_cast<double>(count) / static_cast<double>(json_filenames.size() - empty_images);

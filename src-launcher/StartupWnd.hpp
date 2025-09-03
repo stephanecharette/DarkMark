@@ -26,6 +26,8 @@ namespace dm
 
 			virtual void updateButtons();
 
+			void stop_refreshing_all_notebook_tabs();
+
 			Component canvas;
 			Notebook notebook;
 			TextButton add_button;

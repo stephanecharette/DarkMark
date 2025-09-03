@@ -153,14 +153,7 @@ dm::StartupWnd::StartupWnd() :
 
 dm::StartupWnd::~StartupWnd()
 {
-	for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
-	{
-		StartupCanvas * startup_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
-		if (startup_canvas)
-		{
-			startup_canvas->done = true;
-		}
-	}
+	stop_refreshing_all_notebook_tabs();
 
 	if (dmapp().cli_options.count("project_key") == 0)
 	{
@@ -239,6 +232,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 {
 	if (button == &cancel_button)
 	{
+		stop_refreshing_all_notebook_tabs();
 		closeButtonPressed();
 	}
 	else if (button == &open_folder_button)
@@ -524,6 +518,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 		if (notebook_canvas)
 		{
 			setEnabled(false);
+			notebook_canvas->done = true;
 			File dir(notebook_canvas->project_directory.toString());
 
 			int result = AlertWindow::showYesNoCancelBox(AlertWindow::AlertIconType::QuestionIcon, "DarkMark Project Deletion",
@@ -582,6 +577,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 	}
 	else if (button == &ok_button)
 	{
+		stop_refreshing_all_notebook_tabs();
 		StartupCanvas * notebook_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(notebook.getCurrentTabIndex()));
 		if (notebook_canvas)
 		{
@@ -722,6 +718,7 @@ bool dm::StartupWnd::keyPressed(const KeyPress & key)
 
 	if (key.getKeyCode() == KeyPress::escapeKey)
 	{
+		stop_refreshing_all_notebook_tabs();
 		closeButtonPressed();
 		return true; // key has been handled
 	}
@@ -741,6 +738,21 @@ void dm::StartupWnd::updateButtons()
 	class_id_button		.setEnabled(enabled);
 	refresh_button		.setEnabled(enabled);
 	ok_button			.setEnabled(enabled);
+
+	return;
+}
+
+
+void dm::StartupWnd::stop_refreshing_all_notebook_tabs()
+{
+	for (int idx = 0; idx < notebook.getNumTabs(); idx ++)
+	{
+		StartupCanvas * startup_canvas = dynamic_cast<StartupCanvas*>(notebook.getTabContentComponent(idx));
+		if (startup_canvas)
+		{
+			startup_canvas->done = true;
+		}
+	}
 
 	return;
 }
