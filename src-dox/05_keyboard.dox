@@ -23,6 +23,8 @@ Key							| Saves Modified Marks First	| Description
 @p +						|								| Zoom image +10%.  Can be pressed repeatedly.
 @p SHIFT + @p +				|								| Zoom image 500%.
 @p -						|								| Zoom image -10%.  Can be pressed repeatedly.
+@p CTRL + @p c (or @p CTRL + @p INSERT)		|				| Copy the current selected annotation (or all annotations if none are selected) to the clipboard.
+@p CTRL + @p v (or @p SHIFT + @p INSERT)	|				| Paste the annotations from the clipboard into the current image.
 @p SPACE					|								| Toggle between automatic zoom and manual zoom (see @p '-', @p '+', @p 'ESC' keys, and @p CTRL below).
 @p ` (backtick)				| yes							| Toggle merge mode. Take two marks across a gap of frames and interpolate the marks in between them by both location and size.
 @p a (lowercase)			|								| Accept all Darknet predictions (if any) for the current image as actual markings.

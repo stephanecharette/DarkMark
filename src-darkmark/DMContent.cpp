@@ -409,8 +409,12 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 	const auto keychar = key.getTextCharacter();
 //	show_message(key.getTextDescription().toStdString());
 
-	const KeyPress key0 = KeyPress::createFromDescription("0");
-	const KeyPress key9 = KeyPress::createFromDescription("9");
+	const KeyPress key0			= KeyPress::createFromDescription("0");
+	const KeyPress key9			= KeyPress::createFromDescription("9");
+	const KeyPress ctrl_c		= KeyPress::createFromDescription("ctrl + c"); // copy
+	const KeyPress ctrl_v		= KeyPress::createFromDescription("ctrl + v"); // paste
+	const KeyPress ctrl_insert	= KeyPress::createFromDescription("ctrl + insert");
+	const KeyPress shift_insert	= KeyPress::createFromDescription("shift + insert");
 
 	int digit = -1;
 	if (keycode >= key0.getKeyCode() and keycode <= key9.getKeyCode())
@@ -662,6 +666,88 @@ bool dm::DMContent::keyPressed(const KeyPress & key)
 			dmapp().about_wnd.reset(new AboutWnd);
 		}
 		dmapp().about_wnd->toFront(true);
+		return true;
+	}
+	else if (key == ctrl_c or key == ctrl_insert)
+	{
+		json root;
+		root["annotations"] = json::array();
+		size_t counter = 0;
+
+		// copy all of the bounding boxes into a JSON structure in the clipboard
+
+		for (size_t idx = 0; idx < marks.size(); idx ++)
+		{
+			const auto & m = marks[idx];
+			if (m.is_prediction)
+			{
+				continue;
+			}
+
+			if (selected_mark < 0 or selected_mark == static_cast<int>(idx))
+			{
+				const cv::Rect2d r = m.get_normalized_bounding_rect();
+				auto & j = root["annotations"][counter ++];
+				j["x"]			= r.x + r.width		/ 2.0;
+				j["y"]			= r.y + r.height	/ 2.0;
+				j["w"]			= r.width;
+				j["h"]			= r.height;
+				j["class_idx"]	= m.class_idx;
+				j["name"]		= m.name;
+			}
+		}
+
+		root["source"]["filename"]	= image_filenames[image_filename_index];
+
+		root["meta"]["timestamp"]	= std::time(nullptr);
+		root["meta"]["version"]		= DARKMARK_VERSION;
+
+		SystemClipboard::copyTextToClipboard(root.dump(1, '\t'));
+
+		show_message("copied " + std::to_string(counter) + " bounding box" + (counter == 1 ? "" : "es"));
+
+		return true;
+	}
+	else if (key == ctrl_v or key == shift_insert)
+	{
+		const auto str = SystemClipboard::getTextFromClipboard().toStdString();
+		Log("paste clipboard contents:\n" + str);
+		size_t counter = 0;
+		if (str.size() > 0 and str[0] == '{')
+		{
+			try
+			{
+				json root = json::parse(str);
+				for (const auto & j : root["annotations"])
+				{
+					Log(std::to_string(counter) + ": " + j.dump());
+					const size_t class_idx				= j["class_idx"];
+					const cv::Point2d midpoint			= {j["x"], j["y"]};
+					const cv::Size2d normalized_size	= {j["w"], j["h"]};
+					const cv::Size image_size			= original_image.size();
+
+					Mark m(midpoint, normalized_size, image_size, class_idx);
+					m.name			= names.at(class_idx);
+					m.description	= m.name;
+					m.is_prediction	= false;
+					need_to_save	= true;
+					marks.push_back(m);
+					counter ++;
+				}
+			}
+			catch (const std::exception & e)
+			{
+				Log(std::string("invalid json in clipboard?\n") + e.what());
+			}
+		}
+
+		if (counter > 0)
+		{
+			rebuild_image_and_repaint();
+		}
+
+		show_message("pasted " + std::to_string(counter) + " bounding box" + (counter == 1 ? "" : "es"));
+
 		return true;
 	}
 	else if (keychar == '-') // why is the value for KeyPress::numberPadSubtract unusable!?

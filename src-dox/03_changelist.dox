@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.10.31-1	| 2025-09-03	| Bounding boxes can be copied from one image to the next with CTRL+C and CTRL+V.
 1.10.27-1	| 2025-07-09	| Added "mass-delete" to delete numerous annotations across multiple consecutive frames.
 1.10.26-1	| 2025-07-07	| Added "merge mode" to interpolate the position of a mark moving across multiple consecutive frames.
 1.10.17-1	| 2025-01-19	| Added @p remove_small_annotations and @p annotation_area_size to @ref CLI.
