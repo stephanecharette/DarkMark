@@ -227,33 +227,42 @@ dm::Cfg & dm::Cfg::first_time_initialization(void)
 		}
 		else
 		{
-			dm::Log("cannot find \"" + darknet_executable + "\"");
-			darknet_executable = "";
-
-			// see if we can use the old darknet_dir value to guess where darknet is located
-			if (darknet_dir.empty() == false)
+			f = File("/usr/local/bin/darknet");
+			if (f.exists())
 			{
-				f = File(darknet_dir).getChildFile("darknet");
-				if (f.exists())
-				{
-					// this is the old-style build location, such as ~/src/darknet/darknet
-					darknet_executable = f.getFullPathName().toStdString();
-					dm::Log("darknet executable defaulting to " + darknet_executable);
-				}
-				else
-				{
-					// last-ditch attempt -- is this a new repo, but they didn't install the package yet?
-					f = File(darknet_dir).getChildFile("build").getChildFile("src").getChildFile("darknet");
-					if (f.exists())
-					{
-						darknet_executable = f.getFullPathName().toStdString();
-						dm::Log("darknet executable in \"build\" directory: " + darknet_executable);
-					}
-				}
+				darknet_executable = f.getFullPathName().toStdString();
+				dm::Log("setting darknet executable to " + darknet_executable);
 			}
 			else
 			{
-				darknet_executable = "NOT_FOUND";
+				dm::Log("cannot find \"" + darknet_executable + "\"");
+				darknet_executable = "";
+
+				// see if we can use the old darknet_dir value to guess where darknet is located
+				if (darknet_dir.empty() == false)
+				{
+					f = File(darknet_dir).getChildFile("darknet");
+					if (f.exists())
+					{
+						// this is the old-style build location, such as ~/src/darknet/darknet
+						darknet_executable = f.getFullPathName().toStdString();
+						dm::Log("darknet executable defaulting to " + darknet_executable);
+					}
+					else
+					{
+						// last-ditch attempt -- is this a new repo, but they didn't install the package yet?
+						f = File(darknet_dir).getChildFile("build").getChildFile("src-cli").getChildFile("darknet");
+						if (f.exists())
+						{
+							darknet_executable = f.getFullPathName().toStdString();
+							dm::Log("darknet executable in \"build\" directory: " + darknet_executable);
+						}
+					}
+				}
+				else
+				{
+					darknet_executable = "NOT_FOUND";
+				}
 			}
 		}
 
