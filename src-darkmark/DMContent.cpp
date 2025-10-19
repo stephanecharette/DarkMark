@@ -2360,7 +2360,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	help.addItem("about..."				, std::function<void()>( [&]{ dmapp().about_wnd.reset(new AboutWnd); } ));
 	help.addItem("keyboard shortcuts...", std::function<void()>( [&]{ juce::URL("https://www.ccoderun.ca/darkmark/Keyboard.html"				).launchInDefaultBrowser(); } ));
 	help.addItem("darknet faq..."		, std::function<void()>( [&]{ juce::URL("https://www.ccoderun.ca/programming/2020-09-25_Darknet_FAQ/"	).launchInDefaultBrowser(); } ));
-	help.addItem("discord..."			, std::function<void()>( [&]{ juce::URL("https://discord.gg/zSq8rtW"									).launchInDefaultBrowser(); } ));
+	help.addItem("discord..."			, std::function<void()>( [&]{ juce::URL("https://discord.gg/MQw32W9Cqr"									).launchInDefaultBrowser(); } ));
 
 	PopupMenu review;
 	review.addItem("zoom-and-review"		, std::function<void()>( [&]{ zoom_and_review();	} ));

@@ -57,4 +57,4 @@ Some links to specific useful pages:
 - [Data augmentation in Darknet](https://www.ccoderun.ca/darkmark/DataAugmentation.html)
 - [Darknet configuration files](https://www.ccoderun.ca/darkmark/Configuration.html)
 - [Darknet FAQ](https://www.ccoderun.ca/programming/darknet_faq/)
-- [Discord server for Darknet, YOLO, DarkHelp, and DarkMark](https://discord.gg/zSq8rtW)
+- [Discord server for Darknet, YOLO, DarkHelp, and DarkMark](https://discord.gg/MQw32W9Cqr)
