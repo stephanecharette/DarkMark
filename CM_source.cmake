@@ -46,6 +46,6 @@ ADD_SUBDIRECTORY ( src-wnd		)
 ADD_SUBDIRECTORY ( src-main		)
 ADD_SUBDIRECTORY ( src-dox		)
 
-IF (UNIX)
+IF (UNIX AND NOT APPLE)
 	ADD_SUBDIRECTORY ( src-ubuntu	)
 ENDIF ()
