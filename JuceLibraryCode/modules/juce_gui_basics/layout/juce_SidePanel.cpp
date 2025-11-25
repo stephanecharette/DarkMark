@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -113,8 +122,7 @@ void SidePanel::showOrHide (bool show)
 
 void SidePanel::moved()
 {
-    if (onPanelMove != nullptr)
-        onPanelMove();
+    NullCheckedInvocation::invoke (onPanelMove);
 }
 
 void SidePanel::resized()
@@ -122,6 +130,24 @@ void SidePanel::resized()
     auto bounds = getLocalBounds();
 
     calculateAndRemoveShadowBounds (bounds);
+
+    const auto fullScreen = std::invoke ([&]
+    {
+        if (auto* peer = getPeer())
+            return peer->isFullScreen();
+
+        return false;
+    });
+
+    if (fullScreen && isContentRestrictedToSafeArea() && parent != nullptr)
+    {
+        if (auto* display = Desktop::getInstance().getDisplays().getDisplayForRect (parent->getScreenBounds()))
+        {
+            const auto safeArea = display->safeAreaInsets.subtractedFrom (display->keyboardInsets.subtractedFrom (display->userArea));
+            const auto safeAreaInLocalSpace = getLocalArea (nullptr, safeArea) + getCurrentOffset();
+            bounds = bounds.getIntersection (safeAreaInLocalSpace);
+        }
+    }
 
     auto titleBounds = bounds.removeFromTop (titleBarHeight);
 
@@ -159,7 +185,8 @@ void SidePanel::paint (Graphics& g)
                                                                                 : shadowArea.getTopLeft()).toFloat(), false));
     g.fillRect (shadowArea);
 
-    g.excludeClipRegion (shadowArea);
+    g.reduceClipRegion (getLocalBounds().withTrimmedRight (shadowArea.getWidth())
+                                        .withX (isOnLeft ? 0 : shadowArea.getWidth()));
     g.fillAll (bgColour);
 }
 
@@ -242,10 +269,8 @@ void SidePanel::lookAndFeelChanged()
     titleLabel.setJustificationType (lf.getSidePanelTitleJustification (*this));
 }
 
-void SidePanel::componentMovedOrResized (Component& component, bool wasMoved, bool wasResized)
+void SidePanel::componentMovedOrResized (Component& component, [[maybe_unused]] bool wasMoved, bool wasResized)
 {
-    ignoreUnused (wasMoved);
-
     if (wasResized && (&component == parent))
         setBounds (calculateBoundsInParent (component));
 }
@@ -254,26 +279,32 @@ void SidePanel::changeListenerCallback (ChangeBroadcaster*)
 {
     if (! Desktop::getInstance().getAnimator().isAnimating (this))
     {
-        if (onPanelShowHide != nullptr)
-            onPanelShowHide (isShowing);
+        NullCheckedInvocation::invoke (onPanelShowHide, isShowing);
 
         if (isVisible() && ! isShowing)
             setVisible (false);
     }
 }
 
-Rectangle<int> SidePanel::calculateBoundsInParent (Component& parentComp) const
+Rectangle<int> SidePanel::calculateShowingBoundsInParent (Component& parentComp) const
 {
     auto parentBounds = parentComp.getLocalBounds();
 
-    if (isOnLeft)
-    {
-        return isShowing ? parentBounds.removeFromLeft (panelWidth)
-                         : parentBounds.withX (parentBounds.getX() - panelWidth).withWidth (panelWidth);
-    }
+    return isOnLeft ? parentBounds.removeFromLeft  (panelWidth)
+                    : parentBounds.removeFromRight (panelWidth);
+}
 
-    return isShowing ? parentBounds.removeFromRight (panelWidth)
-                     : parentBounds.withX (parentBounds.getRight()).withWidth (panelWidth);
+Point<int> SidePanel::getCurrentOffset() const
+{
+    if (isShowing)
+        return {};
+
+    return { isOnLeft ? -panelWidth : panelWidth, 0 };
+}
+
+Rectangle<int> SidePanel::calculateBoundsInParent (Component& parentComp) const
+{
+     return calculateShowingBoundsInParent (parentComp) + getCurrentOffset();
 }
 
 void SidePanel::calculateAndRemoveShadowBounds (Rectangle<int>& bounds)

@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -31,8 +40,8 @@ bool juce_performDragDropText (const String&, bool& shouldStop);
 
 
 //==============================================================================
-class DragAndDropContainer::DragImageComponent  : public Component,
-                                                  private Timer
+class DragAndDropContainer::DragImageComponent final : public Component,
+                                                       private Timer
 {
 public:
     DragImageComponent (const ScaledImage& im,
@@ -59,6 +68,7 @@ public:
         startTimer (200);
 
         setInterceptsMouseClicks (false, false);
+        setWantsKeyboardFocus (true);
         setAlwaysOnTop (true);
     }
 
@@ -97,12 +107,12 @@ public:
             // (note: use a local copy of this in case the callback runs
             // a modal loop and deletes this object before the method completes)
             auto details = sourceDetails;
-            DragAndDropTarget* finalTarget = nullptr;
 
             auto wasVisible = isVisible();
             setVisible (false);
-            Component* unused;
-            finalTarget = findTarget (e.getScreenPosition(), details.localPosition, unused);
+            const auto [finalTarget, unused, localPosition] = findTarget (e.getScreenPosition());
+            ignoreUnused (unused);
+            details.localPosition = localPosition;
 
             if (wasVisible) // fade the component and remove it - it'll be deleted later by the timer callback
                 dismissWithAnimation (finalTarget == nullptr);
@@ -132,10 +142,12 @@ public:
 
         setNewScreenPos (screenPos);
 
-        Component* newTargetComp;
-        auto* newTarget = findTarget (screenPos, details.localPosition, newTargetComp);
+        const auto [newTarget, newTargetComp, localPosition] = findTarget (screenPos);
+        details.localPosition = localPosition;
 
         setVisible (newTarget == nullptr || newTarget->shouldDrawDragImageWhenOver());
+
+        maintainKeyboardFocusWhenPossible();
 
         if (newTargetComp != currentlyOverComp)
         {
@@ -200,7 +212,12 @@ public:
     {
         if (key == KeyPress::escapeKey)
         {
-            dismissWithAnimation (true);
+            const auto wasVisible = isVisible();
+            setVisible (false);
+
+            if (wasVisible)
+                dismissWithAnimation (true);
+
             deleteSelf();
             return true;
         }
@@ -227,6 +244,16 @@ private:
     Time lastTimeOverTarget;
     int originalInputSourceIndex;
     MouseInputSource::InputSourceType originalInputSourceType;
+    bool canHaveKeyboardFocus = false;
+
+    void maintainKeyboardFocusWhenPossible()
+    {
+        const auto newCanHaveKeyboardFocus = isVisible();
+
+        if (std::exchange (canHaveKeyboardFocus, newCanHaveKeyboardFocus) != newCanHaveKeyboardFocus)
+            if (canHaveKeyboardFocus)
+                grabKeyboardFocus();
+    }
 
     void updateSize()
     {
@@ -270,8 +297,7 @@ private:
         return getLocalPoint (sourceComponent, offsetInSource) - getLocalPoint (sourceComponent, Point<int>());
     }
 
-    DragAndDropTarget* findTarget (Point<int> screenPos, Point<int>& relativePos,
-                                   Component*& resultComponent) const
+    std::tuple<DragAndDropTarget*, Component*, Point<int>> findTarget (Point<int> screenPos) const
     {
         auto* hit = getParentComponent();
 
@@ -287,30 +313,49 @@ private:
         while (hit != nullptr)
         {
             if (auto* ddt = dynamic_cast<DragAndDropTarget*> (hit))
-            {
                 if (ddt->isInterestedInDragSource (details))
-                {
-                    relativePos = hit->getLocalPoint (nullptr, screenPos);
-                    resultComponent = hit;
-                    return ddt;
-                }
-            }
+                    return std::tuple (ddt, hit, hit->getLocalPoint (nullptr, screenPos));
 
             hit = hit->getParentComponent();
         }
 
-        resultComponent = nullptr;
-        return nullptr;
+        return {};
     }
 
     void setNewScreenPos (Point<int> screenPos)
     {
-        auto newPos = screenPos - imageOffset;
+        setTopLeftPosition (std::invoke ([&]
+        {
+            if (auto* p = getParentComponent())
+                return p->getLocalPoint (nullptr, screenPos - imageOffset);
 
-        if (auto* p = getParentComponent())
-            newPos = p->getLocalPoint (nullptr, newPos);
+           #if JUCE_WINDOWS
+            if (JUCEApplicationBase::isStandaloneApp())
+            {
+                // On Windows, the mouse position is continuous in physical pixels across screen boundaries.
+                // i.e. if two screens are set to different scale factors, when the mouse moves horizontally
+                // between those screens, the mouse's physical y coordinate will be preserved, and if
+                // the mouse moves vertically between screens its physical x coordinate will be preserved.
 
-        setTopLeftPosition (newPos);
+                // To avoid the dragged image detaching from the mouse, compute the new top left position
+                // in physical coords and then convert back to logical.
+                // If we were to stay in logical coordinates the whole time, the image may detach from the
+                // mouse because the mouse does not move continuously in logical coordinate space.
+
+                const auto& displays = Desktop::getInstance().getDisplays();
+                const auto physicalPos = displays.logicalToPhysical (screenPos);
+
+                float scale = 1.0f;
+
+                if (auto* p = getPeer())
+                    scale = (float) p->getPlatformScaleFactor();
+
+                return displays.physicalToLogical (physicalPos - (imageOffset * scale));
+            }
+           #endif
+
+            return screenPos - imageOffset;
+        }));
     }
 
     void sendDragMove (DragAndDropTarget::SourceDetails& details) const
@@ -385,7 +430,7 @@ private:
                 && sourceToCheck.getIndex() == originalInputSourceIndex);
     }
 
-    JUCE_DECLARE_NON_COPYABLE (DragImageComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DragImageComponent)
 };
 
 
@@ -434,25 +479,37 @@ void DragAndDropContainer::startDragging (const var& sourceDescription,
         const auto relPos = sourceComponent->getLocalPoint (nullptr, lastMouseDown).toDouble();
         const auto clipped = (image.getBounds().toDouble() / scaleFactor).getConstrainedPoint (relPos);
 
-        Image fade (Image::SingleChannel, image.getWidth(), image.getHeight(), true);
-        Graphics fadeContext (fade);
+        Image fade (Image::SingleChannel,
+                    image.getWidth(),
+                    image.getHeight(),
+                    true,
+                    *image.getPixelData()->createType());
+        {
+            Graphics fadeContext (fade);
 
-        ColourGradient gradient;
-        gradient.isRadial = true;
-        gradient.point1 = clipped.toFloat() * scaleFactor;
-        gradient.point2 = gradient.point1 + Point<float> (0.0f, scaleFactor * 400.0f);
-        gradient.addColour (0.0, Colours::white);
-        gradient.addColour (0.375, Colours::white);
-        gradient.addColour (1.0, Colours::transparentWhite);
+            ColourGradient gradient;
+            gradient.isRadial = true;
+            gradient.point1 = clipped.toFloat() * scaleFactor;
+            gradient.point2 = gradient.point1 + Point<float> (0.0f, scaleFactor * 400.0f);
+            gradient.addColour (0.0, Colours::white);
+            gradient.addColour (0.375, Colours::white);
+            gradient.addColour (1.0, Colours::transparentWhite);
 
-        fadeContext.setGradientFill (gradient);
-        fadeContext.fillAll();
+            fadeContext.setGradientFill (gradient);
+            fadeContext.fillAll();
+        }
 
-        Image composite (Image::ARGB, image.getWidth(), image.getHeight(), true);
-        Graphics compositeContext (composite);
+        Image composite (Image::ARGB,
+                         image.getWidth(),
+                         image.getHeight(),
+                         true,
+                         *image.getPixelData()->createType());
+        {
+            Graphics compositeContext (composite);
 
-        compositeContext.reduceClipRegion (fade, {});
-        compositeContext.drawImageAt (image, 0, 0);
+            compositeContext.reduceClipRegion (fade, {});
+            compositeContext.drawImageAt (image, 0, 0);
+        }
 
         return { ScaledImage (composite, scaleFactor), clipped };
     }();
@@ -466,8 +523,7 @@ void DragAndDropContainer::startDragging (const var& sourceDescription,
             dragImageComponent->setOpaque (true);
 
         dragImageComponent->addToDesktop (ComponentPeer::windowIgnoresMouseClicks
-                                          | ComponentPeer::windowIsTemporary
-                                          | ComponentPeer::windowIgnoresKeyPresses);
+                                          | ComponentPeer::windowIsTemporary);
     }
     else
     {

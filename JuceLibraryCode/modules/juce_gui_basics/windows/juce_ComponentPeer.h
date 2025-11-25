@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -40,39 +49,42 @@ namespace juce
 
     @tags{GUI}
 */
-class JUCE_API  ComponentPeer
+class JUCE_API  ComponentPeer : private FocusChangeListener
 {
 public:
     //==============================================================================
     /** A combination of these flags is passed to the ComponentPeer constructor. */
     enum StyleFlags
     {
-        windowAppearsOnTaskbar      = (1 << 0),    /**< Indicates that the window should have a corresponding
-                                                        entry on the taskbar (ignored on MacOSX) */
-        windowIsTemporary           = (1 << 1),    /**< Indicates that the window is a temporary popup, like a menu,
-                                                        tooltip, etc. */
-        windowIgnoresMouseClicks    = (1 << 2),    /**< Indicates that the window should let mouse clicks pass
-                                                        through it (may not be possible on some platforms). */
-        windowHasTitleBar           = (1 << 3),    /**< Indicates that the window should have a normal OS-specific
-                                                        title bar and frame. if not specified, the window will be
-                                                        borderless. */
-        windowIsResizable           = (1 << 4),    /**< Indicates that the window should have a resizable border. */
-        windowHasMinimiseButton     = (1 << 5),    /**< Indicates that if the window has a title bar, it should have a
-                                                        minimise button on it. */
-        windowHasMaximiseButton     = (1 << 6),    /**< Indicates that if the window has a title bar, it should have a
-                                                        maximise button on it. */
-        windowHasCloseButton        = (1 << 7),    /**< Indicates that if the window has a title bar, it should have a
-                                                        close button on it. */
-        windowHasDropShadow         = (1 << 8),    /**< Indicates that the window should have a drop-shadow (this may
-                                                        not be possible on all platforms). */
-        windowRepaintedExplictly    = (1 << 9),    /**< Not intended for public use - this tells a window not to
-                                                        do its own repainting, but only to repaint when the
-                                                        performAnyPendingRepaintsNow() method is called. */
-        windowIgnoresKeyPresses     = (1 << 10),   /**< Tells the window not to catch any keypresses. This can
-                                                        be used for things like plugin windows, to stop them interfering
-                                                        with the host's shortcut keys. This will prevent the window from
-                                                        gaining keyboard focus. */
-        windowIsSemiTransparent     = (1 << 30)    /**< Not intended for public use - makes a window transparent. */
+        windowAppearsOnTaskbar                          = (1 << 0),   /**< Indicates that the window should have a corresponding
+                                                                           entry on the taskbar (ignored on MacOSX) */
+        windowIsTemporary                               = (1 << 1),   /**< Indicates that the window is a temporary popup, like a menu,
+                                                                           tooltip, etc. */
+        windowIgnoresMouseClicks                        = (1 << 2),   /**< Indicates that the window should let mouse clicks pass
+                                                                           through it (may not be possible on some platforms). */
+        windowHasTitleBar                               = (1 << 3),   /**< Indicates that the window should have a normal OS-specific
+                                                                           title bar and frame. if not specified, the window will be
+                                                                           borderless. */
+        windowIsResizable                               = (1 << 4),   /**< Indicates that the window should have a resizable border. */
+        windowHasMinimiseButton                         = (1 << 5),   /**< Indicates that if the window has a title bar, it should have a
+                                                                           minimise button on it. */
+        windowHasMaximiseButton                         = (1 << 6),   /**< Indicates that if the window has a title bar, it should have a
+                                                                           maximise button on it. */
+        windowHasCloseButton                            = (1 << 7),   /**< Indicates that if the window has a title bar, it should have a
+                                                                           close button on it. */
+        windowHasDropShadow                             = (1 << 8),   /**< Indicates that the window should have a drop-shadow (this may
+                                                                           not be possible on all platforms). */
+        windowRepaintedExplicitly                       = (1 << 9),   /**< Not intended for public use - this tells a window not to
+                                                                           do its own repainting, but only to repaint when the
+                                                                           performAnyPendingRepaintsNow() method is called. */
+        windowIgnoresKeyPresses                         = (1 << 10),  /**< Tells the window not to catch any keypresses. This can
+                                                                           be used for things like plugin windows, to stop them interfering
+                                                                           with the host's shortcut keys. */
+        windowRequiresSynchronousCoreGraphicsRendering  = (1 << 11),  /**< Indicates that the window should not be rendered with
+                                                                           asynchronous Core Graphics drawing operations. Use this if there
+                                                                           are issues with regions not being redrawn at the expected time
+                                                                           (macOS and iOS only). */
+        windowIsSemiTransparent                         = (1 << 30)   /**< Not intended for public use - makes a window transparent. */
 
     };
 
@@ -132,7 +144,7 @@ public:
     ComponentPeer (Component& component, int styleFlags);
 
     /** Destructor. */
-    virtual ~ComponentPeer();
+    ~ComponentPeer() override;
 
     //==============================================================================
     /** Returns the component being represented by this peer. */
@@ -232,6 +244,9 @@ public:
     /** True if the window is currently minimised. */
     virtual bool isMinimised() const = 0;
 
+    /** True if the window is being displayed on-screen. */
+    virtual bool isShowing() const = 0;
+
     /** Enable/disable fullscreen mode for the window. */
     virtual void setFullScreen (bool shouldBeFullScreen) = 0;
 
@@ -254,6 +269,16 @@ public:
         The constrainer won't be deleted by this object, so the caller must manage its lifetime.
     */
     void setConstrainer (ComponentBoundsConstrainer* newConstrainer) noexcept;
+
+    /** Asks the window-manager to begin resizing this window, on platforms where this is useful
+        (currently just Linux/X11).
+
+        @param mouseDownPosition    The position of the mouse event that started the resize in
+                                    unscaled peer coordinates
+        @param zone                 The edges of the window that may be moved during the resize
+    */
+    virtual void startHostManagedResize ([[maybe_unused]] Point<int> mouseDownPosition,
+                                         [[maybe_unused]] ResizableBorderComponent::Zone zone) {}
 
     /** Returns the current constrainer, if one has been set. */
     ComponentBoundsConstrainer* getConstrainer() const noexcept             { return constrainer; }
@@ -300,7 +325,10 @@ public:
     virtual void handleScreenSizeChange();
 
     //==============================================================================
-    /** This is called to repaint the component into the given context. */
+    /** This is called to repaint the component into the given context.
+
+        Increments the result of getNumFramesPainted().
+    */
     void handlePaint (LowLevelGraphicsContext& contextToPaintTo);
 
     //==============================================================================
@@ -353,16 +381,19 @@ public:
     /** Called whenever a modifier key is pressed or released. */
     void handleModifierKeysChange();
 
-    //==============================================================================
-    /** Tells the window that text input may be required at the given position.
-        This may cause things like a virtual on-screen keyboard to appear, depending
-        on the OS.
+    /** If there's a currently active input-method context - i.e. characters are being
+        composed using multiple keystrokes - this should commit the current state of the
+        context to the text and clear the context. This should not hide the virtual keyboard.
     */
-    virtual void textInputRequired (Point<int> position, TextInputTarget&) = 0;
+    virtual void closeInputMethodContext();
 
-    /** If there's some kind of OS input-method in progress, this should dismiss it. */
-    virtual void dismissPendingTextInput();
+    /** Alerts the peer that the current text input target has changed somehow.
 
+        The peer may hide or show the virtual keyboard as a result of this call.
+    */
+    void refreshTextInputTarget();
+
+    //==============================================================================
     /** Returns the currently focused TextInputTarget, or null if none is found. */
     TextInputTarget* findCurrentTextInputTarget();
 
@@ -468,6 +499,38 @@ public:
     void removeScaleFactorListener (ScaleFactorListener* listenerToRemove)    { scaleFactorListeners.remove (listenerToRemove);  }
 
     //==============================================================================
+    /** Used to receive callbacks on every vertical blank event of the display that the peer
+        currently belongs to.
+
+        On Linux this is currently limited to receiving callbacks from a timer approximately at
+        display refresh rate.
+
+        This is a low-level facility used by the peer implementations. If you wish to synchronise
+        Component events with the display refresh, you should probably use the VBlankAttachment,
+        which automatically takes care of listening to the vblank events of the right peer.
+
+        @see VBlankAttachment
+    */
+    struct JUCE_API  VBlankListener
+    {
+        /** Destructor. */
+        virtual ~VBlankListener() = default;
+
+        /** Called on every vertical blank of the display to which the peer is associated.
+
+            The timestampSec parameter is a monotonically increasing value expressed in seconds
+            that corresponds to the time at which the next frame will be displayed.
+        */
+        virtual void onVBlank (double timestampSec) = 0;
+    };
+
+    /** Adds a VBlankListener. */
+    void addVBlankListener (VBlankListener* listenerToAdd)       { vBlankListeners.add (listenerToAdd); }
+
+    /** Removes a VBlankListener. */
+    void removeVBlankListener (VBlankListener* listenerToRemove) { vBlankListeners.remove (listenerToRemove); }
+
+    //==============================================================================
     /** On Windows and Linux this will return the OS scaling factor currently being applied
         to the native window. This is used to convert between physical and logical pixels
         at the OS API level and you shouldn't need to use it in your own code unless you
@@ -508,9 +571,17 @@ public:
     /** Returns the style requested for this app. */
     Style getAppStyle() const { return style; }
 
+    /** Returns the number of times that this peer has been painted.
+
+        This is mainly useful when debugging component painting. For example, you might use this to
+        match logging calls to specific frames.
+    */
+    uint64_t getNumFramesPainted() const { return peerFrameNumber; }
+
 protected:
     //==============================================================================
     static void forceDisplayUpdate();
+    void callVBlankListeners (double timestampSec);
 
     Component& component;
     const int styleFlags;
@@ -518,17 +589,39 @@ protected:
     ComponentBoundsConstrainer* constrainer = nullptr;
     static std::function<ModifierKeys()> getNativeRealtimeModifiers;
     ListenerList<ScaleFactorListener> scaleFactorListeners;
+    ListenerList<VBlankListener> vBlankListeners;
     Style style = Style::automatic;
 
 private:
     //==============================================================================
     virtual void appStyleChanged() {}
 
+    /** Tells the window that text input may be required at the given position.
+        This may cause things like a virtual on-screen keyboard to appear, depending
+        on the OS.
+
+        This function should not be called directly by Components - use refreshTextInputTarget
+        instead.
+    */
+    virtual void textInputRequired (Point<int>, TextInputTarget&) = 0;
+
+    /** If there's some kind of OS input-method in progress, this should dismiss it.
+
+        Overrides of this function should call closeInputMethodContext().
+
+        This function should not be called directly by Components - use refreshTextInputTarget
+        instead.
+    */
+    virtual void dismissPendingTextInput();
+
+    void globalFocusChanged (Component*) override;
     Component* getTargetForKeyPress();
 
     WeakReference<Component> lastFocusedComponent, dragAndDropTargetComponent;
     Component* lastDragAndDropCompUnderMouse = nullptr;
+    TextInputTarget* textInputTarget = nullptr;
     const uint32 uniqueID;
+    uint64_t peerFrameNumber = 0;
     bool isWindowMinimised = false;
 
     //==============================================================================

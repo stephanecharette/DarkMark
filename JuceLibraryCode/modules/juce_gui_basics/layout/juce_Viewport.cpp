@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -26,25 +35,10 @@
 namespace juce
 {
 
-static bool viewportWouldScrollOnEvent (const Viewport* vp, const MouseInputSource& src) noexcept
-{
-    if (vp != nullptr)
-    {
-        switch (vp->getScrollOnDragMode())
-        {
-            case Viewport::ScrollOnDragMode::all:           return true;
-            case Viewport::ScrollOnDragMode::nonHover:      return ! src.canHover();
-            case Viewport::ScrollOnDragMode::never:         return false;
-        }
-    }
-
-    return false;
-}
-
 using ViewportDragPosition = AnimatedPosition<AnimatedPositionBehaviours::ContinuousWithMomentum>;
 
-struct Viewport::DragToScrollListener   : private MouseListener,
-                                          private ViewportDragPosition::Listener
+struct Viewport::DragToScrollListener final : private MouseListener,
+                                              private ViewportDragPosition::Listener
 {
     DragToScrollListener (Viewport& v)  : viewport (v)
     {
@@ -61,6 +55,12 @@ struct Viewport::DragToScrollListener   : private MouseListener,
         Desktop::getInstance().removeGlobalMouseListener (this);
     }
 
+    void stopOngoingAnimation()
+    {
+        offsetX.setPosition (offsetX.getPosition());
+        offsetY.setPosition (offsetY.getPosition());
+    }
+
     void positionChanged (ViewportDragPosition&, double) override
     {
         viewport.setViewPosition (originalViewPos - Point<int> ((int) offsetX.getPosition(),
@@ -69,7 +69,7 @@ struct Viewport::DragToScrollListener   : private MouseListener,
 
     void mouseDown (const MouseEvent& e) override
     {
-        if (! isGlobalMouseListener && viewportWouldScrollOnEvent (&viewport, e.source))
+        if (! isGlobalMouseListener && detail::ViewportHelpers::wouldScrollOnEvent (&viewport, e.source))
         {
             offsetX.setPosition (offsetX.getPosition());
             offsetY.setPosition (offsetY.getPosition());
@@ -90,9 +90,9 @@ struct Viewport::DragToScrollListener   : private MouseListener,
         if (e.source == scrollSource
             && ! doesMouseEventComponentBlockViewportDrag (e.eventComponent))
         {
-            auto totalOffset = e.getOffsetFromDragStart().toFloat();
+            auto totalOffset = e.getEventRelativeTo (&viewport).getOffsetFromDragStart().toFloat();
 
-            if (! isDragging && totalOffset.getDistanceFromOrigin() > 8.0f && viewportWouldScrollOnEvent (&viewport, e.source))
+            if (! isDragging && totalOffset.getDistanceFromOrigin() > 8.0f && detail::ViewportHelpers::wouldScrollOnEvent (&viewport, e.source))
             {
                 isDragging = true;
 
@@ -119,9 +119,11 @@ struct Viewport::DragToScrollListener   : private MouseListener,
 
     void endDragAndClearGlobalMouseListener()
     {
-        offsetX.endDrag();
-        offsetY.endDrag();
-        isDragging = false;
+        if (std::exchange (isDragging, false) == true)
+        {
+            offsetX.endDrag();
+            offsetY.endDrag();
+        }
 
         viewport.contentHolder.addMouseListener (this, true);
         Desktop::getInstance().removeGlobalMouseListener (this);
@@ -229,6 +231,8 @@ void Viewport::recreateScrollbars()
 
     getVerticalScrollBar().addListener (this);
     getHorizontalScrollBar().addListener (this);
+    getVerticalScrollBar().addMouseListener (this, true);
+    getHorizontalScrollBar().addMouseListener (this, true);
 
     resized();
 }
@@ -243,12 +247,20 @@ Point<int> Viewport::viewportPosToCompPos (Point<int> pos) const
 {
     jassert (contentComp != nullptr);
 
-    auto contentBounds = contentHolder.getLocalArea (contentComp.get(), contentComp->getLocalBounds());
+    const auto contentBounds = getContentBounds();
 
-    Point<int> p (jmax (jmin (0, contentHolder.getWidth()  - contentBounds.getWidth()),  jmin (0, -(pos.x))),
-                  jmax (jmin (0, contentHolder.getHeight() - contentBounds.getHeight()), jmin (0, -(pos.y))));
+    const Point p (jmax (jmin (0, contentHolder.getWidth()  - contentBounds.getWidth()),  jmin (0, -(pos.x))),
+                   jmax (jmin (0, contentHolder.getHeight() - contentBounds.getHeight()), jmin (0, -(pos.y))));
 
     return p.transformedBy (contentComp->getTransform().inverted());
+}
+
+Rectangle<int> Viewport::getContentBounds() const
+{
+    if (auto* cc = contentComp.get())
+        return contentHolder.getLocalArea (cc, cc->getLocalBounds());
+
+    return {};
 }
 
 void Viewport::setViewPosition (const int xPixelsOffset, const int yPixelsOffset)
@@ -402,11 +414,7 @@ void Viewport::updateVisibleArea()
             break;
     }
 
-    Rectangle<int> contentBounds;
-
-    if (auto cc = contentComp.get())
-        contentBounds = contentHolder.getLocalArea (cc, cc->getLocalBounds());
-
+    const auto contentBounds = getContentBounds();
     auto visibleOrigin = -contentBounds.getPosition();
 
     auto& hbar = getHorizontalScrollBar();
@@ -517,27 +525,41 @@ int Viewport::getScrollBarThickness() const
 
 void Viewport::scrollBarMoved (ScrollBar* scrollBarThatHasMoved, double newRangeStart)
 {
-    auto newRangeStartInt = roundToInt (newRangeStart);
+    const auto contentOrigin = -getContentBounds().getPosition();
+    const auto newRangeStartInt = roundToInt (newRangeStart);
 
-    if (scrollBarThatHasMoved == horizontalScrollBar.get())
+    for (const auto& [member, bar] : { std::tuple (&Point<int>::x, horizontalScrollBar.get()),
+                                       std::tuple (&Point<int>::y, verticalScrollBar.get()) })
     {
-        setViewPosition (newRangeStartInt, getViewPositionY());
-    }
-    else if (scrollBarThatHasMoved == verticalScrollBar.get())
-    {
-        setViewPosition (getViewPositionX(), newRangeStartInt);
+        if (scrollBarThatHasMoved != bar)
+            continue;
+
+        if (contentOrigin.*member == newRangeStartInt)
+            return;
+
+        auto pt = getViewPosition();
+        pt.*member = newRangeStartInt;
+        setViewPosition (pt);
+        return;
     }
 }
 
 void Viewport::mouseWheelMove (const MouseEvent& e, const MouseWheelDetails& wheel)
 {
-    if (! useMouseWheelMoveIfNeeded (e, wheel))
-        Component::mouseWheelMove (e, wheel);
+    if (e.eventComponent == this)
+        if (! useMouseWheelMoveIfNeeded (e, wheel))
+            Component::mouseWheelMove (e, wheel);
+}
+
+void Viewport::mouseDown (const MouseEvent& e)
+{
+    if (e.eventComponent == horizontalScrollBar.get() || e.eventComponent == verticalScrollBar.get())
+        dragToScrollListener->stopOngoingAnimation();
 }
 
 static int rescaleMouseWheelDistance (float distance, int singleStepSize) noexcept
 {
-    if (distance == 0.0f)
+    if (approximatelyEqual (distance, 0.0f))
         return 0;
 
     distance *= 14.0f * (float) singleStepSize;

@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -29,7 +38,7 @@ namespace juce
 const char* const Toolbar::toolbarDragDescriptor = "_toolbarItem_";
 
 //==============================================================================
-class Toolbar::Spacer  : public ToolbarItemComponent
+class Toolbar::Spacer final : public ToolbarItemComponent
 {
 public:
     Spacer (int itemID, float sizeToUse, bool shouldDrawBar)
@@ -151,7 +160,7 @@ private:
 };
 
 //==============================================================================
-class Toolbar::MissingItemsComponent  : public PopupMenu::CustomComponent
+class Toolbar::MissingItemsComponent final : public PopupMenu::CustomComponent
 {
 public:
     MissingItemsComponent (Toolbar& bar, int h)
@@ -161,7 +170,7 @@ public:
     {
         for (int i = bar.items.size(); --i >= 0;)
         {
-            auto* tc = bar.items.getUnchecked(i);
+            auto* tc = bar.items.getUnchecked (i);
 
             if (tc != nullptr && dynamic_cast<Spacer*> (tc) == nullptr && ! tc->isVisible())
             {
@@ -385,7 +394,7 @@ String Toolbar::toString() const
     String s ("TB:");
 
     for (int i = 0; i < getNumItems(); ++i)
-        s << getItemId(i) << ' ';
+        s << getItemId (i) << ' ';
 
     return s.trimEnd();
 }
@@ -656,14 +665,17 @@ void Toolbar::lookAndFeelChanged()
 void Toolbar::mouseDown (const MouseEvent&) {}
 
 //==============================================================================
-class Toolbar::CustomisationDialog   : public DialogWindow
+class Toolbar::CustomisationDialog final : public DialogWindow
 {
 public:
-    CustomisationDialog (ToolbarItemFactory& factory, Toolbar& bar, int optionFlags)
-        : DialogWindow (TRANS("Add/remove items from toolbar"), Colours::white, true, true),
+    CustomisationDialog (ToolbarItemFactory& factory, SafePointer<Toolbar> bar, int optionFlags)
+        : DialogWindow (TRANS ("Add/remove items from toolbar"),
+                        bar->findColour (Toolbar::customisationDialogBackgroundColourId),
+                        true,
+                        true),
           toolbar (bar)
     {
-        setContentOwned (new CustomiserPanel (factory, toolbar, optionFlags), true);
+        setContentOwned (new CustomiserPanel (factory, *toolbar, optionFlags), true);
         setResizable (true, true);
         setResizeLimits (400, 300, 1500, 1000);
         positionNearBar();
@@ -671,7 +683,8 @@ public:
 
     ~CustomisationDialog() override
     {
-        toolbar.setEditingActive (false);
+        if (toolbar != nullptr)
+            toolbar->setEditingActive (false);
     }
 
     void closeButtonPressed() override
@@ -681,38 +694,41 @@ public:
 
     bool canModalEventBeSentToComponent (const Component* comp) override
     {
-        return toolbar.isParentOf (comp)
-                 || dynamic_cast<const ToolbarItemComponent::ItemDragAndDropOverlayComponent*> (comp) != nullptr;
+        return (toolbar != nullptr && toolbar->isParentOf (comp))
+                 || dynamic_cast<const detail::ToolbarItemDragAndDropOverlayComponent*> (comp) != nullptr;
     }
 
     void positionNearBar()
     {
-        auto screenSize = toolbar.getParentMonitorArea();
-        auto pos = toolbar.getScreenPosition();
+        if (toolbar == nullptr)
+            return;
+
+        auto screenSize = toolbar->getParentMonitorArea();
+        auto pos = toolbar->getScreenPosition();
         const int gap = 8;
 
-        if (toolbar.isVertical())
+        if (toolbar->isVertical())
         {
             if (pos.x > screenSize.getCentreX())
                 pos.x -= getWidth() - gap;
             else
-                pos.x += toolbar.getWidth() + gap;
+                pos.x += toolbar->getWidth() + gap;
         }
         else
         {
-            pos.x += (toolbar.getWidth() - getWidth()) / 2;
+            pos.x += (toolbar->getWidth() - getWidth()) / 2;
 
             if (pos.y > screenSize.getCentreY())
                 pos.y -= getHeight() - gap;
             else
-                pos.y += toolbar.getHeight() + gap;
+                pos.y += toolbar->getHeight() + gap;
         }
 
         setTopLeftPosition (pos);
     }
 
 private:
-    Toolbar& toolbar;
+    SafePointer<Toolbar> toolbar;
 
     class CustomiserPanel  : public Component
     {
@@ -733,9 +749,9 @@ private:
                 addAndMakeVisible (styleBox);
                 styleBox.setEditableText (false);
 
-                if ((optionFlags & Toolbar::allowIconsOnlyChoice) != 0)     styleBox.addItem (TRANS("Show icons only"), 1);
-                if ((optionFlags & Toolbar::allowIconsWithTextChoice) != 0) styleBox.addItem (TRANS("Show icons and descriptions"), 2);
-                if ((optionFlags & Toolbar::allowTextOnlyChoice) != 0)      styleBox.addItem (TRANS("Show descriptions only"), 3);
+                if ((optionFlags & Toolbar::allowIconsOnlyChoice) != 0)     styleBox.addItem (TRANS ("Show icons only"), 1);
+                if ((optionFlags & Toolbar::allowIconsWithTextChoice) != 0) styleBox.addItem (TRANS ("Show icons and descriptions"), 2);
+                if ((optionFlags & Toolbar::allowTextOnlyChoice) != 0)      styleBox.addItem (TRANS ("Show descriptions only"), 3);
 
                 int selectedStyle = 0;
                 switch (bar.getStyle())
@@ -758,7 +774,7 @@ private:
             }
 
             addAndMakeVisible (instructions);
-            instructions.setFont (Font (13.0f));
+            instructions.setFont (withDefaultMetrics (FontOptions (13.0f)));
 
             setSize (500, 300);
         }
@@ -813,7 +829,7 @@ void Toolbar::showCustomisationDialog (ToolbarItemFactory& factory, const int op
 {
     setEditingActive (true);
 
-    (new CustomisationDialog (factory, *this, optionFlags))
+    (new CustomisationDialog (factory, this, optionFlags))
         ->enterModalState (true, nullptr, true);
 }
 

@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -50,73 +59,73 @@ public:
 
         @see isCheckable
     */
-    JUCE_NODISCARD AccessibleState withCheckable() const noexcept            { return withFlag (Flags::checkable); }
+    [[nodiscard]] AccessibleState withCheckable() const noexcept            { return withFlag (Flags::checkable); }
 
     /** Sets the checked flag and returns the new state.
 
         @see isChecked
     */
-    JUCE_NODISCARD AccessibleState withChecked() const noexcept              { return withFlag (Flags::checked); }
+    [[nodiscard]] AccessibleState withChecked() const noexcept              { return withFlag (Flags::checked); }
 
     /** Sets the collapsed flag and returns the new state.
 
         @see isCollapsed
     */
-    JUCE_NODISCARD AccessibleState withCollapsed() const noexcept            { return withFlag (Flags::collapsed); }
+    [[nodiscard]] AccessibleState withCollapsed() const noexcept            { return withFlag (Flags::collapsed); }
 
     /** Sets the expandable flag and returns the new state.
 
         @see isExpandable
     */
-    JUCE_NODISCARD AccessibleState withExpandable() const noexcept           { return withFlag (Flags::expandable); }
+    [[nodiscard]] AccessibleState withExpandable() const noexcept           { return withFlag (Flags::expandable); }
 
     /** Sets the expanded flag and returns the new state.
 
         @see isExpanded
     */
-    JUCE_NODISCARD AccessibleState withExpanded() const noexcept             { return withFlag (Flags::expanded); }
+    [[nodiscard]] AccessibleState withExpanded() const noexcept             { return withFlag (Flags::expanded); }
 
     /** Sets the focusable flag and returns the new state.
 
         @see isFocusable
     */
-    JUCE_NODISCARD AccessibleState withFocusable() const noexcept            { return withFlag (Flags::focusable); }
+    [[nodiscard]] AccessibleState withFocusable() const noexcept            { return withFlag (Flags::focusable); }
 
     /** Sets the focused flag and returns the new state.
 
         @see isFocused
     */
-    JUCE_NODISCARD AccessibleState withFocused() const noexcept              { return withFlag (Flags::focused); }
+    [[nodiscard]] AccessibleState withFocused() const noexcept              { return withFlag (Flags::focused); }
 
     /** Sets the ignored flag and returns the new state.
 
         @see isIgnored
     */
-    JUCE_NODISCARD AccessibleState withIgnored() const noexcept              { return withFlag (Flags::ignored); }
+    [[nodiscard]] AccessibleState withIgnored() const noexcept              { return withFlag (Flags::ignored); }
 
     /** Sets the selectable flag and returns the new state.
 
         @see isSelectable
     */
-    JUCE_NODISCARD AccessibleState withSelectable() const noexcept           { return withFlag (Flags::selectable); }
+    [[nodiscard]] AccessibleState withSelectable() const noexcept           { return withFlag (Flags::selectable); }
 
     /** Sets the multiSelectable flag and returns the new state.
 
         @see isMultiSelectable
     */
-    JUCE_NODISCARD AccessibleState withMultiSelectable() const noexcept      { return withFlag (Flags::multiSelectable); }
+    [[nodiscard]] AccessibleState withMultiSelectable() const noexcept      { return withFlag (Flags::multiSelectable); }
 
     /** Sets the selected flag and returns the new state.
 
         @see isSelected
     */
-    JUCE_NODISCARD AccessibleState withSelected() const noexcept             { return withFlag (Flags::selected); }
+    [[nodiscard]] AccessibleState withSelected() const noexcept             { return withFlag (Flags::selected); }
 
     /** Sets the accessible offscreen flag and returns the new state.
 
         @see isSelected
     */
-    JUCE_NODISCARD AccessibleState withAccessibleOffscreen() const noexcept  { return withFlag (Flags::accessibleOffscreen); }
+    [[nodiscard]] AccessibleState withAccessibleOffscreen() const noexcept  { return withFlag (Flags::accessibleOffscreen); }
 
     //==============================================================================
     /** Returns true if the UI element is checkable.
@@ -208,7 +217,7 @@ private:
         accessibleOffscreen = (1 << 11)
     };
 
-    JUCE_NODISCARD AccessibleState withFlag (int flag) const noexcept
+    [[nodiscard]] AccessibleState withFlag (int flag) const noexcept
     {
         auto copy = *this;
         copy.flags |= flag;

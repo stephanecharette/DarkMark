@@ -1,35 +1,45 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
 
-#if ! defined (DOXYGEN) && (JUCE_MAC || JUCE_IOS)
- #if __LP64__
-  using OSType = unsigned int;
- #else
-  using OSType = unsigned long;
- #endif
-#endif
-
 namespace juce
 {
+
+/** @cond */
+#if JUCE_MAC || JUCE_IOS
+ using OSType = unsigned int;
+#endif
+/** @endcond */
 
 //==============================================================================
 /**
@@ -346,7 +356,16 @@ public:
     */
     bool hasWriteAccess() const;
 
+    /** Checks whether a file can be read.
+
+        @returns    true if it's possible to read this file.
+    */
+    bool hasReadAccess() const;
+
     /** Changes the write-permission of a file or directory.
+
+        Note that on Windows, there is no notion of a directory itself being read-only or not, and
+        the function will always return true when called with the non-recursive option.
 
         @param shouldBeReadOnly     whether to add or remove write-permission
         @param applyRecursively     if the file is a directory and this is true, it will
@@ -381,21 +400,21 @@ public:
     //==============================================================================
     /** Returns the last modification time of this file.
 
-        @returns    the time, or an invalid time if the file doesn't exist.
+        @returns    the time, or the Unix Epoch if the file doesn't exist.
         @see setLastModificationTime, getLastAccessTime, getCreationTime
     */
     Time getLastModificationTime() const;
 
     /** Returns the last time this file was accessed.
 
-        @returns    the time, or an invalid time if the file doesn't exist.
+        @returns    the time, or the Unix Epoch if the file doesn't exist.
         @see setLastAccessTime, getLastModificationTime, getCreationTime
     */
     Time getLastAccessTime() const;
 
     /** Returns the time that this file was created.
 
-        @returns    the time, or an invalid time if the file doesn't exist.
+        @returns    the time, or the Unix Epoch if the file doesn't exist.
         @see getLastModificationTime, getLastAccessTime
     */
     Time getCreationTime() const;
@@ -508,15 +527,21 @@ public:
         Also note that on some OSes (e.g. Windows), moving files between different
         volumes may not be possible.
 
+        This function will often fail to move directories because of the ambiguities
+        about merging existing directories. Use copyDirectoryTo() and deleteRecursively()
+        in these situations.
+
         @returns    true if the operation succeeds
     */
     bool moveFileTo (const File& targetLocation) const;
 
     /** Copies a file.
 
-        Tries to copy a file to a different location.
-        If the target file already exists, this will attempt to delete it first, and
-        will fail if this can't be done.
+        Tries to copy a file to a different location. If the target file already exists,
+        this will attempt to delete it first, and will fail if this can't be done.
+
+        Note that the target file isn't the directory to put it in, it's the actual
+        filename that you want the new file to have.
 
         @returns    true if the operation succeeds
     */
@@ -882,7 +907,8 @@ public:
             On Windows, this might be "\Documents and Settings\username\Application Data".
             On the Mac, it might be "~/Library". If you're going to store your settings in here,
             always create your own sub-folder to put them in, to avoid making a mess.
-            On GNU/Linux it is "~/.config".
+            On GNU/Linux it is "~/.config" and you may need to create the directory before
+            using it.
         */
         userApplicationDataDirectory,
 
@@ -1056,7 +1082,7 @@ public:
     bool isSymbolicLink() const;
 
     /** If this file is a link or alias, this returns the file that it points to.
-        If the file isn't actually link, it'll just return itself.
+        If the file isn't actually a link, it'll just return itself.
     */
     File getLinkedTarget() const;
 
@@ -1129,7 +1155,8 @@ public:
         bool foldersFirst;
     };
 
-   #if JUCE_ALLOW_STATIC_NULL_VARIABLES && ! defined (DOXYGEN)
+   #if JUCE_ALLOW_STATIC_NULL_VARIABLES
+    /** @cond */
     /* These static objects are deprecated because it's too easy to accidentally use them indirectly
        during a static constructor, which leads to very obscure order-of-initialisation bugs.
        Use File::getSeparatorChar() and File::getSeparatorString(), and instead of File::nonexistent,
@@ -1138,6 +1165,7 @@ public:
     [[deprecated]] static const juce_wchar separator;
     [[deprecated]] static const StringRef separatorString;
     [[deprecated]] static const File nonexistent;
+    /** @endcond */
    #endif
 
 private:
@@ -1146,6 +1174,7 @@ private:
 
     static String parseAbsolutePath (const String&);
     String getPathUpToLastSlash() const;
+    bool isNonEmptyDirectory() const;
 
     Result createDirectoryInternal (const String&) const;
     bool copyInternal (const File&) const;

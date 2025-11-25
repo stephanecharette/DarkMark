@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -47,21 +56,57 @@ public:
 
         /** The total area of this display in logical pixels including any OS-dependent objects
             like the taskbar, menu bar, etc.
+
+            On mobile (Android, iOS) this is the full area of the display.
         */
         Rectangle<int> totalArea;
 
         /** The total area of this display in logical pixels which isn't covered by OS-dependent
             objects like the taskbar, menu bar, etc.
+
+            On mobile (iOS, Android), the system UI will be made transparent whenever possible, and
+            the JUCE app may draw behind these bars. Therefore, on these platforms, the userArea
+            is *not* restricted by the system UI. Instead, potentially-obscured areas of the
+            display can be found by querying the safeAreaInsets and keyboardInsets.
+
+            Mobile platforms that support multiple windows (e.g. Android in split screen) will
+            return the screen area currently available to the application here. The resulting
+            area may be significantly smaller than the total screen area, but may overlap the
+            system decorations.
         */
         Rectangle<int> userArea;
 
         /** Represents the area of this display in logical pixels that is not functional for
             displaying content.
 
+            These insets are applied relative to the userArea.
+
             On mobile devices this may be the area covered by display cutouts and notches, where
             you still want to draw a background but should not position important content.
+
+            Note that these insets may change depending on the current state of the system.
+            As a simple example, entering/leaving kiosk mode may cause the system UI visibility
+            to change, which may affect the safe areas.
+            A more complex example would be split-screen state on Android, where an activity
+            occupying the top portion of the screen is likely to have insets for the status bar but
+            not the navigation bar, whereas an activity on the bottom may have navigation insets
+            but not status insets.
+
+            The insets may also change as a result of rotating the screen, as this will rotate any
+            physical screen cutouts, and could also cause system UI elements to be repositioned.
         */
         BorderSize<int> safeAreaInsets;
+
+        /** Represents the area of this display in logical pixels that is obscured by an
+            onscreen keyboard.
+
+            This is currently only supported on iOS, and on Android 11+.
+
+            This will only return the bounds of the keyboard when it is in 'docked' mode.
+            If the keyboard is floating (e.g. on an iPad using the split keyboard mode),
+            no insets will be reported.
+        */
+        BorderSize<int> keyboardInsets;
 
         /** The top-left of this display in physical coordinates. */
         Point<int> topLeftPhysical;
@@ -82,6 +127,12 @@ public:
             pixels per inch, divide this by the Display::scale value.
         */
         double dpi;
+
+        /** The vertical refresh rate of the display if applicable.
+
+            Currently this is only used on Linux for display rate repainting.
+        */
+        std::optional<double> verticalFrequencyHz;
     };
 
     //==============================================================================
@@ -163,11 +214,9 @@ public:
     /** An Array containing the Display objects for all of the connected displays. */
     Array<Display> displays;
 
-   #ifndef DOXYGEN
+    /** @cond */
     /** @internal */
     void refresh();
-    /** @internal */
-    ~Displays() = default;
 
     [[deprecated ("Use the getDisplayForPoint or getDisplayForRect methods instead "
                  "as they can deal with converting between logical and physical pixels.")]]
@@ -178,7 +227,7 @@ public:
     [[deprecated]] const Display& findDisplayForRect (Rectangle<int>, bool isPhysical = false) const noexcept;
     [[deprecated]] const Display& findDisplayForPoint (Point<int>, bool isPhysical = false) const noexcept;
     [[deprecated]] const Display& getMainDisplay() const noexcept;
-   #endif
+    /** @endcond */
 
 private:
     friend class Desktop;

@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -276,24 +285,23 @@ public:
     static const Point<float> offscreenMousePos;
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("This method has been replaced with the isLongPressOrDrag and hasMovedSignificantlySincePressed "
                  "methods. If you want the same behaviour you should use isLongPressOrDrag which accounts for the "
                  "amount of time that the input source has been held down for, but if you only want to know whether "
                  "it has been moved use hasMovedSignificantlySincePressed instead.")]]
     bool hasMouseMovedSignificantlySincePressed() const noexcept;
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================
     friend class ComponentPeer;
     friend class Desktop;
-    friend class MouseInputSourceInternal;
-    MouseInputSourceInternal* pimpl;
+    friend class detail::MouseInputSourceList;
+    friend class detail::MouseInputSourceImpl;
+    detail::MouseInputSourceImpl* pimpl;
 
-    struct SourceList;
-
-    explicit MouseInputSource (MouseInputSourceInternal*) noexcept;
+    explicit MouseInputSource (detail::MouseInputSourceImpl*) noexcept;
     void handleEvent (ComponentPeer&, Point<float>, int64 time, ModifierKeys, float, float, const PenDetails&);
     void handleWheel (ComponentPeer&, Point<float>, int64 time, const MouseWheelDetails&);
     void handleMagnifyGesture (ComponentPeer&, Point<float>, int64 time, float scaleFactor);

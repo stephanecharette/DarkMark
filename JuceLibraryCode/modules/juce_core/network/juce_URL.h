@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -51,9 +63,6 @@ public:
 
     /** Creates URL referring to a local file on your disk using the file:// scheme. */
     explicit URL (File localFile);
-
-    /** Destructor. */
-    ~URL() = default;
 
     /** Compares two URLs.
 
@@ -103,6 +112,11 @@ public:
     */
     String getQueryString() const;
 
+    /** If any anchor is set, returns URL-encoded anchor, including the "#"
+        prefix.
+    */
+    String getAnchorString() const;
+
     /** Returns the scheme of the URL.
 
         e.g. for "http://www.xyz.com/foobar", this will return "http" (it won't
@@ -140,6 +154,13 @@ public:
     */
     int getPort() const;
 
+    /** Returns the origin of a resource reachable on this URL.
+
+        In the context of cross-origin resource sharing (CORS) a script downloaded from this URL
+        would only be allowed to reach resources from the returned origin.
+    */
+    String getOrigin() const;
+
     /** Returns a new version of this URL with a different domain and path.
 
         e.g. if the URL is "http://www.xyz.com/foo?x=1" and you call this with
@@ -147,7 +168,7 @@ public:
 
         @see withNewSubPath
     */
-    JUCE_NODISCARD URL withNewDomainAndPath (const String& newFullPath) const;
+    [[nodiscard]] URL withNewDomainAndPath (const String& newFullPath) const;
 
     /** Returns a new version of this URL with a different sub-path.
 
@@ -156,7 +177,7 @@ public:
 
         @see withNewDomainAndPath
     */
-    JUCE_NODISCARD URL withNewSubPath (const String& newPath) const;
+    [[nodiscard]] URL withNewSubPath (const String& newPath) const;
 
     /** Attempts to return a URL which is the parent folder containing this URL.
 
@@ -189,8 +210,8 @@ public:
 
         @see getParameterNames, getParameterValues
     */
-    JUCE_NODISCARD URL withParameter (const String& parameterName,
-                                      const String& parameterValue) const;
+    [[nodiscard]] URL withParameter (const String& parameterName,
+                                     const String& parameterValue) const;
 
     /** Returns a copy of this URL, with a set of GET or POST parameters added.
 
@@ -198,7 +219,11 @@ public:
 
         @see withParameter
     */
-    JUCE_NODISCARD URL withParameters (const StringPairArray& parametersToAdd) const;
+    [[nodiscard]] URL withParameters (const StringPairArray& parametersToAdd) const;
+
+    /** Returns a copy of this URL, with an anchor added to the end of the URL.
+    */
+    [[nodiscard]] URL withAnchor (const String& anchor) const;
 
     /** Returns a copy of this URL, with a file-upload type parameter added to it.
 
@@ -211,7 +236,7 @@ public:
 
         @see withDataToUpload
     */
-    JUCE_NODISCARD URL withFileToUpload (const String& parameterName,
+    [[nodiscard]] URL withFileToUpload (const String& parameterName,
                                          const File& fileToUpload,
                                          const String& mimeType) const;
 
@@ -225,7 +250,7 @@ public:
 
         @see withFileToUpload
     */
-    JUCE_NODISCARD URL withDataToUpload (const String& parameterName,
+    [[nodiscard]] URL withDataToUpload (const String& parameterName,
                                          const String& filename,
                                          const MemoryBlock& fileContentToUpload,
                                          const String& mimeType) const;
@@ -264,7 +289,7 @@ public:
         If no HTTP command is set when calling createInputStream() to read from
         this URL and some data has been set, it will do a POST request.
     */
-    JUCE_NODISCARD URL withPOSTData (const String& postData) const;
+    [[nodiscard]] URL withPOSTData (const String& postData) const;
 
     /** Returns a copy of this URL, with a block of data to send as the POST data.
 
@@ -274,7 +299,7 @@ public:
         If no HTTP command is set when calling createInputStream() to read from
         this URL and some data has been set, it will do a POST request.
     */
-    JUCE_NODISCARD URL withPOSTData (const MemoryBlock& postData) const;
+    [[nodiscard]] URL withPOSTData (const MemoryBlock& postData) const;
 
     /** Returns the data that was set using withPOSTData(). */
     String getPostData() const                                      { return postData.toString(); }
@@ -337,36 +362,36 @@ public:
 
             This can be useful for lengthy POST operations, so that you can provide user feedback.
         */
-        JUCE_NODISCARD InputStreamOptions withProgressCallback (std::function<bool (int bytesSent, int totalBytes)> progressCallback) const;
+        [[nodiscard]] InputStreamOptions withProgressCallback (std::function<bool (int bytesSent, int totalBytes)> progressCallback) const;
 
         /** A string that will be appended onto the headers that are used for the request.
 
             It must be a valid set of HTML header directives, separated by newlines.
         */
-        JUCE_NODISCARD InputStreamOptions withExtraHeaders (const String& extraHeaders) const;
+        [[nodiscard]] InputStreamOptions withExtraHeaders (const String& extraHeaders) const;
 
         /** Specifies a timeout for the request in milliseconds.
 
             If 0, this will use whatever default setting the OS chooses. If a negative
             number, it will be infinite.
         */
-        JUCE_NODISCARD InputStreamOptions withConnectionTimeoutMs (int connectionTimeoutMs) const;
+        [[nodiscard]] InputStreamOptions withConnectionTimeoutMs (int connectionTimeoutMs) const;
 
         /** If this is non-null, all the (key, value) pairs received as headers
             in the response will be stored in this array.
         */
-        JUCE_NODISCARD InputStreamOptions withResponseHeaders (StringPairArray* responseHeaders) const;
+        [[nodiscard]] InputStreamOptions withResponseHeaders (StringPairArray* responseHeaders) const;
 
         /** If this is non-null, it will get set to the http status code, if one
             is known, or 0 if a code isn't available.
         */
-        JUCE_NODISCARD InputStreamOptions withStatusCode (int* statusCode) const;
+        [[nodiscard]] InputStreamOptions withStatusCode (int* statusCode) const;
 
         /** Specifies the number of redirects that will be followed before returning a response.
 
             N.B. This will be ignored on Android which follows up to 5 redirects.
         */
-        JUCE_NODISCARD InputStreamOptions withNumRedirectsToFollow (int numRedirectsToFollow) const;
+        [[nodiscard]] InputStreamOptions withNumRedirectsToFollow (int numRedirectsToFollow) const;
 
         /** Specifies which HTTP request command to use.
 
@@ -375,7 +400,7 @@ public:
             via withPOSTData(), withFileToUpload(), or withDataToUpload(). Otherwise it
             will be GET.
         */
-        JUCE_NODISCARD InputStreamOptions withHttpRequestCmd (const String& httpRequestCmd) const;
+        [[nodiscard]] InputStreamOptions withHttpRequestCmd (const String& httpRequestCmd) const;
 
         //==============================================================================
         ParameterHandling getParameterHandling() const noexcept             { return parameterHandling; }
@@ -459,7 +484,7 @@ public:
         bool usePost = false;
 
         /** Specifies headers to add to the request. */
-        JUCE_NODISCARD auto withExtraHeaders (String value) const            { return with (&DownloadTaskOptions::extraHeaders, std::move (value)); }
+        [[nodiscard]] auto withExtraHeaders (String value) const            { return with (&DownloadTaskOptions::extraHeaders, std::move (value)); }
 
         /** On iOS, specifies the container where the downloaded file will be stored.
 
@@ -468,17 +493,17 @@ public:
 
             This is currently unused on other platforms.
         */
-        JUCE_NODISCARD auto withSharedContainer (String value) const         { return with (&DownloadTaskOptions::sharedContainer, std::move (value)); }
+        [[nodiscard]] auto withSharedContainer (String value) const         { return with (&DownloadTaskOptions::sharedContainer, std::move (value)); }
 
         /** Specifies an observer for the download task. */
-        JUCE_NODISCARD auto withListener (DownloadTaskListener* value) const { return with (&DownloadTaskOptions::listener, std::move (value)); }
+        [[nodiscard]] auto withListener (DownloadTaskListener* value) const { return with (&DownloadTaskOptions::listener, std::move (value)); }
 
         /** Specifies whether a post command should be used. */
-        JUCE_NODISCARD auto withUsePost (bool value) const                   { return with (&DownloadTaskOptions::usePost, value); }
+        [[nodiscard]] auto withUsePost (bool value) const                   { return with (&DownloadTaskOptions::usePost, value); }
 
     private:
         template <typename Member, typename Value>
-        JUCE_NODISCARD DownloadTaskOptions with (Member&& member, Value&& value) const
+        [[nodiscard]] DownloadTaskOptions with (Member&& member, Value&& value) const
         {
             auto copy = *this;
             copy.*member = std::forward<Value> (value);
@@ -659,7 +684,7 @@ public:
     static URL createWithoutParsing (const String& url);
 
     //==============================================================================
-   #ifndef DOXYGEN
+    /** @cond */
     using OpenStreamProgressCallback = bool (void* context, int bytesSent, int totalBytes);
 
     /** This method has been deprecated.
@@ -676,7 +701,7 @@ public:
                                                     int* statusCode = nullptr,
                                                     int numRedirectsToFollow = 5,
                                                     String httpRequestCmd = {}) const;
-   #endif
+    /** @endcond */
 
 private:
     //==============================================================================
@@ -726,6 +751,7 @@ private:
     String url;
     MemoryBlock postData;
     StringArray parameterNames, parameterValues;
+    String anchor;
 
     ReferenceCountedArray<Upload> filesToUpload;
 

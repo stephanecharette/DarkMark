@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -26,7 +35,7 @@
 namespace juce
 {
 
-#ifndef DOXYGEN
+/** @cond */
 namespace detail
 {
 
@@ -52,7 +61,7 @@ inline int ceilAsInt (float n) noexcept    { return n < (float)  std::numeric_li
 inline int ceilAsInt (double n) noexcept   { return n < (double) std::numeric_limits<int>::max() ? (int) std::ceil (n) : std::numeric_limits<int>::max(); }
 
 } // namespace detail
-#endif
+/** @endcond */
 
 //==============================================================================
 /**
@@ -217,41 +226,41 @@ public:
     void setVerticalRange (Range<ValueType> range) noexcept                                         { pos.y = range.getStart(); h = range.getLength(); }
 
     /** Returns a rectangle which has the same size and y-position as this one, but with a different x-position. */
-    JUCE_NODISCARD Rectangle withX (ValueType newX) const noexcept                                  { return { newX, pos.y, w, h }; }
+    [[nodiscard]] Rectangle withX (ValueType newX) const noexcept                                  { return { newX, pos.y, w, h }; }
 
     /** Returns a rectangle which has the same size and x-position as this one, but with a different y-position. */
-    JUCE_NODISCARD Rectangle withY (ValueType newY) const noexcept                                  { return { pos.x, newY, w, h }; }
+    [[nodiscard]] Rectangle withY (ValueType newY) const noexcept                                  { return { pos.x, newY, w, h }; }
 
     /** Returns a rectangle which has the same size and y-position as this one, but whose right-hand edge has the given position. */
-    JUCE_NODISCARD Rectangle withRightX (ValueType newRightX) const noexcept                        { return { newRightX - w, pos.y, w, h }; }
+    [[nodiscard]] Rectangle withRightX (ValueType newRightX) const noexcept                        { return { newRightX - w, pos.y, w, h }; }
 
     /** Returns a rectangle which has the same size and x-position as this one, but whose bottom edge has the given position. */
-    JUCE_NODISCARD Rectangle withBottomY (ValueType newBottomY) const noexcept                      { return { pos.x, newBottomY - h, w, h }; }
+    [[nodiscard]] Rectangle withBottomY (ValueType newBottomY) const noexcept                      { return { pos.x, newBottomY - h, w, h }; }
 
     /** Returns a rectangle with the same size as this one, but a new position. */
-    JUCE_NODISCARD Rectangle withPosition (ValueType newX, ValueType newY) const noexcept           { return { newX, newY, w, h }; }
+    [[nodiscard]] Rectangle withPosition (ValueType newX, ValueType newY) const noexcept           { return { newX, newY, w, h }; }
 
     /** Returns a rectangle with the same size as this one, but a new position. */
-    JUCE_NODISCARD Rectangle withPosition (Point<ValueType> newPos) const noexcept                  { return { newPos.x, newPos.y, w, h }; }
+    [[nodiscard]] Rectangle withPosition (Point<ValueType> newPos) const noexcept                  { return { newPos.x, newPos.y, w, h }; }
 
     /** Returns a rectangle whose size is the same as this one, but whose top-left position is (0, 0). */
-    JUCE_NODISCARD Rectangle withZeroOrigin() const noexcept                                        { return { w, h }; }
+    [[nodiscard]] Rectangle withZeroOrigin() const noexcept                                        { return { w, h }; }
 
     /** Returns a rectangle with the same size as this one, but a new centre position. */
-    JUCE_NODISCARD Rectangle withCentre (Point<ValueType> newCentre) const noexcept                 { return { newCentre.x - w / (ValueType) 2,
+    [[nodiscard]] Rectangle withCentre (Point<ValueType> newCentre) const noexcept                 { return { newCentre.x - w / (ValueType) 2,
                                                                                                                newCentre.y - h / (ValueType) 2, w, h }; }
 
     /** Returns a rectangle which has the same position and height as this one, but with a different width. */
-    JUCE_NODISCARD Rectangle withWidth (ValueType newWidth) const noexcept                          { return { pos.x, pos.y, jmax (ValueType(), newWidth), h }; }
+    [[nodiscard]] Rectangle withWidth (ValueType newWidth) const noexcept                          { return { pos.x, pos.y, jmax (ValueType(), newWidth), h }; }
 
     /** Returns a rectangle which has the same position and width as this one, but with a different height. */
-    JUCE_NODISCARD Rectangle withHeight (ValueType newHeight) const noexcept                        { return { pos.x, pos.y, w, jmax (ValueType(), newHeight) }; }
+    [[nodiscard]] Rectangle withHeight (ValueType newHeight) const noexcept                        { return { pos.x, pos.y, w, jmax (ValueType(), newHeight) }; }
 
     /** Returns a rectangle with the same top-left position as this one, but a new size. */
-    JUCE_NODISCARD Rectangle withSize (ValueType newWidth, ValueType newHeight) const noexcept      { return { pos.x, pos.y, jmax (ValueType(), newWidth), jmax (ValueType(), newHeight) }; }
+    [[nodiscard]] Rectangle withSize (ValueType newWidth, ValueType newHeight) const noexcept      { return { pos.x, pos.y, jmax (ValueType(), newWidth), jmax (ValueType(), newHeight) }; }
 
     /** Returns a rectangle with the same centre position as this one, but a new size. */
-    JUCE_NODISCARD Rectangle withSizeKeepingCentre (ValueType newWidth, ValueType newHeight) const noexcept { return { pos.x + (w - newWidth)  / (ValueType) 2,
+    [[nodiscard]] Rectangle withSizeKeepingCentre (ValueType newWidth, ValueType newHeight) const noexcept { return { pos.x + (w - newWidth)  / (ValueType) 2,
                                                                                                                        pos.y + (h - newHeight) / (ValueType) 2, newWidth, newHeight }; }
 
     /** Moves the x position, adjusting the width so that the right-hand edge remains in the same place.
@@ -264,7 +273,7 @@ public:
         If the new x is beyond the right of the current right-hand edge, the width will be set to zero.
         @see setLeft
     */
-    JUCE_NODISCARD Rectangle withLeft (ValueType newLeft) const noexcept       { return { newLeft, pos.y, jmax (ValueType(), pos.x + w - newLeft), h }; }
+    [[nodiscard]] Rectangle withLeft (ValueType newLeft) const noexcept       { return { newLeft, pos.y, jmax (ValueType(), pos.x + w - newLeft), h }; }
 
     /** Moves the y position, adjusting the height so that the bottom edge remains in the same place.
         If the y is moved to be below the current bottom edge, the height will be set to zero.
@@ -276,7 +285,7 @@ public:
         If the new y is beyond the bottom of the current rectangle, the height will be set to zero.
         @see setTop
     */
-    JUCE_NODISCARD Rectangle withTop (ValueType newTop) const noexcept         { return { pos.x, newTop, w, jmax (ValueType(), pos.y + h - newTop) }; }
+    [[nodiscard]] Rectangle withTop (ValueType newTop) const noexcept         { return { pos.x, newTop, w, jmax (ValueType(), pos.y + h - newTop) }; }
 
     /** Adjusts the width so that the right-hand edge of the rectangle has this new value.
         If the new right is below the current X value, the X will be pushed down to match it.
@@ -288,7 +297,7 @@ public:
         If the new right edge is below the current left-hand edge, the width will be set to zero.
         @see setRight
     */
-    JUCE_NODISCARD Rectangle withRight (ValueType newRight) const noexcept     { return { jmin (pos.x, newRight), pos.y, jmax (ValueType(), newRight - pos.x), h }; }
+    [[nodiscard]] Rectangle withRight (ValueType newRight) const noexcept     { return { jmin (pos.x, newRight), pos.y, jmax (ValueType(), newRight - pos.x), h }; }
 
     /** Adjusts the height so that the bottom edge of the rectangle has this new value.
         If the new bottom is lower than the current Y value, the Y will be pushed down to match it.
@@ -300,19 +309,19 @@ public:
         If the new y is beyond the bottom of the current rectangle, the height will be set to zero.
         @see setBottom
     */
-    JUCE_NODISCARD Rectangle withBottom (ValueType newBottom) const noexcept   { return { pos.x, jmin (pos.y, newBottom), w, jmax (ValueType(), newBottom - pos.y) }; }
+    [[nodiscard]] Rectangle withBottom (ValueType newBottom) const noexcept   { return { pos.x, jmin (pos.y, newBottom), w, jmax (ValueType(), newBottom - pos.y) }; }
 
     /** Returns a version of this rectangle with the given amount removed from its left-hand edge. */
-    JUCE_NODISCARD Rectangle withTrimmedLeft (ValueType amountToRemove) const noexcept     { return withLeft (pos.x + amountToRemove); }
+    [[nodiscard]] Rectangle withTrimmedLeft (ValueType amountToRemove) const noexcept     { return withLeft (pos.x + amountToRemove); }
 
     /** Returns a version of this rectangle with the given amount removed from its right-hand edge. */
-    JUCE_NODISCARD Rectangle withTrimmedRight (ValueType amountToRemove) const noexcept    { return withWidth (w - amountToRemove); }
+    [[nodiscard]] Rectangle withTrimmedRight (ValueType amountToRemove) const noexcept    { return withWidth (w - amountToRemove); }
 
     /** Returns a version of this rectangle with the given amount removed from its top edge. */
-    JUCE_NODISCARD Rectangle withTrimmedTop (ValueType amountToRemove) const noexcept      { return withTop (pos.y + amountToRemove); }
+    [[nodiscard]] Rectangle withTrimmedTop (ValueType amountToRemove) const noexcept      { return withTop (pos.y + amountToRemove); }
 
     /** Returns a version of this rectangle with the given amount removed from its bottom edge. */
-    JUCE_NODISCARD Rectangle withTrimmedBottom (ValueType amountToRemove) const noexcept   { return withHeight (h - amountToRemove); }
+    [[nodiscard]] Rectangle withTrimmedBottom (ValueType amountToRemove) const noexcept   { return withHeight (h - amountToRemove); }
 
     //==============================================================================
     /** Moves the rectangle's position by adding amount to its x and y coordinates. */
@@ -324,8 +333,8 @@ public:
     }
 
     /** Returns a rectangle which is the same as this one moved by a given amount. */
-    Rectangle translated (ValueType deltaX,
-                          ValueType deltaY) const noexcept
+    [[nodiscard]] Rectangle translated (ValueType deltaX,
+                                        ValueType deltaY) const noexcept
     {
         return { pos.x + deltaX, pos.y + deltaY, w, h };
     }
@@ -448,8 +457,8 @@ public:
         Effectively, the rectangle returned is (x - deltaX, y - deltaY, w + deltaX * 2, h + deltaY * 2).
         @see expand, reduce, reduced
     */
-    Rectangle expanded (ValueType deltaX,
-                        ValueType deltaY) const noexcept
+    [[nodiscard]] Rectangle expanded (ValueType deltaX,
+                                      ValueType deltaY) const noexcept
     {
         auto nw = jmax (ValueType(), w + deltaX * 2);
         auto nh = jmax (ValueType(), h + deltaY * 2);
@@ -461,7 +470,7 @@ public:
         Effectively, the rectangle returned is (x - delta, y - delta, w + delta * 2, h + delta * 2).
         @see expand, reduce, reduced
     */
-    Rectangle expanded (ValueType delta) const noexcept
+    [[nodiscard]] Rectangle expanded (ValueType delta) const noexcept
     {
         return expanded (delta, delta);
     }
@@ -482,8 +491,8 @@ public:
         Effectively, the rectangle returned is (x + deltaX, y + deltaY, w - deltaX * 2, h - deltaY * 2).
         @see reduce, expand, expanded
     */
-    Rectangle reduced (ValueType deltaX,
-                       ValueType deltaY) const noexcept
+    [[nodiscard]] Rectangle reduced (ValueType deltaX,
+                                     ValueType deltaY) const noexcept
     {
         return expanded (-deltaX, -deltaY);
     }
@@ -493,7 +502,7 @@ public:
         Effectively, the rectangle returned is (x + delta, y + delta, w - delta * 2, h - delta * 2).
         @see reduce, expand, expanded
     */
-    Rectangle reduced (ValueType delta) const noexcept
+    [[nodiscard]] Rectangle reduced (ValueType delta) const noexcept
     {
         return reduced (delta, delta);
     }
@@ -613,10 +622,14 @@ public:
 
     //==============================================================================
     /** Returns true if the two rectangles are identical. */
-    bool operator== (const Rectangle& other) const noexcept     { return pos == other.pos && w == other.w && h == other.h; }
+    bool operator== (const Rectangle& other) const noexcept
+    {
+        const auto tie = [] (const Rectangle& r) { return std::tie (r.pos, r.w, r.h); };
+        return tie (*this) == tie (other);
+    }
 
     /** Returns true if the two rectangles are not identical. */
-    bool operator!= (const Rectangle& other) const noexcept     { return pos != other.pos || w != other.w || h != other.h; }
+    bool operator!= (const Rectangle& other) const noexcept     { return ! operator== (other); }
 
     /** Returns true if this coordinate is inside the rectangle. */
     bool contains (ValueType xCoord, ValueType yCoord) const noexcept
@@ -737,7 +750,7 @@ public:
     */
     bool enlargeIfAdjacent (Rectangle other) noexcept
     {
-        if (pos.x == other.pos.x && getRight() == other.getRight()
+        if (exactlyEqual (pos.x, other.pos.x) && exactlyEqual (getRight(), other.getRight())
              && (other.getBottom() >= pos.y && other.pos.y <= getBottom()))
         {
             auto newY = jmin (pos.y, other.pos.y);
@@ -746,7 +759,7 @@ public:
             return true;
         }
 
-        if (pos.y == other.pos.y && getBottom() == other.getBottom()
+        if (exactlyEqual (pos.y, other.pos.y) && exactlyEqual (getBottom(), other.getBottom())
              && (other.getRight() >= pos.x && other.pos.x <= getRight()))
         {
             auto newX = jmin (pos.x, other.pos.x);
@@ -811,9 +824,9 @@ public:
 
         This should only be used on floating point rectangles.
     */
-    Rectangle transformedBy (const AffineTransform& transform) const noexcept
+    [[nodiscard]] Rectangle transformedBy (const AffineTransform& transform) const noexcept
     {
-        using FloatType = typename TypeHelpers::SmallestFloatType<ValueType>::type;
+        using FloatType = TypeHelpers::SmallestFloatType<ValueType>;
 
         auto x1 = static_cast<FloatType> (pos.x),     y1 = static_cast<FloatType> (pos.y);
         auto x2 = static_cast<FloatType> (pos.x + w), y2 = static_cast<FloatType> (pos.y);
@@ -835,7 +848,7 @@ public:
 
     /** Returns the smallest integer-aligned rectangle that completely contains this one.
         This is only relevant for floating-point rectangles, of course.
-        @see toFloat(), toNearestInt(), toNearestIntEdges()
+        @see toFloat(), toNearestInt(), toNearestIntEdges(), getLargestIntegerWithin()
     */
     Rectangle<int> getSmallestIntegerContainer() const noexcept
     {
@@ -843,6 +856,22 @@ public:
                                                    detail::floorAsInt (pos.y),
                                                    detail::ceilAsInt  (pos.x + w),
                                                    detail::ceilAsInt  (pos.y + h));
+    }
+
+    /** Returns the largest integer-aligned rectangle that is completely contained by this one.
+        Returns an empty rectangle, outside the original rectangle, if no integer-aligned rectangle
+        is contained by this one.
+        This is only relevant for floating-point rectangles, of course.
+        @see toFloat(), toNearestInt(), toNearestIntEdges(), getSmallestIntegerContainer()
+    */
+    Rectangle<int> getLargestIntegerWithin() const noexcept
+    {
+        const auto l = detail::ceilAsInt  (pos.x);
+        const auto t = detail::ceilAsInt  (pos.y);
+        const auto r = detail::floorAsInt (pos.x + w);
+        const auto b = detail::floorAsInt (pos.y + h);
+
+        return { l, t, jmax (0, r - l), jmax (0, b - t) };
     }
 
     /** Casts this rectangle to a Rectangle<int>.
@@ -984,10 +1013,10 @@ public:
                  detail::parseAfterSpace<ValueType> (toks[3]) };
     }
 
-   #ifndef DOXYGEN
+    /** @cond */
     [[deprecated ("This has been renamed to transformedBy in order to match the method names used in the Point class.")]]
     Rectangle transformed (const AffineTransform& t) const noexcept { return transformedBy (t); }
-   #endif
+    /** @endcond */
 
 private:
     template <typename OtherType> friend class Rectangle;

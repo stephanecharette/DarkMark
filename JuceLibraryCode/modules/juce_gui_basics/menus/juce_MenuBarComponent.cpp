@@ -1,24 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   End User License Agreement: www.juce.com/juce-6-licence
-   Privacy Policy: www.juce.com/juce-privacy-policy
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
-   Or: You may also use this code under the terms of the GPL v3 (see
-   www.gnu.org/licenses).
+   Or:
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -26,7 +35,7 @@
 namespace juce
 {
 
-class MenuBarComponent::AccessibleItemComponent  : public Component
+class MenuBarComponent::AccessibleItemComponent final : public Component
 {
 public:
     AccessibleItemComponent (MenuBarComponent& comp, const String& menuItemName)
@@ -41,7 +50,7 @@ public:
 private:
     std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override
     {
-        class ComponentHandler  : public AccessibilityHandler
+        class ComponentHandler final : public AccessibilityHandler
         {
         public:
             explicit ComponentHandler (AccessibleItemComponent& item)
@@ -223,41 +232,47 @@ void MenuBarComponent::updateItemUnderMouse (Point<int> p)
 
 void MenuBarComponent::showMenu (int index)
 {
-    if (index != currentPopupIndex)
+    if (index == currentPopupIndex)
+        return;
+
+    const auto needToOpenNewSubMenu = isPositiveAndBelow (index, (int) itemComponents.size());
+
+    if (needToOpenNewSubMenu)
+        ++numActiveMenus;
+
+    PopupMenu::dismissAllActiveMenus();
+    menuBarItemsChanged (nullptr);
+
+    setOpenItem (index);
+    setItemUnderMouse (index);
+
+    if (needToOpenNewSubMenu)
     {
-        PopupMenu::dismissAllActiveMenus();
-        menuBarItemsChanged (nullptr);
+        const auto& itemComponent = itemComponents[(size_t) index];
+        auto m = model->getMenuForIndex (itemUnderMouse, itemComponent->getName());
 
-        setOpenItem (index);
-        setItemUnderMouse (index);
+        if (m.lookAndFeel == nullptr)
+            m.setLookAndFeel (&getLookAndFeel());
 
-        if (isPositiveAndBelow (index, (int) itemComponents.size()))
+        auto itemBounds = itemComponent->getBounds();
+
+        const auto callback = [ref = SafePointer<MenuBarComponent> (this), index] (int result)
         {
-            const auto& itemComponent = itemComponents[(size_t) index];
-            auto m = model->getMenuForIndex (itemUnderMouse, itemComponent->getName());
+            if (ref != nullptr)
+                ref->menuDismissed (index, result);
+        };
 
-            if (m.lookAndFeel == nullptr)
-                m.setLookAndFeel (&getLookAndFeel());
-
-            auto itemBounds = itemComponent->getBounds();
-
-            const auto callback = [ref = SafePointer<MenuBarComponent> (this), index] (int result)
-            {
-                if (ref != nullptr)
-                    ref->menuDismissed (index, result);
-            };
-
-            m.showMenuAsync (PopupMenu::Options().withTargetComponent (this)
-                                                 .withTargetScreenArea (localAreaToGlobal (itemBounds))
-                                                 .withMinimumWidth (itemBounds.getWidth()),
-                             callback);
-        }
+        m.showMenuAsync (PopupMenu::Options().withTargetComponent (this)
+                                             .withTargetScreenArea (localAreaToGlobal (itemBounds))
+                                             .withMinimumWidth (itemBounds.getWidth()),
+                         callback);
     }
 }
 
 void MenuBarComponent::menuDismissed (int topLevelIndex, int itemId)
 {
-    topLevelIndexClicked = topLevelIndex;
+    topLevelIndexDismissed = topLevelIndex;
+    --numActiveMenus;
     postCommandMessage (itemId);
 }
 
@@ -265,11 +280,11 @@ void MenuBarComponent::handleCommandMessage (int commandId)
 {
     updateItemUnderMouse (getMouseXYRelative());
 
-    if (currentPopupIndex == topLevelIndexClicked)
+    if (numActiveMenus == 0)
         setOpenItem (-1);
 
     if (commandId != 0 && model != nullptr)
-        model->menuItemSelected (commandId, topLevelIndexClicked);
+        model->menuItemSelected (commandId, topLevelIndexDismissed);
 }
 
 //==============================================================================
@@ -441,7 +456,7 @@ void MenuBarComponent::timerCallback()
 //==============================================================================
 std::unique_ptr<AccessibilityHandler> MenuBarComponent::createAccessibilityHandler()
 {
-    struct MenuBarComponentAccessibilityHandler  : public AccessibilityHandler
+    struct MenuBarComponentAccessibilityHandler final : public AccessibilityHandler
     {
         explicit MenuBarComponentAccessibilityHandler (MenuBarComponent& menuBarComponent)
             : AccessibilityHandler (menuBarComponent, AccessibilityRole::menuBar)

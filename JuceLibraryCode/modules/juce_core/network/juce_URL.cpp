@@ -1,21 +1,33 @@
 /*
   ==============================================================================
 
-   This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   This file is part of the JUCE framework.
+   Copyright (c) Raw Material Software Limited
 
-   JUCE is an open source library subject to commercial or open-source
+   JUCE is an open source framework subject to commercial or open source
    licensing.
 
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
+   By downloading, installing, or using the JUCE framework, or combining the
+   JUCE framework with any other source code, object code, content or any other
+   copyrightable work, you agree to the terms of the JUCE End User Licence
+   Agreement, and all incorporated terms including the JUCE Privacy Policy and
+   the JUCE Website Terms of Service, as applicable, which will bind you. If you
+   do not agree to the terms of these agreements, we will not license the JUCE
+   framework to you, and you must discontinue the installation or download
+   process and cease use of the JUCE framework.
 
-   JUCE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES, WHETHER
-   EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR PURPOSE, ARE
-   DISCLAIMED.
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE Privacy Policy: https://juce.com/juce-privacy-policy
+   JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
+
+   Or:
+
+   You may also use this code under the terms of the AGPLv3:
+   https://www.gnu.org/licenses/agpl-3.0.en.html
+
+   THE JUCE FRAMEWORK IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL
+   WARRANTIES, WHETHER EXPRESSED OR IMPLIED, INCLUDING WARRANTY OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, ARE DISCLAIMED.
 
   ==============================================================================
 */
@@ -23,14 +35,14 @@
 namespace juce
 {
 
-struct FallbackDownloadTask  : public URL::DownloadTask,
-                               public Thread
+struct FallbackDownloadTask final : public URL::DownloadTask,
+                                    public Thread
 {
     FallbackDownloadTask (std::unique_ptr<FileOutputStream> outputStreamToUse,
                           size_t bufferSizeToUse,
                           std::unique_ptr<WebInputStream> streamToUse,
                           URL::DownloadTask::Listener* listenerToUse)
-        : Thread ("DownloadTask thread"),
+        : Thread (SystemStats::getJUCEVersion() + ": DownloadTask thread"),
           fileStream (std::move (outputStreamToUse)),
           stream (std::move (streamToUse)),
           bufferSize (bufferSizeToUse),
@@ -178,7 +190,15 @@ URL::URL (File localFile)
 
 void URL::init()
 {
-    auto i = url.indexOfChar ('?');
+    auto i = url.indexOfChar ('#');
+
+    if (i >= 0)
+    {
+        anchor = removeEscapeChars (url.substring (i + 1));
+        url = url.upToFirstOccurrenceOf ("#", false, false);
+    }
+
+    i = url.indexOfChar ('?');
 
     if (i >= 0)
     {
@@ -346,8 +366,21 @@ String URL::getSubPath (bool includeGetParameters) const
 
 String URL::getQueryString() const
 {
+    String result;
+
     if (parameterNames.size() > 0)
-        return "?" + URLHelpers::getMangledParameters (*this);
+        result += "?" + URLHelpers::getMangledParameters (*this);
+
+    if (anchor.isNotEmpty())
+        result += getAnchorString();
+
+    return result;
+}
+
+String URL::getAnchorString() const
+{
+    if (anchor.isNotEmpty())
+        return "#" + URL::addEscapeChars (anchor, true);
 
     return {};
 }
@@ -413,6 +446,18 @@ int URL::getPort() const
     auto colonPos = url.indexOfChar (URLHelpers::findStartOfNetLocation (url), ':');
 
     return colonPos > 0 ? url.substring (colonPos + 1).getIntValue() : 0;
+}
+
+String URL::getOrigin() const
+{
+    const auto schemeAndDomain = getScheme() + "://" + getDomain();
+
+    const auto colonPos = url.indexOfChar (URLHelpers::findStartOfNetLocation (url), ':');
+
+    if (colonPos > 0)
+        return schemeAndDomain + ":" + String { getPort() };
+
+    return schemeAndDomain;
 }
 
 URL URL::withNewDomainAndPath (const String& newURL) const
@@ -577,7 +622,7 @@ template <typename Stream> struct iOSFileStreamWrapperFlush    { static void flu
 template <> struct iOSFileStreamWrapperFlush<FileOutputStream> { static void flush (OutputStream* o) { o->flush(); } };
 
 template <typename Stream>
-class iOSFileStreamWrapper : public Stream
+class iOSFileStreamWrapper final : public Stream
 {
 public:
     iOSFileStreamWrapper (URL& urlToUse)
@@ -609,8 +654,7 @@ public:
             }
             else
             {
-                auto desc = [error localizedDescription];
-                ignoreUnused (desc);
+                [[maybe_unused]] auto desc = [error localizedDescription];
                 jassertfalse;
             }
         }
@@ -643,8 +687,7 @@ private:
                 return urlToUse.getLocalFile();
             }
 
-            auto desc = [error localizedDescription];
-            ignoreUnused (desc);
+            [[maybe_unused]] auto desc = [error localizedDescription];
             jassertfalse;
         }
 
@@ -750,7 +793,7 @@ std::unique_ptr<InputStream> URL::createInputStream (const InputStreamOptions& o
         return stream;
     }();
 
-    struct ProgressCallbackCaller  : public WebInputStream::Listener
+    struct ProgressCallbackCaller final : public WebInputStream::Listener
     {
         ProgressCallbackCaller (std::function<bool (int, int)> progressCallbackToUse)
             : callback (std::move (progressCallbackToUse))
@@ -790,12 +833,13 @@ std::unique_ptr<InputStream> URL::createInputStream (const InputStreamOptions& o
     JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 }
 
-#if JUCE_ANDROID
-OutputStream* juce_CreateContentURIOutputStream (const URL&);
-#endif
-
 std::unique_ptr<OutputStream> URL::createOutputStream() const
 {
+   #if JUCE_ANDROID
+    if (auto stream = AndroidDocument::fromDocument (*this).createOutputStream())
+        return stream;
+   #endif
+
     if (isLocalFile())
     {
        #if JUCE_IOS
@@ -806,11 +850,7 @@ std::unique_ptr<OutputStream> URL::createOutputStream() const
        #endif
     }
 
-   #if JUCE_ANDROID
-    return std::unique_ptr<OutputStream> (juce_CreateContentURIOutputStream (*this));
-   #else
     return nullptr;
-   #endif
 }
 
 //==============================================================================
@@ -861,6 +901,14 @@ URL URL::withParameters (const StringPairArray& parametersToAdd) const
         u.addParameter (parametersToAdd.getAllKeys()[i],
                         parametersToAdd.getAllValues()[i]);
 
+    return u;
+}
+
+URL URL::withAnchor (const String& anchorToAdd) const
+{
+    auto u = *this;
+
+    u.anchor = anchorToAdd;
     return u;
 }
 
@@ -923,7 +971,7 @@ String URL::removeEscapeChars (const String& s)
 
     for (int i = 0; i < utf8.size(); ++i)
     {
-        if (utf8.getUnchecked(i) == '%')
+        if (utf8.getUnchecked (i) == '%')
         {
             auto hexDigit1 = CharacterFunctions::getHexDigitValue ((juce_wchar) (uint8) utf8 [i + 1]);
             auto hexDigit2 = CharacterFunctions::getHexDigitValue ((juce_wchar) (uint8) utf8 [i + 2]);
@@ -951,7 +999,7 @@ String URL::addEscapeChars (const String& s, bool isParameter, bool roundBracket
 
     for (int i = 0; i < utf8.size(); ++i)
     {
-        auto c = utf8.getUnchecked(i);
+        auto c = utf8.getUnchecked (i);
 
         if (! (CharacterFunctions::isLetterOrDigit (c)
                  || legalChars.containsChar ((juce_wchar) c)))
@@ -998,7 +1046,7 @@ std::unique_ptr<InputStream> URL::createInputStream (bool usePostCommand,
                                 .withConnectionTimeoutMs (timeOutMs)
                                 .withResponseHeaders (responseHeaders)
                                 .withStatusCode (statusCode)
-                                .withNumRedirectsToFollow(numRedirectsToFollow)
+                                .withNumRedirectsToFollow (numRedirectsToFollow)
                                 .withHttpRequestCmd (httpRequestCmd));
 }
 
