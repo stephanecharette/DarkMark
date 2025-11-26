@@ -267,29 +267,42 @@ void dm::DMContentReview::run()
 	magic_close(magic_cookie);
 
 	if (threadShouldExit() == false)
-	{
-		Log("review map entries (classes found): " + std::to_string(m.size()));
-		for (const auto & iter : m)
-		{
-			const auto & class_idx = iter.first;
-			const auto & mri = iter.second;
-			Log("review map entries for class #" + std::to_string(class_idx) + ": " + std::to_string(mri.size()));
-		}
-	}
+    {
+        Log("review map entries (classes found): " + std::to_string(m.size()));
+        for (const auto & iter : m)
+        {
+            const auto & class_idx = iter.first;
+            const auto & mri = iter.second;
+            Log("review map entries for class #" + std::to_string(class_idx) + ": " + std::to_string(mri.size()));
+        }
+    }
 
+    // If the user cancelled, don't bother updating the UI
+    if (threadShouldExit())
+        return;
 
-	if (not dmapp().review_wnd)
-	{
-		dmapp().review_wnd.reset(new DMReviewWnd(content));
+    // Hand off all UI work to the JUCE message thread
+    DMContent* contentPtr = &content; // avoid capturing *this*
+    MessageManager::callAsync(
+        [contentPtr,
+         m    = std::move(m),
+         md5s = std::move(md5s)]() mutable
+        {
+            auto& app = dmapp();
 
-		// start with JUCE 7, setting the always-on-top flag before the window has been fully created and displayed
-		// seems to cause a segfault deep inside JUCE and X
-//		dmapp().review_wnd->setAlwaysOnTop(true);
-	}
-	dmapp().review_wnd->m.swap(m);
-	dmapp().review_wnd->md5s.swap(md5s);
-	dmapp().review_wnd->rebuild_notebook();
-	dmapp().review_wnd->toFront(true);
+            if (!app.review_wnd)
+            {
+                app.review_wnd.reset(new DMReviewWnd(*contentPtr));
+                // start with JUCE 7, setting the always-on-top flag before the window has been fully created and displayed
+                // app.review_wnd->setAlwaysOnTop(true);
+            }
+
+            app.review_wnd->m.swap(m);
+            app.review_wnd->md5s.swap(md5s);
+            app.review_wnd->rebuild_notebook();
+            app.review_wnd->toFront(true);
+        }
+    );
 
 	return;
 }
