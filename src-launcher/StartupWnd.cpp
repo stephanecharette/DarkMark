@@ -125,7 +125,7 @@ dm::StartupWnd::StartupWnd() :
 		{
 #if 0
 			// Why does this not work consistently?
-			// Window shrinks since JUCE 6, and sometmes gets resized to [0, 0] since JUCE 7.
+			// Window shrinks since JUCE 6, and sometimes gets resized to [0, 0] since JUCE 7.
 			restoreWindowStateFromString(cfg().getValue("StartupWnd"));
 #else
 			auto r = getParentMonitorArea();
@@ -143,7 +143,14 @@ dm::StartupWnd::StartupWnd() :
 			centreWithSize(800, 600);
 		}
 
+#if JUCE_MAC
+		// fullscreen=true causes an issue when AlertWindow appears underneath the Launcher window 
+		// and the entire UI becomes blocked on mac
+		setFullScreen(false);
+#else
 		setFullScreen(true);
+#endif
+
 		setVisible(true);
 	}
 
