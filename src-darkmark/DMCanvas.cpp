@@ -126,7 +126,7 @@ void dm::DMCanvas::rebuild_cache_image()
 	if (is_panning == false and mouse_drag_rectangle != invalid_rectangle)
 	{
 		// user is dragging the mouse to create a point, so hide predictions
-//		Log("dragging detected, turning off predictons in image cache");
+//		Log("dragging detected, turning off predictions in image cache");
 		content.predictions_are_shown = false;
 		mouse_drag_is_active = true;
 	}
@@ -201,7 +201,7 @@ void dm::DMCanvas::rebuild_cache_image()
 		const double beta = 1.0 - alpha;
 		cv::addWeighted(tmp, alpha, content.scaled_image(r), beta, 0, content.scaled_image(r));
 
-		// draw the drag corners (only if the annotation is large enough to accomodate them)
+		// draw the drag corners (only if the annotation is large enough to accommodate them)
 		if (mouse_drag_is_active == false and is_selected and tmp.cols > content.corner_size * 2 and tmp.rows > content.corner_size * 2)
 		{
 			tmp = content.scaled_image(r);
@@ -347,7 +347,7 @@ void dm::DMCanvas::rebuild_cache_image()
 			r.y = 0;
 		}
 
-		// we now have a rectangle that would fit the canvas -- but is the image large enough to accomodate this rectangle?
+		// we now have a rectangle that would fit the canvas -- but is the image large enough to accommodate this rectangle?
 
 		if (r.x + r.width > content.scaled_image.cols)
 		{

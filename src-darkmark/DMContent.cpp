@@ -2537,7 +2537,7 @@ dm::DMContent & dm::DMContent::zoom_and_review()
 		if (image_is_completely_empty == false)
 		{
 			/* Cheat!  We want to review the marks from largest down to smallest.  This way, if the largest marks include a bunch
-			 * of embedded markes, by viewing the large ones first we can remove the small ones from the list to be reviewed.
+			 * of embedded marks, by viewing the large ones first we can remove the small ones from the list to be reviewed.
 			 * For example:  license plates, where we have a large "plate" mark around the other annotations.
 			 *
 			 * So to make this happen easily, we'll temporarily modify the sort order of the marks, and order them from largest
