@@ -15,6 +15,11 @@ dm::Cfg::Cfg(void) :
 			opt.commonToAllUsers		= false;
 			opt.ignoreCaseOfKeyNames	= true;
 
+#if JUCE_MAC
+			// put file in a per-app subfolder for better isolation
+            opt.folderName             = "DarkMark";
+#endif
+
 			return opt;
 		}() )
 {
