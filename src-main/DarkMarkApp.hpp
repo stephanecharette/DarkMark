@@ -45,6 +45,10 @@ namespace dm
 			std::unique_ptr<FilterWnd>			filter_wnd;
 			std::unique_ptr<ClassIdWnd>			class_id_wnd;
 			std::unique_ptr<WndCfgTemplates>	cfg_template_wnd;
+
+#if JUCE_MAC
+			std::unique_ptr<DMAppMenuModel> 	app_menu_model;
+#endif
 	};
 
 

@@ -129,4 +129,5 @@ namespace dm
 #include "DMContentResizeTLTR.hpp"
 #include "DMContentReviewIoU.hpp"
 #include "DMWnd.hpp"
+#include "DMAppMenuModel.hpp"
 #include "DarkMarkApp.hpp"
