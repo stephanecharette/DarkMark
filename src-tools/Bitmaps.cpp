@@ -10,45 +10,59 @@ Image dm::DarkMarkLogo()
 }
 
 
-Image dm::convert_opencv_mat_to_juce_image(cv::Mat mat)
+Image dm::convert_opencv_mat_to_juce_image(const cv::Mat& mat)
 {
-	// if the image has 1 channel we'll convert it to greyscale RGB
-	// if the image has 3 channels (RGB) then all is good,
-	// (anything else will cause this function to throw)
-	cv::Mat source;
-	switch (mat.channels())
-	{
-		case 1:
-		{
-			cv::cvtColor(mat, source, cv::COLOR_GRAY2BGR);
-			break;
-		}
-		case 3:
-		{
-			source = mat;	// nothing to do, use the image as-is
-			break;
-		}
-		default:
-		{
-			throw std::logic_error("cv::Mat has an unexpected number of channels (" + std::to_string(mat.channels()) + ")");
-		}
-	}
+    if (mat.empty())
+        return {};
 
-	// create a JUCE Image the exact same size as the OpenCV mat we're using as our source
-	Image image(Image::RGB, source.cols, source.rows, false);
+    const int width  = mat.cols;
+    const int height = mat.rows;
 
-	// iterate through each row of the image, copying the entire row as a series of consecutive bytes
-	const size_t number_of_bytes_to_copy = 3 * source.cols; // times 3 since each pixel contains 3 bytes (RGB)
-	Image::BitmapData bitmap_data(image, 0, 0, source.cols, source.rows, Image::BitmapData::ReadWriteMode::writeOnly);
-	for (int row_index = 0; row_index < source.rows; row_index ++)
-	{
-		uint8_t * src_ptr = source.ptr(row_index);
-		uint8_t * dst_ptr = bitmap_data.getLinePointer(row_index);
+    // Image::RGB is usually 32-bit (0xXXRRGGBB) but ignores the alpha channel during rendering
+    // skip zero init because it will overwritten
+    Image image(Image::RGB, width, height, false);
 
-		std::memcpy(dst_ptr, src_ptr, number_of_bytes_to_copy);
-	}
+    // lock the underlying pixel data for writing
+    Image::BitmapData dest(image, Image::BitmapData::writeOnly);
 
-	return image;
+    // wrap JUCE memory in an OpenCV Mat header
+    const int destType = (dest.pixelStride == 4) ? CV_8UC4 : CV_8UC3;
+
+    cv::Mat juceWrapper(height, width, destType, dest.getLinePointer(0), dest.lineStride);
+
+    // perform conversion directly from Source to Destination
+    // OpenCV handles the channel shuffling and padding logic efficiently
+    if (destType == CV_8UC4)
+    {
+        switch (mat.channels())
+        {
+            case 3:
+                // most common case: BGR -> BGRA (JUCE RGB is usually stored as BGRA on LE)
+                cv::cvtColor(mat, juceWrapper, cv::COLOR_BGR2BGRA);
+                break;
+            case 4:
+                // exact match: fast memory copy (may handle stride differences automatically)
+                mat.copyTo(juceWrapper);
+                break;
+            case 1:
+                // Grayscale -> BGRA
+                cv::cvtColor(mat, juceWrapper, cv::COLOR_GRAY2BGRA);
+                break;
+            default:
+                throw std::logic_error("cv::Mat has an unexpected number of channels (" + std::to_string(mat.channels()) + ")");
+        }
+    }
+    else // rare 24-bit packed format (pixelStride == 3)
+    {
+        if (mat.channels() == 3)
+            cv::cvtColor(mat, juceWrapper, cv::COLOR_BGR2RGB);
+        else if (mat.channels() == 1)
+            cv::cvtColor(mat, juceWrapper, cv::COLOR_GRAY2RGB);
+        else
+            throw std::logic_error("cv::Mat has an unexpected number of channels (" + std::to_string(mat.channels()) + ")");
+    }
+
+    return image;
 }
 
 
