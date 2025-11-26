@@ -273,7 +273,7 @@ void dm::DMReviewCanvas::paintCell(Graphics & g, int rowNumber, int columnId, in
 			String fn = review_info.filename;
 			while (true)
 			{
-				const auto len = font.getStringWidth(fn);
+				const auto len = juce::GlyphArrangement::getStringWidthInt(font, fn);
 				if (len < max_len)
 				{
 					// we found a string to use

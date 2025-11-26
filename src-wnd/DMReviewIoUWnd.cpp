@@ -238,7 +238,7 @@ void dm::DMReviewIoUWnd::paintCell(Graphics & g, int rowNumber, int columnId, in
 				String fn = info.image_filename;
 				while (true)
 				{
-					const auto len = font.getStringWidth(fn);
+					const auto len = juce::GlyphArrangement::getStringWidthInt(font, fn);
 					if (len < max_len)
 					{
 						// we found a string to use
