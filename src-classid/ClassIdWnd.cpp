@@ -253,15 +253,47 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 
 		const auto name = std::filesystem::path(names_fn).stem().string();
 
-		const int result = NativeMessageBox::show(
-			MessageBoxOptions().
-				withAssociatedComponent(this).
-				withIconType(MessageBoxIconType::QuestionIcon).
-				withMessage("This will export both images and annotations to create a brand new dataset.\n\nWhich images from the \"" + name + "\" dataset should be exported to the new dataset?").
-				withTitle("DarkMark Export New Dataset").
-				withButton("All Images"				).
-				withButton("Only Annotated Images"	).
-				withButton("Cancel"					));
+		// old NativeMessageBox, cleanup
+		// const int result = NativeMessageBox::show(
+		// 	MessageBoxOptions().
+		// 		withAssociatedComponent(this).
+		// 		withIconType(MessageBoxIconType::QuestionIcon).
+		// 		withMessage("This will export both images and annotations to create a brand new dataset.\n\nWhich images from the \"" + name + "\" dataset should be exported to the new dataset?").
+		// 		withTitle("DarkMark Export New Dataset").
+		// 		withButton("All Images"				).
+		// 		withButton("Only Annotated Images"	).
+		// 		withButton("Cancel"					));
+
+		AlertWindow w("DarkMark Export New Dataset",
+                      "This will export both images and annotations to create a brand new dataset.\n\nWhich images from the \"" + name + "\" dataset should be exported to the new dataset?",
+                      MessageBoxIconType::QuestionIcon);
+
+        // 1 = All Images
+        // 2 = Only Annotated
+        // 0 = Cancel
+        w.addButton("All Images",            1, KeyPress(KeyPress::returnKey));
+        w.addButton("Only Annotated Images", 2);
+        w.addButton("Cancel",                0, KeyPress(KeyPress::escapeKey));
+
+		int button_index = 0;
+		for (auto* child : w.getChildren())
+		{
+			if (auto* b = dynamic_cast<TextButton*>(child)) 
+			{
+				// update style of All Images btn
+				if (button_index == 0) 
+				{
+					b->setColour(TextButton::buttonColourId, Colours::lightblue);
+					b->setColour(TextButton::textColourOffId, Colours::black); // Black text for contrast
+					b->setColour(TextButton::textColourOnId,  Colours::black); 
+					break;
+				}
+				// button_index++;
+			}
+		}
+
+        // runModalLoop waits for the user to click and returns the ID we defined above
+        const int result = w.runModalLoop();
 
 		// cancel button seems to always be "0" even when specified last, other buttons are "1" and "2"
 		if (result > 0)
