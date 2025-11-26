@@ -21,7 +21,7 @@ namespace dm
 
 			virtual ~DMCanvas();
 
-			virtual void rebuild_cache_image();
+			virtual void rebuild_cache_image() override;
 
 			virtual void mouseDown(const MouseEvent & event) override;
 			virtual void mouseDoubleClick(const MouseEvent & event) override;

@@ -20,11 +20,11 @@ namespace dm
 			/// Destructor.
 			virtual ~DMReviewCanvas();
 
-			virtual int getNumRows();
-			virtual void cellDoubleClicked(int rowNumber, int columnId, const MouseEvent & event);
-			virtual String getCellTooltip(int rowNumber, int columnId);
-			virtual void paintRowBackground(Graphics & g, int rowNumber, int width, int height, bool rowIsSelected);
-			virtual void paintCell(Graphics & g, int rowNumber, int columnId, int width, int height, bool rowIsSelected);
+			virtual int getNumRows() override;
+			virtual void cellDoubleClicked(int rowNumber, int columnId, const MouseEvent & event) override;
+			virtual String getCellTooltip(int rowNumber, int columnId) override;
+			virtual void paintRowBackground(Graphics & g, int rowNumber, int width, int height, bool rowIsSelected) override;
+			virtual void paintCell(Graphics & g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) override;
 			virtual void sortOrderChanged(int newSortColumnId, bool isForwards) override;
 
 			/** This determines the order in which rows will appear.

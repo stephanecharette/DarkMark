@@ -28,7 +28,7 @@ namespace dm
 
 			virtual void jump_to_location(const MouseEvent & event, const bool full_load = false);
 
-			virtual void rebuild_cache_image();
+			virtual void rebuild_cache_image() override;
 			virtual void draw_triangles_at_image_sets();
 			virtual void draw_marker_at_current_image();
 
