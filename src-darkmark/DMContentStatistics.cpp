@@ -170,21 +170,23 @@ void dm::DMContentStatistics::run()
 	}
 
 	DMContent* contentPtr = &content;
-    MessageManager::callAsync(
-        [m = std::move(m), contentPtr]()
-        mutable
-        {
-            auto & app = dmapp();
+	MessageManager::callAsync(
+		[m = std::move(m), contentPtr]()
+		mutable
+		{
+			auto & app = dmapp();
 
-            if (!app.stats_wnd)
-                app.stats_wnd.reset(new DMStatsWnd(*contentPtr));
+			if (!app.stats_wnd)
+			{
+				app.stats_wnd.reset(new DMStatsWnd(*contentPtr));
+			}
 
-            app.stats_wnd->m.swap(m);
-            app.stats_wnd->tlb.updateContent();
-            app.stats_wnd->tlb.repaint();
-            app.stats_wnd->toFront(true);
+			app.stats_wnd->m.swap(m);
+			app.stats_wnd->tlb.updateContent();
+			app.stats_wnd->tlb.repaint();
+			app.stats_wnd->toFront(true);
         }
-    );
+	);
 
 	return;
 }

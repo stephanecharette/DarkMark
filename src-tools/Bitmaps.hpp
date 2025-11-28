@@ -9,7 +9,7 @@ namespace dm
 {
 	Image DarkMarkLogo();
 
-	Image convert_opencv_mat_to_juce_image(const cv::Mat& mat);
+	Image convert_opencv_mat_to_juce_image(const cv::Mat & mat);
 
 	Image AboutLogoWhiteBackground();
 	Image AboutLogoRedSwirl();

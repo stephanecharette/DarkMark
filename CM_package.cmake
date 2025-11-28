@@ -68,12 +68,12 @@ IF (UNIX)
 ENDIF ()
 
 IF (APPLE)
-    SET (CPACK_PACKAGE_FILE_NAME              		"darkmark-${DM_VERSION}-macOS-${CMAKE_SYSTEM_PROCESSOR}")
-    SET (CPACK_GENERATOR                      		"DragNDrop")
-    SET (CPACK_DMG_VOLUME_NAME                		"DarkMark ${DM_VERSION}")
-    SET (CPACK_DMG_FORMAT                     		"UDZO")
-    SET (CPACK_PACKAGE_ICON                 		"${CMAKE_CURRENT_SOURCE_DIR}/src-macos/darkmark.icns")
-    SET (CPACK_RESOURCE_FILE_LICENSE        		"${CMAKE_CURRENT_SOURCE_DIR}/license.txt")
+	SET (CPACK_PACKAGE_FILE_NAME					"darkmark-${DM_VERSION}-macOS-${CMAKE_SYSTEM_PROCESSOR}")
+	SET (CPACK_GENERATOR							"DragNDrop")
+	SET (CPACK_DMG_VOLUME_NAME						"DarkMark ${DM_VERSION}")
+	SET (CPACK_DMG_FORMAT							"UDZO")
+	SET (CPACK_PACKAGE_ICON							"${CMAKE_CURRENT_SOURCE_DIR}/src-macos/darkmark.icns")
+	SET (CPACK_RESOURCE_FILE_LICENSE				"${CMAKE_CURRENT_SOURCE_DIR}/license.txt")
 ENDIF ()
 
 

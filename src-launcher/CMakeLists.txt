@@ -7,5 +7,5 @@ LIST ( SORT DM_LAUNCHER_SOURCE			)
 ADD_LIBRARY ( dm_launcher OBJECT ${DM_LAUNCHER_SOURCE} )
 
 IF (APPLE)
-    INCLUDE_DIRECTORIES ( "/opt/homebrew/include" )
+	INCLUDE_DIRECTORIES ( "/opt/homebrew/include" )
 ENDIF ()

@@ -17,7 +17,7 @@ dm::Cfg::Cfg(void) :
 
 #if JUCE_MAC
 			// put file in a per-app subfolder for better isolation
-            opt.folderName             = "DarkMark";
+			opt.folderName				= "DarkMark";
 #endif
 
 			return opt;

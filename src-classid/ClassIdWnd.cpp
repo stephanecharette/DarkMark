@@ -265,20 +265,21 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 		// 		withButton("Cancel"					));
 
 		AlertWindow w("DarkMark Export New Dataset",
-                      "This will export both images and annotations to create a brand new dataset.\n\nWhich images from the \"" + name + "\" dataset should be exported to the new dataset?",
-                      MessageBoxIconType::QuestionIcon);
+					"This will export both images and annotations to create a brand new dataset.\n\n"
+					"Which images from the \"" + name + "\" dataset should be exported to the new dataset?",
+					MessageBoxIconType::QuestionIcon);
 
-        // 1 = All Images
-        // 2 = Only Annotated
-        // 0 = Cancel
-        w.addButton("All Images",            1, KeyPress(KeyPress::returnKey));
-        w.addButton("Only Annotated Images", 2);
-        w.addButton("Cancel",                0, KeyPress(KeyPress::escapeKey));
+		// 1 = All
+		// 2 = Only Annotated
+		// 0 = Cancel
+		w.addButton("All Images"			, 1, KeyPress(KeyPress::returnKey));
+		w.addButton("Only Annotated Images"	, 2);
+		w.addButton("Cancel"				, 0, KeyPress(KeyPress::escapeKey));
 
 		int button_index = 0;
-		for (auto* child : w.getChildren())
+		for (auto * child : w.getChildren())
 		{
-			if (auto* b = dynamic_cast<TextButton*>(child)) 
+			if (auto * b = dynamic_cast<TextButton*>(child)) 
 			{
 				// update style of All Images btn
 				if (button_index == 0) 
@@ -288,7 +289,6 @@ void dm::ClassIdWnd::buttonClicked(Button * button)
 					b->setColour(TextButton::textColourOnId,  Colours::black); 
 					break;
 				}
-				// button_index++;
 			}
 		}
 

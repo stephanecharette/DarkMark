@@ -538,24 +538,24 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 
 #if JUCE_MAC
 	app_menu_model = std::make_unique<DMAppMenuModel>();
-    app_menu_model->onAbout = [this]
-    {
-        if (!about_wnd)
+	app_menu_model->onAbout = [this]
+	{
+		if (!about_wnd)
 		{
-            about_wnd.reset(new AboutWnd);
+			about_wnd.reset(new AboutWnd);
 		}
 
-        about_wnd->setVisible(true);
-        about_wnd->toFront(true);
-    };
+		about_wnd->setVisible(true);
+		about_wnd->toFront(true);
+	};
 
 	juce::PopupMenu extraItems;
-    extraItems.addItem(DMAppMenuModel::aboutDarkMark, "About DarkMark", true, false);
+	extraItems.addItem(DMAppMenuModel::aboutDarkMark, "About DarkMark", true, false);
 
-    juce::MenuBarModel::setMacMainMenu(app_menu_model.get(), &extraItems);
+	juce::MenuBarModel::setMacMainMenu(app_menu_model.get(), &extraItems);
 #endif
 
-   startup_wnd.reset(new StartupWnd);
+	startup_wnd.reset(new StartupWnd);
 
 	// before we go any further, check to see if Darknet is installed where we think it is
 
@@ -594,7 +594,7 @@ void dm::DarkMarkApplication::shutdown()
 	dm::Log("shutting down DarkMark v" DARKMARK_VERSION);
 
 #if JUCE_MAC
-    MenuBarModel::setMacMainMenu(nullptr);
+	MenuBarModel::setMacMainMenu(nullptr);
 #endif
 
 	return;

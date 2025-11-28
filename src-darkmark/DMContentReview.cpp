@@ -277,32 +277,32 @@ void dm::DMContentReview::run()
         }
     }
 
-    // If the user cancelled, don't bother updating the UI
-    if (threadShouldExit())
-        return;
+	// If the user cancelled, don't bother updating the UI
+	if (threadShouldExit())
+	{
+		return;
+	}
 
-    // Hand off all UI work to the JUCE message thread
-    DMContent* contentPtr = &content; // avoid capturing *this*
-    MessageManager::callAsync(
-        [contentPtr,
-         m    = std::move(m),
-         md5s = std::move(md5s)]() mutable
+	// Hand off all UI work to the JUCE message thread
+	DMContent* contentPtr = &content; // avoid capturing *this*
+	MessageManager::callAsync(
+		[contentPtr, m = std::move(m), md5s = std::move(md5s)]() mutable
         {
-            auto& app = dmapp();
+			auto & app = dmapp();
 
-            if (!app.review_wnd)
-            {
-                app.review_wnd.reset(new DMReviewWnd(*contentPtr));
-                // start with JUCE 7, setting the always-on-top flag before the window has been fully created and displayed
-                // app.review_wnd->setAlwaysOnTop(true);
-            }
+			if (!app.review_wnd)
+			{
+				app.review_wnd.reset(new DMReviewWnd(*contentPtr));
+				// start with JUCE 7, setting the always-on-top flag before the window has been fully created and displayed
+				// app.review_wnd->setAlwaysOnTop(true);
+			}
 
-            app.review_wnd->m.swap(m);
-            app.review_wnd->md5s.swap(md5s);
-            app.review_wnd->rebuild_notebook();
-            app.review_wnd->toFront(true);
-        }
-    );
+			app.review_wnd->m.swap(m);
+			app.review_wnd->md5s.swap(md5s);
+			app.review_wnd->rebuild_notebook();
+			app.review_wnd->toFront(true);
+		}
+	);
 
 	return;
 }
