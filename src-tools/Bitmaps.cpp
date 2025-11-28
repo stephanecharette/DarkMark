@@ -36,6 +36,8 @@ Image dm::convert_opencv_mat_to_juce_image(const cv::Mat & mat)
 	// OpenCV handles the channel shuffling and padding logic efficiently
 	if (destType == CV_8UC4)
 	{
+		// I suspect 4-channel images is what gets used by default in MacOS?  To be confirmed...
+
 		switch (mat.channels())
 		{
 			case 3:
@@ -64,15 +66,16 @@ Image dm::convert_opencv_mat_to_juce_image(const cv::Mat & mat)
 	}
 	else
 	{
-		// rare 24-bit packed format (pixelStride == 3)
+		// On Linux, 3-channel images is the default.
 
 		if (mat.channels() == 3)
 		{
-			cv::cvtColor(mat, juceWrapper, cv::COLOR_BGR2RGB);
+			// exact match: fast memory copy (may handle stride differences automatically)
+			mat.copyTo(juceWrapper);
 		}
 		else if (mat.channels() == 1)
 		{
-			cv::cvtColor(mat, juceWrapper, cv::COLOR_GRAY2RGB);
+			cv::cvtColor(mat, juceWrapper, cv::COLOR_GRAY2BGR);
 		}
 		else
 		{
