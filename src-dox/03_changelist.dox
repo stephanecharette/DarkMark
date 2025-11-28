@@ -5,6 +5,7 @@
 
 Release		| Date			| Description
 ------------|---------------|------------
+1.11.0-1	| 2025-11-28	| Upgrade from JUCE 6 to JUCE 8.  Fixes needed to build on MacOS.  Thank you Alex Gubarev for the PR!
 1.10.31-1	| 2025-09-03	| Bounding boxes can be copied from one image to the next with CTRL+C and CTRL+V.
 1.10.27-1	| 2025-07-09	| Added "mass-delete" to delete numerous annotations across multiple consecutive frames.
 1.10.26-1	| 2025-07-07	| Added "merge mode" to interpolate the position of a mark moving across multiple consecutive frames.
