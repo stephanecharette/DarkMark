@@ -217,13 +217,14 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 	const cv::Size desired_image_size(info.image_width, info.image_height);
 
 	std::ofstream resized_txt(dir_name + "/resized.txt");
+	resized_txt << "WARNING: multiple threads write to this file at the same time." << std::endl;
 
 	// need to protect "all_output_images" and several other items from being modified across multiple threads at the same time
 	std::mutex resize_images_mutex;
 	const auto & split_image_filenames = split(annotated_images);
 	std::string error_detected;
 
-	const auto resize_worker_lambda = [&, this](const size_t thread_idx) // not a bug -- this is not by reference since the loop that starts the lambda will destruct "v"
+	const auto resize_worker_lambda = [&, this](const size_t thread_idx)
 	{
 		std::string last_image_filename = "?";
 
@@ -282,6 +283,7 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 				std::lock_guard lock(resize_images_mutex);
 				all_output_images.push_back(output_image);
 				resized_txt
+					<< "#" << thread_idx << ": "
 					<< original_image
 					<< " [" << mat.cols << "x" << mat.rows << "] -> "
 					<< output_image
@@ -554,8 +556,8 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 
 void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_zooms_created, size_t & number_of_empty_images)
 {
-	double work_done = 0.0;
-	double work_to_do = annotated_images.size() + 1.0;
+	std::atomic<size_t> work_done = 0;
+	const size_t work_to_do = annotated_images.size();
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage(getText("Random image crop and zoom..."));
 
@@ -568,6 +570,8 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 	}
 
 	std::ofstream zoom_txt(dir_name + "/zoom.txt");
+	zoom_txt << "WARNING: multiple threads write to this file at the same time." << std::endl;
+
 	const cv::Size desired_size(info.image_width, info.image_height);
 
 	/* Images must be larger than the final desired size for us to "zoom in".
@@ -579,249 +583,313 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 
 	auto & rng = get_random_engine();
 
-	for (const auto & original_image : annotated_images)
+	std::mutex random_zoom_mutex;
+	const auto & split_image_filenames = split(annotated_images);
+	std::string error_detected;
+
+	const auto random_zoom_worker_lambda = [&, this](const size_t thread_idx)
 	{
-		work_done ++;
-		progress_window.setProgress(work_done / work_to_do);
+		std::string last_image_filename = "?";
 
-		cv::Mat original_mat = cv::imread(original_image);
-		if (original_mat.empty())
+		try
 		{
-			// something has gone *very* wrong if we cannot read the image
-			Log(original_image + " (" + std::to_string(original_mat.cols) + "x" + std::to_string(original_mat.rows) + ")");
-			throw std::runtime_error("failed to open or read the image " + original_image);
-		}
-
-		if (original_mat.cols < large_size.width or original_mat.rows < large_size.height)
-		{
-			zoom_txt
-				<< original_image
-				<< " [" << original_mat.cols << "x" << original_mat.rows << "]"
-				<< " -> skipped (image too small)" << std::endl;
-			continue;
-		}
-
-		const cv::Rect original_rect(0, 0, original_mat.cols, original_mat.rows);
-		json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
-		std::vector<cv::Point> points_of_interest;
-		for (auto j : root["mark"])
-		{
-			const int x = j["rect"]["int_x"];
-			const int y = j["rect"]["int_y"];
-			const int w = j["rect"]["int_w"];
-			const int h = j["rect"]["int_h"];
-
-			for (const cv::Point & p :
-				{
-					cv::Point(x + 0, y + 0),	// TL
-					cv::Point(x + w, y + 0),	// TR
-					cv::Point(x + w, y + h),	// BR
-					cv::Point(x + 0, y + h),	// BL
-					cv::Point(x + w/2, y + h/2)	// middle
-				})
+			for (const auto & original_image : split_image_filenames[thread_idx])
 			{
-				if (original_rect.contains(p))
+				if (not error_detected.empty())
 				{
-					points_of_interest.push_back(p);
-				}
-			}
-		}
-
-		// keep creating cropped/zoomed images as long as we're finding new parts of the image that we didn't previously cover
-		std::vector<cv::Rect> all_previous_rectangles;
-		size_t failed_consecutive_attempts = 0;
-
-		while (failed_consecutive_attempts < 5)
-		{
-			/* The amount we're going to "zoom in" depends on exactly how big the image is compared to the final size.
-			 * This value is the "factor" by which we multiply the desired image size.  We need to make sure that both
-			 * the horizontal and vertical values can be satisfied.
-			 */
-			const float horizontal_factor	= static_cast<float>(original_mat.cols) / static_cast<float>(desired_size.width);
-			const float vertical_factor		= static_cast<float>(original_mat.rows) / static_cast<float>(desired_size.height);
-			const float min_factor			= std::min(horizontal_factor, vertical_factor);
-
-			std::uniform_real_distribution<float> uni_f(0.8f, min_factor);
-			const float factor = uni_f(rng);
-
-			// This describes the size of the RoI we're going to carve out of the original image mat.
-			const cv::Size size(
-					std::round(factor * desired_size.width),
-					std::round(factor * desired_size.height));
-
-			// Now that we know the size, we can create the rectangle which is used to carve out the RoI.
-			cv::Rect roi(cv::Point(0, 0), size);
-
-			// Now figure out how much room remains outside of the RoI, and randomly choose some spacing to assign.
-			const int delta_h = original_mat.cols - roi.width;
-			const int delta_v = original_mat.rows - roi.height;
-			std::uniform_int_distribution<int> uni_h(0, delta_h);
-			std::uniform_int_distribution<int> uni_v(0, delta_v);
-			roi.x = uni_h(rng);
-			roi.y = uni_v(rng);
-
-			// See if the middle point of this RoI was already covered by a previous rectangle.
-			bool continue_crop_and_zoom = true;
-			const cv::Point middle_point(roi.x + roi.width/2, roi.y + roi.height/2);
-			for (const auto & r : all_previous_rectangles)
-			{
-				if (r.contains(middle_point))
-				{
-					// we've already covered this point
-					continue_crop_and_zoom = false;
 					break;
 				}
-			}
 
-			if (continue_crop_and_zoom == false)
-			{
-				// before we give up on this RoI, see if it covers one of the remaining points of interest
-				for (const auto & p : points_of_interest)
+				work_done ++;
+
+				last_image_filename = original_image;
+
+				cv::Mat original_mat = cv::imread(original_image);
+				if (original_mat.empty())
 				{
-					if (roi.contains(p))
+					// something has gone *very* wrong if we cannot read the image
+					Log(original_image + " (" + std::to_string(original_mat.cols) + "x" + std::to_string(original_mat.rows) + ")");
+					throw std::runtime_error("failed to open or read the image " + original_image);
+				}
+
+				if (original_mat.cols < large_size.width or original_mat.rows < large_size.height)
+				{
+					std::lock_guard lock(random_zoom_mutex);
+					zoom_txt
+						<< "#" << thread_idx << ": "
+						<< original_image
+						<< " [" << original_mat.cols << "x" << original_mat.rows << "]"
+						<< " -> skipped (image too small)" << std::endl;
+					continue;
+				}
+
+				const cv::Rect original_rect(0, 0, original_mat.cols, original_mat.rows);
+				json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
+				std::vector<cv::Point> points_of_interest;
+				for (auto j : root["mark"])
+				{
+					const int x = j["rect"]["int_x"];
+					const int y = j["rect"]["int_y"];
+					const int w = j["rect"]["int_w"];
+					const int h = j["rect"]["int_h"];
+
+					for (const cv::Point & p :
+						{
+							cv::Point(x + 0, y + 0),	// TL
+							cv::Point(x + w, y + 0),	// TR
+							cv::Point(x + w, y + h),	// BR
+							cv::Point(x + 0, y + h),	// BL
+							cv::Point(x + w/2, y + h/2)	// middle
+						})
 					{
-						zoom_txt << original_image << "-> adding RoI because it includes point-of-interest x=" << p.x << " y=" << p.y << std::endl;
-						continue_crop_and_zoom = true;
-						break;
+						if (original_rect.contains(p))
+						{
+							points_of_interest.push_back(p);
+						}
 					}
 				}
+
+				// keep creating cropped/zoomed images as long as we're finding new parts of the image that we didn't previously cover
+				std::vector<cv::Rect> all_previous_rectangles;
+				size_t failed_consecutive_attempts = 0;
+				std::stringstream messages;
+
+				while (failed_consecutive_attempts < 5)
+				{
+					/* The amount we're going to "zoom in" depends on exactly how big the image is compared to the final size.
+					 * This value is the "factor" by which we multiply the desired image size.  We need to make sure that both
+					 * the horizontal and vertical values can be satisfied.
+					 */
+					const float horizontal_factor	= static_cast<float>(original_mat.cols) / static_cast<float>(desired_size.width);
+					const float vertical_factor		= static_cast<float>(original_mat.rows) / static_cast<float>(desired_size.height);
+					const float min_factor			= std::min(horizontal_factor, vertical_factor);
+
+					std::uniform_real_distribution<float> uni_f(0.8f, min_factor);
+					const float factor = uni_f(rng);
+
+					// This describes the size of the RoI we're going to carve out of the original image mat.
+					const cv::Size size(
+							std::round(factor * desired_size.width),
+							std::round(factor * desired_size.height));
+
+					// Now that we know the size, we can create the rectangle which is used to carve out the RoI.
+					cv::Rect roi(cv::Point(0, 0), size);
+
+					// Now figure out how much room remains outside of the RoI, and randomly choose some spacing to assign.
+					const int delta_h = original_mat.cols - roi.width;
+					const int delta_v = original_mat.rows - roi.height;
+					std::uniform_int_distribution<int> uni_h(0, delta_h);
+					std::uniform_int_distribution<int> uni_v(0, delta_v);
+					roi.x = uni_h(rng);
+					roi.y = uni_v(rng);
+
+					// See if the middle point of this RoI was already covered by a previous rectangle.
+					bool continue_crop_and_zoom = true;
+					const cv::Point middle_point(roi.x + roi.width/2, roi.y + roi.height/2);
+					for (const auto & r : all_previous_rectangles)
+					{
+						if (r.contains(middle_point))
+						{
+							// we've already covered this point
+							continue_crop_and_zoom = false;
+							break;
+						}
+					}
+
+					if (continue_crop_and_zoom == false)
+					{
+						// before we give up on this RoI, see if it covers one of the remaining points of interest
+						for (const auto & p : points_of_interest)
+						{
+							if (roi.contains(p))
+							{
+								messages << "#" << thread_idx << ": " << original_image << "-> adding RoI because it includes point-of-interest x=" << p.x << " y=" << p.y << std::endl;
+								continue_crop_and_zoom = true;
+								break;
+							}
+						}
+					}
+
+					if (continue_crop_and_zoom == false)
+					{
+						messages
+							<< "#" << thread_idx << ": "
+							<< original_image
+							<< " -> skipped RoI [x=" << roi.x << " y=" << roi.y << " w=" << roi.width << " h=" << roi.height << "] due to overlap" << std::endl;
+						failed_consecutive_attempts ++;
+						continue;
+					}
+
+					// ...otherise, if we get here then we seem to be covering a new part of the image
+					failed_consecutive_attempts = 0;
+					all_previous_rectangles.push_back(roi);
+					messages
+						<< "#" << thread_idx << ": "
+						<< original_image
+						<< " -> creating RoI from [x=" << roi.x << " y=" << roi.y << " w=" << roi.width << " h=" << roi.height << "]" << std::endl;
+
+					// remove from "points-of-interest" any points located within the RoI we've just created
+					auto iter = points_of_interest.begin();
+					while (iter != points_of_interest.end())
+					{
+						const auto & p = *iter;
+						if (roi.contains(p))
+						{
+							iter = points_of_interest.erase(iter);
+						}
+						else
+						{
+							iter ++;
+						}
+					}
+
+					// Crop the original image, and at the same time resize it to be the exact dimensions we need.
+					cv::Mat output_mat;
+					cv::resize(original_mat(roi), output_mat, desired_size, 0.0, 0.0, rnd_resize_method(rng));
+
+					std::stringstream ss;
+					ss << dir_name << "/" << std::setfill('0') << std::setw(8) << get_next_output_image_index();
+					const std::string output_base_name = ss.str();
+					const std::string output_image = rnd_image_filename(rng, output_base_name);
+					const std::string output_label = output_base_name + ".txt";
+
+					save_image(output_image, output_mat, rng);
+
+					// crop the annotations to match the image, and re-calculate the values for the .txt file.
+
+					std::ofstream fs_txt(output_label);
+					fs_txt << std::fixed << std::setprecision(10);
+					size_t number_of_annotations = 0;
+					for (auto j : root["mark"])
+					{
+						int x = j["rect"]["int_x"];
+						int y = j["rect"]["int_y"];
+						int w = j["rect"]["int_w"];
+						int h = j["rect"]["int_h"];
+						const cv::Rect annotation_rect(x, y, w, h);
+						const cv::Rect intersection = annotation_rect & roi;
+						if (intersection.area() == 0)
+						{
+							// this annotation does not appear in our new image
+							continue;
+						}
+
+						const int class_idx = j["class_idx"];
+
+						if (x < roi.x)
+						{
+							// X is beyond the left border, we need to move it to the right
+							int delta = roi.x - x;
+							x += delta;
+							w -= delta;
+						}
+						if (y < roi.y)
+						{
+							// Y is beyond the top border, we need to move it down
+							int delta = roi.y - y;
+							y += delta;
+							h -= delta;
+						}
+						if (x + w > roi.x + roi.width)
+						{
+							// width is beyond the right border
+							w = roi.x + roi.width - x;
+						}
+						if (y + h > roi.y + roi.height)
+						{
+							// height is beyond the bottom border
+							h = roi.y + roi.height - y;
+						}
+
+						if (w < 5 or h < 5)
+						{
+							// ignore extremely tiny slices of annotations
+							continue;
+						}
+
+						// bring all the coordinates back down to zero
+						x -= roi.x;
+						y -= roi.y;
+
+						const double normalized_w = static_cast<double>(w) / static_cast<double>(roi.width	);
+						const double normalized_h = static_cast<double>(h) / static_cast<double>(roi.height	);
+						const double normalized_x = static_cast<double>(x) / static_cast<double>(roi.width	) + normalized_w / 2.0;
+						const double normalized_y = static_cast<double>(y) / static_cast<double>(roi.height	) + normalized_h / 2.0;
+
+						fs_txt << class_idx << " " << normalized_x <<  " " << normalized_y << " " << normalized_w << " " << normalized_h << std::endl;
+						number_of_annotations ++;
+					}
+
+					// beyond this point we update the things that must be protected by the mutex lock
+
+					std::lock_guard lock(random_zoom_mutex);
+					all_output_images.push_back(output_image);
+
+					zoom_txt
+						<< messages.str()
+						<< "#" << thread_idx << ": "
+						<< original_image
+						<< " [" << original_mat.cols << "x" << original_mat.rows << "]"
+						<< " -> " << output_image
+						<< " [f=" << factor
+						<< " x=" << roi.x
+						<< " y=" << roi.y
+						<< " w=" << roi.width
+						<< " h=" << roi.height
+						<< "]"
+						<< " -> [" << output_mat.cols << "x" << output_mat.rows << "]"
+						<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
+						<< std::endl;
+
+					if (number_of_annotations == 0)
+					{
+						number_of_empty_images ++;
+					}
+					number_of_marks += number_of_annotations;
+					number_of_zooms_created ++;
+				}
+
+				if (points_of_interest.empty() == false)
+				{
+					std::lock_guard lock(random_zoom_mutex);
+					zoom_txt << "#" << thread_idx << ": " << original_image << " -> still had " << points_of_interest.size() << " items remaining in the points-of-interest" << std::endl;
+				}
 			}
-
-			if (continue_crop_and_zoom == false)
-			{
-				zoom_txt
-					<< original_image
-					<< " -> skipped RoI [x=" << roi.x << " y=" << roi.y << " w=" << roi.width << " h=" << roi.height << "] due to overlap" << std::endl;
-				failed_consecutive_attempts ++;
-				continue;
-			}
-
-			// ...otherise, if we get here then we seem to be covering a new part of the image
-			failed_consecutive_attempts = 0;
-			all_previous_rectangles.push_back(roi);
-			zoom_txt
-				<< original_image
-				<< " -> creating RoI from [x=" << roi.x << " y=" << roi.y << " w=" << roi.width << " h=" << roi.height << "]" << std::endl;
-
-			// remove from "points-of-interest" any points located within the RoI we've just created
-			auto iter = points_of_interest.begin();
-			while (iter != points_of_interest.end())
-			{
-				const auto & p = *iter;
-				if (roi.contains(p))
-				{
-					iter = points_of_interest.erase(iter);
-				}
-				else
-				{
-					iter ++;
-				}
-			}
-
-			// Crop the original image, and at the same time resize it to be the exact dimensions we need.
-			cv::Mat output_mat;
-			cv::resize(original_mat(roi), output_mat, desired_size, 0.0, 0.0, rnd_resize_method(rng));
-
-			std::stringstream ss;
-			ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
-			const std::string output_base_name = ss.str();
-			const std::string output_image = rnd_image_filename(rng, output_base_name);
-			const std::string output_label = output_base_name + ".txt";
-
-			save_image(output_image, output_mat, rng);
-			all_output_images.push_back(output_image);
-
-			// crop the annotations to match the image, and re-calculate the values for the .txt file.
-
-			std::ofstream fs_txt(output_label);
-			fs_txt << std::fixed << std::setprecision(10);
-			size_t number_of_annotations = 0;
-			for (auto j : root["mark"])
-			{
-				int x = j["rect"]["int_x"];
-				int y = j["rect"]["int_y"];
-				int w = j["rect"]["int_w"];
-				int h = j["rect"]["int_h"];
-				const cv::Rect annotation_rect(x, y, w, h);
-				const cv::Rect intersection = annotation_rect & roi;
-				if (intersection.area() == 0)
-				{
-					// this annotation does not appear in our new image
-					continue;
-				}
-
-				const int class_idx = j["class_idx"];
-
-				if (x < roi.x)
-				{
-					// X is beyond the left border, we need to move it to the right
-					int delta = roi.x - x;
-					x += delta;
-					w -= delta;
-				}
-				if (y < roi.y)
-				{
-					// Y is beyond the top border, we need to move it down
-					int delta = roi.y - y;
-					y += delta;
-					h -= delta;
-				}
-				if (x + w > roi.x + roi.width)
-				{
-					// width is beyond the right border
-					w = roi.x + roi.width - x;
-				}
-				if (y + h > roi.y + roi.height)
-				{
-					// height is beyond the bottom border
-					h = roi.y + roi.height - y;
-				}
-
-				if (w < 5 or h < 5)
-				{
-					// ignore extremely tiny slices of annotations
-					continue;
-				}
-
-				// bring all the coordinates back down to zero
-				x -= roi.x;
-				y -= roi.y;
-
-				const double normalized_w = static_cast<double>(w) / static_cast<double>(roi.width	);
-				const double normalized_h = static_cast<double>(h) / static_cast<double>(roi.height	);
-				const double normalized_x = static_cast<double>(x) / static_cast<double>(roi.width	) + normalized_w / 2.0;
-				const double normalized_y = static_cast<double>(y) / static_cast<double>(roi.height	) + normalized_h / 2.0;
-
-				fs_txt << class_idx << " " << normalized_x <<  " " << normalized_y << " " << normalized_w << " " << normalized_h << std::endl;
-				number_of_annotations ++;
-			}
-
-			if (number_of_annotations == 0)
-			{
-				number_of_empty_images ++;
-			}
-			number_of_marks += number_of_annotations;
-			number_of_zooms_created ++;
-
-			zoom_txt
-				<< original_image
-				<< " [" << original_mat.cols << "x" << original_mat.rows << "]"
-				<< " -> " << output_image
-				<< " [f=" << factor
-				<< " x=" << roi.x
-				<< " y=" << roi.y
-				<< " w=" << roi.width
-				<< " h=" << roi.height
-				<< "]"
-				<< " -> [" << output_mat.cols << "x" << output_mat.rows << "]"
-				<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
-				<< std::endl;
 		}
-
-		if (points_of_interest.empty() == false)
+		catch (const std::exception & e)
 		{
-			zoom_txt << original_image << " -> still had " << points_of_interest.size() << " items remaining in the points-of-interest" << std::endl;
+			std::string msg = "error in crop & zoom thread #" + std::to_string(thread_idx) + " while processing \"" + last_image_filename + "\": " + e.what();
+			Log(msg);
+			if (error_detected.empty())
+			{
+				error_detected.swap(msg);
+			}
 		}
+	};
+
+	// start multiple threads running the crop and zoom worker lambda, then we wait for all of them to be done
+
+	VThreads vthreads;
+	for (size_t idx = 0; idx < split_image_filenames.size(); idx ++)
+	{
+		Log("creating random zoom thread #" + std::to_string(idx) + " to handle " + std::to_string(split_image_filenames[idx].size()) + " images...");
+		vthreads.emplace_back(random_zoom_worker_lambda, idx);
+	}
+
+	while (work_done < work_to_do and error_detected.empty())
+	{
+		progress_window.setProgress(work_done / static_cast<double>(work_to_do));
+		std::this_thread::sleep_for(std::chrono::milliseconds(750));
+	}
+
+	for (auto & t : vthreads)
+	{
+		t.join();
+	}
+
+	if (not error_detected.empty())
+	{
+		throw std::runtime_error(error_detected);
 	}
 
 	return;
