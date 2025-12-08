@@ -1287,69 +1287,9 @@ void dm::DarknetWnd::create_Darknet_training_and_validation_files(
 	if (info.do_not_resize_images == false and info.remove_small_annotations)
 	{
 		// go through all of the annotations and see if anything needs to be dropped
-		double work_done = 0.0;
-		double work_to_do = all_output_images.size() + 1.0;
-		progress_window.setProgress(0.0);
-		progress_window.setStatusMessage(dm::getText("Looking for annotations too small to detect..."));
 
-		const double image_width = info.image_width;
-		const double image_height = info.image_height;
-
-		for (size_t idx = 0; idx < all_output_images.size(); idx ++)
-		{
-			work_done ++;
-			progress_window.setProgress(work_done / work_to_do);
-
-			const auto txt = std::filesystem::path(all_output_images[idx]).replace_extension(".txt");
-			if (std::filesystem::file_size(txt) == 0)
-			{
-				continue;
-			}
-
-			std::stringstream ss;
-			ss << std::fixed << std::setprecision(10);
-
-			size_t lines_dropped_in_this_file = 0;
-			size_t lines_kept_in_this_file = 0;
-			std::ifstream ifs(txt.string());
-			int class_id = -1;
-			double cx = -1.0;
-			double cy = -1.0;
-			double w = -1.0;
-			double h = -1.0;
-			while (ifs.good())
-			{
-				ifs >> class_id >> cx >> cy >> w >> h;
-				if (class_id >= 0 and cx > 0.0 and cy > 0.0 and w > 0.0 and h > 0.0)
-				{
-					const int annotation_width = std::round(image_width * w);
-					const int annotation_height = std::round(image_height * h);
-					const int area = annotation_width * annotation_height;
-
-					if (area <= info.annotation_area_size)
-					{
-						// this annotation is too small, so don't bother remembering it (we'll re-write the .txt file without this line)
-						Log(txt.string() + ": dropping annotation (too small): class #" + std::to_string(class_id) + " w=" + std::to_string(annotation_width) + " h=" + std::to_string(annotation_height) + " area=" + std::to_string(area) + " limit=" + std::to_string(info.annotation_area_size));
-						number_of_dropped_annotations ++;
-						lines_dropped_in_this_file ++;
-						continue;
-					}
-
-					// otherwise, remember this annotation
-					lines_kept_in_this_file ++;
-					ss << class_id << " " << cx << " " << cy << " " << w << " " << h << std::endl;
-				}
-			}
-			ifs.close();
-
-			if (lines_dropped_in_this_file > 0)
-			{
-				// we must have decided to drop an annotation, so re-write the .txt file
-				Log(txt.string() + ": dropped=" + std::to_string(lines_dropped_in_this_file) + " retained=" + std::to_string(lines_kept_in_this_file));
-				std::ofstream ofs(txt.string());
-				ofs << ss.str();
-			}
-		}
+		Log("drop small annotations");
+		drop_small_annotations(progress_window, all_output_images, number_of_dropped_annotations);
 	}
 
 	// now that we know the exact set of images (including resized and tiled images)

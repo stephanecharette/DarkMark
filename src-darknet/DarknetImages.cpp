@@ -894,3 +894,129 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 
 	return;
 }
+
+
+void dm::DarknetWnd::drop_small_annotations(ThreadWithProgressWindow & progress_window, const VStr & all_output_images, size_t & number_of_annotations_dropped)
+{
+	std::atomic<size_t> work_done = 0;
+	const size_t work_to_do = all_output_images.size();
+
+	progress_window.setProgress(0.0);
+	progress_window.setStatusMessage("Looking for annotations too small to detect...");
+
+	const double image_width	= info.image_width;
+	const double image_height	= info.image_height;
+
+	std::atomic<size_t> total_annotations_dropped = 0;
+	const auto & split_image_filenames = split(all_output_images);
+	std::string error_detected;
+
+	const auto drop_small_annotations_worker_lambda = [&, this](const size_t thread_idx)
+	{
+		std::string last_image_filename = "?";
+
+		try
+		{
+			for (const auto & fn : split_image_filenames[thread_idx])
+			{
+				if (not error_detected.empty())
+				{
+					break;
+				}
+
+				work_done ++;
+
+				last_image_filename = fn;
+
+				const auto txt = std::filesystem::path(fn).replace_extension(".txt");
+				if (std::filesystem::file_size(txt) == 0)
+				{
+					continue;
+				}
+
+				std::stringstream ss;
+				ss << std::fixed << std::setprecision(10);
+
+				std::ifstream ifs(txt.string());
+
+				size_t lines_dropped_in_this_file	= 0;
+				size_t lines_kept_in_this_file		= 0;
+				int class_id						= -1;
+				double cx							= -1.0;
+				double cy							= -1.0;
+				double w							= -1.0;
+				double h							= -1.0;
+
+				while (ifs.good())
+				{
+					ifs >> class_id >> cx >> cy >> w >> h;
+					if (class_id >= 0 and cx > 0.0 and cy > 0.0 and w > 0.0 and h > 0.0)
+					{
+						const int annotation_width	= std::round(image_width * w);
+						const int annotation_height	= std::round(image_height * h);
+						const int area = annotation_width * annotation_height;
+
+						if (area <= info.annotation_area_size)
+						{
+							// this annotation is too small, so don't bother remembering it (we'll re-write the .txt file without this line)
+							Log(txt.string() + ": dropping annotation (too small): class #" + std::to_string(class_id) + " w=" + std::to_string(annotation_width) + " h=" + std::to_string(annotation_height) + " area=" + std::to_string(area) + " limit=" + std::to_string(info.annotation_area_size));
+							total_annotations_dropped ++;
+							lines_dropped_in_this_file ++;
+							continue;
+						}
+
+						// otherwise, remember this annotation
+						lines_kept_in_this_file ++;
+						ss << class_id << " " << cx << " " << cy << " " << w << " " << h << std::endl;
+					}
+				}
+				ifs.close();
+
+				if (lines_dropped_in_this_file > 0)
+				{
+					// we must have decided to drop an annotation, so re-write the .txt file
+					std::ofstream ofs(txt.string());
+					ofs << ss.str();
+				}
+			}
+		}
+		catch (const std::exception & e)
+		{
+			std::string msg = "error in \"too-small\" thread #" + std::to_string(thread_idx) + " while processing \"" + last_image_filename + "\": " + e.what();
+			Log(msg);
+			if (error_detected.empty())
+			{
+				error_detected.swap(msg);
+			}
+		}
+	};
+
+	// start multiple threads running the "too-small" worker lambda, then we wait for all of them to be done
+
+	VThreads vthreads;
+	for (size_t idx = 0; idx < split_image_filenames.size(); idx ++)
+	{
+		Log("creating \"too-small\" thread #" + std::to_string(idx) + " to handle " + std::to_string(split_image_filenames[idx].size()) + " images...");
+		vthreads.emplace_back(drop_small_annotations_worker_lambda, idx);
+	}
+
+	while (work_done < work_to_do and error_detected.empty())
+	{
+		progress_window.setProgress(work_done / static_cast<double>(work_to_do));
+		std::this_thread::sleep_for(std::chrono::milliseconds(750));
+	}
+
+	for (auto & t : vthreads)
+	{
+		t.join();
+	}
+
+	number_of_annotations_dropped += total_annotations_dropped;
+
+	if (not error_detected.empty())
+	{
+		throw std::runtime_error(error_detected);
+	}
+
+	return;
+}

@@ -71,7 +71,7 @@ void dm::AboutCanvas::paint(Graphics & g)
 	g.setOpacity(1.0);
 	g.setColour(Colours::black);
 	g.drawMultiLineText(
-		"C Code Run's DarkMark (C) 2019-2024 Stephane Charette\n"
+		"C Code Run's DarkMark (C) 2019-2025 Stephane Charette\n"
 		"Manage your Darknet/YOLO projects with ease!\n"
 		"See https://www.ccoderun.ca/darkmark/ for details.", 0, h + 10, w, Justification::centred);
 
