@@ -8,6 +8,51 @@ using json = nlohmann::json;
 
 namespace
 {
+	/** Split a vector of filenames (or strings) into several parts.  When pieces is set to 0 (the default) an attempt
+	 * will be made to determine the number of available cores.
+	 * @since 2025-12-08
+	 */
+	std::vector<dm::VStr> split(const dm::VStr & vstr, size_t pieces = 0)
+	{
+		if (pieces == 0)
+		{
+			pieces = std::max(2U, std::thread::hardware_concurrency());
+		}
+
+		std::vector<dm::VStr> output;
+
+		dm::Log("splitting a vector of " + std::to_string(vstr.size()) + " strings into " + std::to_string(pieces) + " new vectors...");
+
+		if (pieces < 2)
+		{
+			output.push_back(vstr);
+		}
+		else
+		{
+			output.resize(pieces);
+			for (auto & v : output)
+			{
+				v.reserve((vstr.size() + pieces) / pieces);
+			}
+
+			// round-robin distribute the filenames between all the vectors
+			for (size_t idx = 0; idx < vstr.size(); idx ++)
+			{
+				output[idx % pieces].push_back(vstr[idx]);
+			}
+		}
+
+		return output;
+	}
+
+
+	std::atomic<size_t> output_image_index = 0;
+	size_t get_next_output_image_index()
+	{
+		return output_image_index ++;
+	}
+
+
 	cv::InterpolationFlags rnd_resize_method(std::default_random_engine & rng)
 	{
 		/* With very repetitive networks, such as those based on text using black-and-white images, or close-ups of barcodes,
@@ -87,6 +132,7 @@ namespace
 
 void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progress_window, VStr & annotated_images, VStr & skipped_images, size_t & number_of_marks, size_t & number_of_empty_images)
 {
+	output_image_index = 0;
 	double work_done = 0.0;
 	double work_to_do = content.image_filenames.size() + 1.0;
 	progress_window.setProgress(0.0);
@@ -144,8 +190,8 @@ void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progre
 
 void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_resized_images, size_t & number_of_images_not_resized, size_t & number_of_marks, size_t & number_of_empty_images)
 {
-	double work_done = 0.0;
-	double work_to_do = annotated_images.size() + 1.0;
+	std::atomic<size_t> work_done = 0;
+	const size_t work_to_do = annotated_images.size();
 
 	const String sizing = String(info.image_width) + "x" + String(info.image_height);
 	String text = getText("Resizing images to");
@@ -172,65 +218,121 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 
 	std::ofstream resized_txt(dir_name + "/resized.txt");
 
-	for (const auto & original_image : annotated_images)
+	// need to protect "all_output_images" and several other items from being modified across multiple threads at the same time
+	std::mutex resize_images_mutex;
+	const auto & split_image_filenames = split(annotated_images);
+	std::string error_detected;
+
+	const auto resize_worker_lambda = [&, this](const size_t thread_idx) // not a bug -- this is not by reference since the loop that starts the lambda will destruct "v"
 	{
-		work_done ++;
-		progress_window.setProgress(work_done / work_to_do);
+		std::string last_image_filename = "?";
 
-		std::stringstream ss;
-		ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
-		const std::string output_base_name = ss.str();
-		const std::string output_image = rnd_image_filename(rng, output_base_name);
-		const std::string output_label = output_base_name + ".txt";
-		all_output_images.push_back(output_image);
-
-		// first we create the resized image file
-		cv::Mat mat = cv::imread(original_image);
-		if (mat.empty())
+		try
 		{
-			// something has gone *very* wrong if we cannot read the image
-			Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ")");
-			throw std::runtime_error("failed to open or read the image " + original_image);
-		}
+			for (const auto & original_image : split_image_filenames[thread_idx])
+			{
+				if (not error_detected.empty())
+				{
+					break;
+				}
 
-		cv::Mat dst;
-		if (mat.cols != desired_image_size.width or mat.rows != desired_image_size.height)
-		{
-			cv::resize(mat, dst, desired_image_size, 0, 0, rnd_resize_method(rng));
-			number_of_resized_images ++;
-		}
-		else
-		{
-			dst = mat;
-			number_of_images_not_resized ++;
-		}
+				work_done ++;
 
-		resized_txt
-			<< original_image
-			<< " [" << mat.cols << "x" << mat.rows << "] -> "
-			<< output_image
-			<< " [" << dst.cols << "x" << dst.rows << "]"
-			<< std::endl;
+				last_image_filename = original_image;
 
-		save_image(output_image, dst, rng);
+				std::stringstream ss;
+				ss << dir_name << "/" << std::setfill('0') << std::setw(8) << get_next_output_image_index();
+				const std::string output_base_name = ss.str();
+				const std::string output_image = rnd_image_filename(rng, output_base_name);
+				const std::string output_label = output_base_name + ".txt";
 
-		// next we copy the annoations in the .txt file
-		File txt = File(original_image).withFileExtension(".txt");
-		const bool success = txt.copyFileTo(File(output_label));
-		if (not success)
-		{
-			throw std::runtime_error("Failed to copy " + txt.getFullPathName().toStdString() + ".");
-		}
+				// first we create the resized image file
+				cv::Mat mat = cv::imread(original_image);
+				if (mat.empty())
+				{
+					// something has gone *very* wrong if we cannot read the image
+					Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ")");
+					throw std::runtime_error("failed to open or read the image " + original_image);
+				}
 
-		if (txt.getSize() == 0)
-		{
-			number_of_empty_images ++;
+				cv::Mat dst;
+				if (mat.cols != desired_image_size.width or mat.rows != desired_image_size.height)
+				{
+					cv::resize(mat, dst, desired_image_size, 0, 0, rnd_resize_method(rng));
+					number_of_resized_images ++;
+				}
+				else
+				{
+					dst = mat;
+					number_of_images_not_resized ++;
+				}
+
+				save_image(output_image, dst, rng);
+
+				// next we copy the annoations in the .txt file
+				File txt = File(original_image).withFileExtension(".txt");
+				const bool success = txt.copyFileTo(File(output_label));
+				if (not success)
+				{
+					throw std::runtime_error("Failed to copy " + txt.getFullPathName().toStdString() + ".");
+				}
+
+				// beyond this point we update the things that must be protected by the mutex lock
+
+				std::lock_guard lock(resize_images_mutex);
+				all_output_images.push_back(output_image);
+				resized_txt
+					<< original_image
+					<< " [" << mat.cols << "x" << mat.rows << "] -> "
+					<< output_image
+					<< " [" << dst.cols << "x" << dst.rows << "]"
+					<< std::endl;
+
+				if (txt.getSize() == 0)
+				{
+					number_of_empty_images ++;
+				}
+				else
+				{
+					json root = json::parse(txt.withFileExtension(".json").loadFileAsString().toStdString());
+					number_of_marks += root["mark"].size();
+				}
+			}
 		}
-		else
+		catch (const std::exception & e)
 		{
-			json root = json::parse(txt.withFileExtension(".json").loadFileAsString().toStdString());
-			number_of_marks += root["mark"].size();
+			std::string msg = "error in resize thread #" + std::to_string(thread_idx) + " while processing \"" + last_image_filename + "\": " + e.what();
+			Log(msg);
+			if (error_detected.empty())
+			{
+				error_detected.swap(msg);
+			}
 		}
+	};
+
+	// start multiple threads running the resize worker lambda, then we wait for all of them to be done
+
+	VThreads vthreads;
+	for (size_t idx = 0; idx < split_image_filenames.size(); idx ++)
+	{
+		Log("creating image resize thread #" + std::to_string(idx) + " to handle " + std::to_string(split_image_filenames[idx].size()) + " images...");
+		vthreads.emplace_back(resize_worker_lambda, idx);
+	}
+
+	while (work_done < work_to_do and error_detected.empty())
+	{
+		progress_window.setProgress(work_done / static_cast<double>(work_to_do));
+		std::this_thread::sleep_for(std::chrono::milliseconds(750));
+	}
+
+	for (auto & t : vthreads)
+	{
+		t.join();
+	}
+
+	if (not error_detected.empty())
+	{
+		throw std::runtime_error(error_detected);
 	}
 
 	return;

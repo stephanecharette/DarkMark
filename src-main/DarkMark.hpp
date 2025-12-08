@@ -78,15 +78,16 @@ namespace dm
 	class DarkMarkApplication;
 	struct ReviewInfo;
 
-	typedef std::vector<std::string> VStr;
-	typedef std::set<std::string> SStr;
-	typedef std::set<size_t> SId;
-	typedef std::map<size_t, std::string> MIdxStr;
-	typedef std::map<std::string, std::string> MStr;
-	typedef std::map<std::string, size_t> MStrSize;
-	typedef std::vector<cv::Point> Contour;
-	typedef std::vector<Contour> VContours;
-	typedef std::vector<size_t> VSizet;
+	using VThreads	= std::vector<std::thread>;
+	using VStr		= std::vector<std::string>;
+	using Contour	= std::vector<cv::Point>;
+	using VContours	= std::vector<Contour>;
+	using VSizet	= std::vector<size_t>;
+	using SStr		= std::set<std::string>;
+	using SId		= std::set<size_t>;
+	using MIdxStr	= std::map<size_t, std::string>;
+	using MStr		= std::map<std::string, std::string>;
+	using MStrSize	= std::map<std::string, size_t>;
 }
 
 #include "Text.hpp"
