@@ -343,8 +343,8 @@ void dm::DarknetWnd::resize_images(ThreadWithProgressWindow & progress_window, c
 
 void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, const VStr & annotated_images, VStr & all_output_images, size_t & number_of_marks, size_t & number_of_tiles_created, size_t & number_of_empty_images)
 {
-	double work_done = 0.0;
-	double work_to_do = annotated_images.size() + 1.0;
+	std::atomic<size_t> work_done = 0;
+	const size_t work_to_do = annotated_images.size();
 
 	const String sizing = String(info.image_width) + "x" + String(info.image_height);
 	String text = getText("Tiling images to");
@@ -357,8 +357,6 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 	progress_window.setProgress(0.0);
 	progress_window.setStatusMessage(text);
 
-	auto & rng = get_random_engine();
-
 	File dir = File(info.project_dir).getChildFile("darkmark_image_cache").getChildFile("tiles");
 	const std::string dir_name = dir.getFullPathName().toStdString();
 	dir.createDirectory();
@@ -367,187 +365,253 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 		throw std::runtime_error("Failed to create directory " + dir_name + ".");
 	}
 
-	std::ofstream tiles_txt(dir_name + "/tiles.txt");
+	auto & rng = get_random_engine();
+
 	const cv::Size desired_tile_size(info.image_width, info.image_height);
 
-	for (const auto & original_image : annotated_images)
+	std::ofstream tiles_txt(dir_name + "/tiles.txt");
+	tiles_txt << "WARNING: multiple threads write to this file at the same time." << std::endl;
+
+	std::mutex tile_images_mutex;
+	const auto & split_image_filenames = split(annotated_images);
+	std::string error_detected;
+
+	const auto tile_worker_lambda = [&, this](const size_t thread_idx)
 	{
-		work_done ++;
-		progress_window.setProgress(work_done / work_to_do);
+		std::string last_image_filename = "?";
 
-		// first thing we'll do is read the annotations for this image
-		json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
-
-		cv::Mat mat = cv::imread(original_image);
-		if (mat.empty())
+		try
 		{
-			// something has gone *very* wrong if we cannot read the image
-			Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ")");
-			throw std::runtime_error("failed to open or read the image " + original_image);
-		}
-
-		const double horizontal_factor		= static_cast<double>(mat.cols) / static_cast<double>(desired_tile_size.width);
-		const double vertical_factor		= static_cast<double>(mat.rows) / static_cast<double>(desired_tile_size.height);
-		const size_t horizontal_tiles_count	= std::round(std::max(1.0, horizontal_factor	));
-		const size_t vertical_tiles_count	= std::round(std::max(1.0, vertical_factor		));
-		const double cell_width				= static_cast<double>(mat.cols) / static_cast<double>(horizontal_tiles_count);
-		const double cell_height			= static_cast<double>(mat.rows) / static_cast<double>(vertical_tiles_count);
-
-		tiles_txt
-			<< original_image << " [" << mat.cols << "x" << mat.rows << "]"
-			<< " -> [" << horizontal_tiles_count << "x" << vertical_tiles_count << "]"
-			<< " -> [" << cell_width << "x" << cell_height << "]"
-			<< std::endl;
-
-		if (info.resize_images and horizontal_tiles_count == 1 and vertical_tiles_count == 1)
-		{
-			// this image only has 1 tile, and we already have it since "resize" is enabled, so skip to the next image
-			tiles_txt << "-> skipped (single tile)" << std::endl;
-			continue;
-		}
-
-//		Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ") needs to be tiled as " + std::to_string(horizontal_tiles_count) + "x" + std::to_string(vertical_tiles_count) + " tiles each measuring " + std::to_string(desired_tile_size.width) + "x" + std::to_string(desired_tile_size.height));
-
-		for (size_t y_idx = 0; y_idx < vertical_tiles_count; y_idx ++)
-		{
-			for (size_t x_idx = 0; x_idx < horizontal_tiles_count; x_idx ++)
+			for (const auto & original_image : split_image_filenames[thread_idx])
 			{
-				int tile_x = std::round(cell_width	* static_cast<double>(x_idx));
-				int tile_y = std::round(cell_height	* static_cast<double>(y_idx));
-				int tile_w = std::round(cell_width);
-				int tile_h = std::round(cell_height);
-//				Log("-> old tile: x=" + std::to_string(tile_x) + " y=" + std::to_string(tile_y) + " w=" + std::to_string(tile_w) + " h=" + std::to_string(tile_h));
-
-				// if a cell is smaller than our desired tile, then we can grab a few more pixels to fill out the tile and get it closer to the desired network size
-				int delta = desired_tile_size.width - tile_w;
-				tile_x -= delta / 2;
-				tile_w += delta;
-
-				// if we moved beyond the right border then move the X coordinate back
-				if (tile_x + tile_w >= mat.cols)
+				if (not error_detected.empty())
 				{
-					tile_x = mat.cols - tile_w;
+					break;
 				}
 
-				// if we moved beyond the *left* border, then reset to zero
-				if (tile_x < 0)
+				work_done ++;
+
+				last_image_filename = original_image;
+
+				// first thing we'll do is read the annotations for this image
+				json root = json::parse(File(original_image).withFileExtension(".json").loadFileAsString().toStdString());
+
+				cv::Mat mat = cv::imread(original_image);
+				if (mat.empty())
 				{
-					tile_x = 0;
+					// something has gone *very* wrong if we cannot read the image
+					Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ")");
+					throw std::runtime_error("failed to open or read the image " + original_image);
 				}
 
-				// make sure the cell width doesn't extend beyond the right border
-				if (tile_x + tile_w >= mat.cols)
+				const double horizontal_factor		= static_cast<double>(mat.cols) / static_cast<double>(desired_tile_size.width);
+				const double vertical_factor		= static_cast<double>(mat.rows) / static_cast<double>(desired_tile_size.height);
+				const size_t horizontal_tiles_count	= std::round(std::max(1.0, horizontal_factor	));
+				const size_t vertical_tiles_count	= std::round(std::max(1.0, vertical_factor		));
+				const double cell_width				= static_cast<double>(mat.cols) / static_cast<double>(horizontal_tiles_count);
+				const double cell_height			= static_cast<double>(mat.rows) / static_cast<double>(vertical_tiles_count);
+
+				std::stringstream messages;
+				messages
+					<< "#" << thread_idx << ": "
+					<< original_image << " [" << mat.cols << "x" << mat.rows << "]"
+					<< " -> [" << horizontal_tiles_count << "x" << vertical_tiles_count << "]"
+					<< " -> [" << cell_width << "x" << cell_height << "]"
+					<< std::endl;
+
+				if (info.resize_images and horizontal_tiles_count == 1 and vertical_tiles_count == 1)
 				{
-					tile_w = (mat.cols - tile_x);
+					// this image only has 1 tile, and we already have it since "resize" is enabled, so skip to the next image
+					std::lock_guard lock(tile_images_mutex);
+					tiles_txt
+						<< messages.str()
+						<< "#" << thread_idx << ": "
+						<< "skipped (single tile)" << std::endl;
+					continue;
 				}
 
-				delta = desired_tile_size.height - tile_h;
-				tile_y -= delta / 2;
-				tile_h += delta;
+//				Log(original_image + " (" + std::to_string(mat.cols) + "x" + std::to_string(mat.rows) + ") needs to be tiled as " + std::to_string(horizontal_tiles_count) + "x" + std::to_string(vertical_tiles_count) + " tiles each measuring " + std::to_string(desired_tile_size.width) + "x" + std::to_string(desired_tile_size.height));
 
-				// if we moved beyond the bottom border then move the Y coordinate back
-				if (tile_y + tile_h >= mat.rows)
+				for (size_t y_idx = 0; y_idx < vertical_tiles_count; y_idx ++)
 				{
-					tile_y = mat.rows - tile_h;
-				}
-
-				// if we moved beyond the *top* border, then reset to zero
-				if (tile_y < 0)
-				{
-					tile_y = 0;
-				}
-
-				// make sure the cell width doesn't extend beyond the bottom border
-				if (tile_y + tile_h >= mat.rows)
-				{
-					tile_h = (mat.rows - tile_y);
-				}
-//				Log("-> new tile: x=" + std::to_string(tile_x) + " y=" + std::to_string(tile_y) + " w=" + std::to_string(tile_w) + " h=" + std::to_string(tile_h));
-
-				const cv::Rect tile_rect(tile_x, tile_y, tile_w, tile_h);
-				cv::Mat tile = mat(tile_rect);
-
-				std::stringstream ss;
-				ss << dir_name << "/" << std::setfill('0') << std::setw(8) << all_output_images.size();
-				const std::string output_base_name = ss.str();
-				const std::string output_image = rnd_image_filename(rng, output_base_name);
-				const std::string output_label = output_base_name + ".txt";
-
-				save_image(output_image, tile, rng);
-				all_output_images.push_back(output_image);
-
-				// now re-create the .txt file with the appropriate annotations for this new tile
-				//
-				// we know our tile is from (tile_x, tile_y, tile_w, tile_h), so include any annotations within those bounds
-				std::ofstream fs_txt(output_label);
-				fs_txt << std::fixed << std::setprecision(10);
-
-				size_t number_of_annotations = 0;
-				for (auto j : root["mark"])
-				{
-					const cv::Rect annotation_rect(j["rect"]["int_x"], j["rect"]["int_y"], j["rect"]["int_w"], j["rect"]["int_h"]);
-					const cv::Rect intersection = annotation_rect & tile_rect;
-					if (intersection.area() > 0)
+					for (size_t x_idx = 0; x_idx < horizontal_tiles_count; x_idx ++)
 					{
-						const int class_idx = j["class_idx"];
-						int x = j["rect"]["int_x"];
-						int y = j["rect"]["int_y"];
-						int w = j["rect"]["int_w"];
-						int h = j["rect"]["int_h"];
+						int tile_x = std::round(cell_width	* static_cast<double>(x_idx));
+						int tile_y = std::round(cell_height	* static_cast<double>(y_idx));
+						int tile_w = std::round(cell_width);
+						int tile_h = std::round(cell_height);
+//						Log("-> old tile: x=" + std::to_string(tile_x) + " y=" + std::to_string(tile_y) + " w=" + std::to_string(tile_w) + " h=" + std::to_string(tile_h));
 
-						if (x < tile_rect.x)
+						// if a cell is smaller than our desired tile, then we can grab a few more pixels to fill out the tile and get it closer to the desired network size
+						int delta = desired_tile_size.width - tile_w;
+						tile_x -= delta / 2;
+						tile_w += delta;
+
+						// if we moved beyond the right border then move the X coordinate back
+						if (tile_x + tile_w >= mat.cols)
 						{
-							// X is beyond the left border, we need to move it to the right
-							const int delta_x = tile_rect.x - x;
-							x += delta_x;
-							w -= delta_x;
-						}
-						if (y < tile_rect.y)
-						{
-							const int delta_y = tile_rect.y - y;
-							y += delta_y;
-							h -= delta_y;
-						}
-						if (x + w > tile_rect.x + tile_rect.width)
-						{
-							w = tile_rect.x + tile_rect.width - x;
-						}
-						if (y + h > tile_rect.y + tile_rect.height)
-						{
-							h = tile_rect.y + tile_rect.height - y;
+							tile_x = mat.cols - tile_w;
 						}
 
-						// ignore extremely tiny slices
-						if (w >= 10 and h >= 10)
+						// if we moved beyond the *left* border, then reset to zero
+						if (tile_x < 0)
 						{
-							// bring all the coordinates back down to zero
-							x -= tile_rect.x;
-							y -= tile_rect.y;
-
-							const double normalized_w = static_cast<double>(w) / static_cast<double>(tile.cols);
-							const double normalized_h = static_cast<double>(h) / static_cast<double>(tile.rows);
-							const double normalized_x = static_cast<double>(x) / static_cast<double>(tile.cols) + normalized_w / 2.0;
-							const double normalized_y = static_cast<double>(y) / static_cast<double>(tile.rows) + normalized_h / 2.0;
-							fs_txt << class_idx << " " << normalized_x <<  " " << normalized_y << " " << normalized_w << " " << normalized_h << std::endl;
-							number_of_annotations ++;
+							tile_x = 0;
 						}
+
+						// make sure the cell width doesn't extend beyond the right border
+						if (tile_x + tile_w >= mat.cols)
+						{
+							tile_w = (mat.cols - tile_x);
+						}
+
+						delta = desired_tile_size.height - tile_h;
+						tile_y -= delta / 2;
+						tile_h += delta;
+
+						// if we moved beyond the bottom border then move the Y coordinate back
+						if (tile_y + tile_h >= mat.rows)
+						{
+							tile_y = mat.rows - tile_h;
+						}
+
+						// if we moved beyond the *top* border, then reset to zero
+						if (tile_y < 0)
+						{
+							tile_y = 0;
+						}
+
+						// make sure the cell width doesn't extend beyond the bottom border
+						if (tile_y + tile_h >= mat.rows)
+						{
+							tile_h = (mat.rows - tile_y);
+						}
+//						Log("-> new tile: x=" + std::to_string(tile_x) + " y=" + std::to_string(tile_y) + " w=" + std::to_string(tile_w) + " h=" + std::to_string(tile_h));
+
+						const cv::Rect tile_rect(tile_x, tile_y, tile_w, tile_h);
+						cv::Mat tile = mat(tile_rect);
+
+						std::stringstream ss;
+						ss << dir_name << "/" << std::setfill('0') << std::setw(8) << get_next_output_image_index();
+						const std::string output_base_name = ss.str();
+						const std::string output_image = rnd_image_filename(rng, output_base_name);
+						const std::string output_label = output_base_name + ".txt";
+
+						save_image(output_image, tile, rng);
+
+						// now re-create the .txt file with the appropriate annotations for this new tile
+						//
+						// we know our tile is from (tile_x, tile_y, tile_w, tile_h), so include any annotations within those bounds
+						std::ofstream fs_txt(output_label);
+						fs_txt << std::fixed << std::setprecision(10);
+
+						size_t number_of_annotations = 0;
+						for (auto j : root["mark"])
+						{
+							const cv::Rect annotation_rect(j["rect"]["int_x"], j["rect"]["int_y"], j["rect"]["int_w"], j["rect"]["int_h"]);
+							const cv::Rect intersection = annotation_rect & tile_rect;
+							if (intersection.area() > 0)
+							{
+								const int class_idx = j["class_idx"];
+								int x = j["rect"]["int_x"];
+								int y = j["rect"]["int_y"];
+								int w = j["rect"]["int_w"];
+								int h = j["rect"]["int_h"];
+
+								if (x < tile_rect.x)
+								{
+									// X is beyond the left border, we need to move it to the right
+									const int delta_x = tile_rect.x - x;
+									x += delta_x;
+									w -= delta_x;
+								}
+								if (y < tile_rect.y)
+								{
+									const int delta_y = tile_rect.y - y;
+									y += delta_y;
+									h -= delta_y;
+								}
+								if (x + w > tile_rect.x + tile_rect.width)
+								{
+									w = tile_rect.x + tile_rect.width - x;
+								}
+								if (y + h > tile_rect.y + tile_rect.height)
+								{
+									h = tile_rect.y + tile_rect.height - y;
+								}
+
+								// ignore extremely tiny slices
+								if (w >= 10 and h >= 10)
+								{
+									// bring all the coordinates back down to zero
+									x -= tile_rect.x;
+									y -= tile_rect.y;
+
+									const double normalized_w = static_cast<double>(w) / static_cast<double>(tile.cols);
+									const double normalized_h = static_cast<double>(h) / static_cast<double>(tile.rows);
+									const double normalized_x = static_cast<double>(x) / static_cast<double>(tile.cols) + normalized_w / 2.0;
+									const double normalized_y = static_cast<double>(y) / static_cast<double>(tile.rows) + normalized_h / 2.0;
+									fs_txt << class_idx << " " << normalized_x <<  " " << normalized_y << " " << normalized_w << " " << normalized_h << std::endl;
+									number_of_annotations ++;
+								}
+							}
+						}
+
+						std::lock_guard lock(tile_images_mutex);
+						all_output_images.push_back(output_image);
+
+						if (number_of_annotations == 0)
+						{
+							number_of_empty_images ++;
+						}
+						number_of_marks += number_of_annotations;
+						number_of_tiles_created ++;
+
+						tiles_txt
+							<< messages.str()
+							<< "#" << thread_idx << ": "
+							<< output_image
+							<< " [" << tile.cols << "x" << tile.rows << "]"
+							<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
+							<< std::endl;
 					}
 				}
-
-				if (number_of_annotations == 0)
-				{
-					number_of_empty_images ++;
-				}
-				number_of_marks += number_of_annotations;
-				number_of_tiles_created ++;
-
-				tiles_txt
-					<< "-> " << output_image
-					<< " [" << tile.cols << "x" << tile.rows << "]"
-					<< " [" << number_of_annotations << "/" << root["mark"].size() << "]"
-					<< std::endl;
 			}
 		}
+		catch (const std::exception & e)
+		{
+			std::string msg = "error in tile thread #" + std::to_string(thread_idx) + " while processing \"" + last_image_filename + "\": " + e.what();
+			Log(msg);
+			if (error_detected.empty())
+			{
+				error_detected.swap(msg);
+			}
+		}
+	};
+
+	// start multiple threads running the tile lambda, then we wait for all of them to be done
+
+	VThreads vthreads;
+	for (size_t idx = 0; idx < split_image_filenames.size(); idx ++)
+	{
+		Log("creating tile thread #" + std::to_string(idx) + " to handle " + std::to_string(split_image_filenames[idx].size()) + " images...");
+		vthreads.emplace_back(tile_worker_lambda, idx);
+	}
+
+	while (work_done < work_to_do and error_detected.empty())
+	{
+		progress_window.setProgress(work_done / static_cast<double>(work_to_do));
+		std::this_thread::sleep_for(std::chrono::milliseconds(750));
+	}
+
+	for (auto & t : vthreads)
+	{
+		t.join();
+	}
+
+	if (not error_detected.empty())
+	{
+		throw std::runtime_error(error_detected);
 	}
 
 	return;
