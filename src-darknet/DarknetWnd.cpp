@@ -273,6 +273,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	}
 
 	v_cfg_template					= info.cfg_template.c_str();
+	v_extra_flags					= info.extra_flags.c_str();
 	v_train_with_all_images			= info.train_with_all_images;
 	v_training_images_percentage	= std::round(100.0 * info.training_images_percentage);
 	v_limit_validation_images		= info.limit_validation_images;
@@ -328,7 +329,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_zoom_images			.addListener(this);
 
 	Array<PropertyComponent *> properties;
-//	TextPropertyComponent		* t = nullptr;
+	TextPropertyComponent		* t = nullptr;
 	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
 	ButtonPropertyComponent		* u = nullptr;
@@ -340,6 +341,10 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 		properties.add(u);
 
 		template_button = u;
+
+		t = new TextPropertyComponent(v_extra_flags, getText("extra flags"), 50, false, true);
+		setTooltip(t, "Other parameters to pass to Darknet when training.");
+		properties.add(t);
 
 		pp.addSection("darknet", properties, true);
 		properties.clear();
@@ -786,6 +791,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	canvas.setEnabled(false);
 
 	cfg().setValue(content.cfg_prefix + "darknet_cfg_template"			, v_cfg_template				);
+	cfg().setValue(content.cfg_prefix + "darknet_extra_flags"			, v_extra_flags					);
 	cfg().setValue(content.cfg_prefix + "darknet_train_with_all_images"	, v_train_with_all_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_training_percentage"	, v_training_images_percentage	);
 	cfg().setValue(content.cfg_prefix + "darknet_limit_validation_images",v_limit_validation_images		);
@@ -819,6 +825,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_mixup"					, v_mixup						);
 
 	info.cfg_template				= v_cfg_template			.toString().toStdString();
+	info.extra_flags				= v_extra_flags				.toString().toStdString();
 	info.train_with_all_images		= v_train_with_all_images	.getValue();
 	info.training_images_percentage	= static_cast<double>(v_training_images_percentage.getValue()) / 100.0;
 	info.limit_validation_images	= v_limit_validation_images	.getValue();
@@ -1390,7 +1397,14 @@ void dm::DarknetWnd::create_Darknet_shell_scripts()
 
 	if (true)
 	{
-		std::string cmd = cfg().get_str("darknet_executable") + " detector -map" + (v_verbose_output.getValue() ? " -verbose" : "") + (v_keep_augmented_images.getValue() ? " -show_imgs" : "") + " -dont_show train " + info.data_filename + " " + info.cfg_filename;
+		std::string cmd =
+				cfg().get_str("darknet_executable") +
+				" detector train " +
+				(v_verbose_output		.getValue() ? "-verbose "	: "") +
+				(v_keep_augmented_images.getValue() ? "-show_imgs "	: "") +
+				v_extra_flags.toString().toStdString() + " " +
+				info.data_filename + " " + info.cfg_filename;
+
 		if (info.save_weights > 0)
 		{
 			cmd += " --save-weights " + std::to_string(info.save_weights);

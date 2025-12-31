@@ -58,6 +58,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 
 	// every other setting is project-specific (with default values if the settings does not yet exist in configuration)
 	cfg_template				= cfg().get_str		(cfg_prefix + "darknet_cfg_template"			, ""	);
+	extra_flags					= cfg().get_str		(cfg_prefix + "darknet_extra_flags"				, "-dont_show -map -gpus 0");
 	train_with_all_images		= cfg().get_bool	(cfg_prefix + "darknet_train_with_all_images"	, true	);
 	training_images_percentage	= cfg().get_int		(cfg_prefix + "darknet_training_percentage"		, 80	) / 100.0;
 	limit_validation_images		= cfg().get_bool	(cfg_prefix + "darknet_limit_validation_images"	, false	);

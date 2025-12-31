@@ -57,6 +57,7 @@ namespace dm
 			CfgHandler cfg_handler;
 
 			Value v_cfg_template;
+			Value v_extra_flags;
 			Value v_train_with_all_images;
 			Value v_training_images_percentage;
 			Value v_limit_validation_images;
