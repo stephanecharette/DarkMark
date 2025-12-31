@@ -69,6 +69,7 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	iterations					= cfg().get_int		(cfg_prefix + "darknet_iterations"				, 4000	);
 	learning_rate				= cfg().get_double	(cfg_prefix + "darknet_learning_rate"			, 0.00261);
 	max_chart_loss				= cfg().get_double	(cfg_prefix + "darknet_max_chart_loss"			, 4.0	);
+	image_type					= cfg().get_str		(cfg_prefix + "darknet_image_type"				, "both");
 	do_not_resize_images		= cfg().get_bool	(cfg_prefix + "darknet_do_not_resize_images"	, false	);
 	resize_images				= cfg().get_bool	(cfg_prefix + "darknet_resize_images"			, true	);
 	tile_images					= cfg().get_bool	(cfg_prefix + "darknet_tile_images"				, false	);
@@ -114,6 +115,12 @@ dm::ProjectInfo::ProjectInfo(const std::string & prefix)
 	if (options.count("restart_training"		))	restart_training		= toBool(options.at("restart_training"			));
 	if (options.count("remove_small_annotations"))	remove_small_annotations= toBool(options.at("remove_small_annotations"	));
 	if (options.count("annotation_area_size"	))	annotation_area_size	= toInt(options.at("annotation_area_size"		));
+
+	if (image_type != "JPG" and
+		image_type != "PNG")
+	{
+		image_type = "both";
+	}
 
 	if (options.count("resize_images") and toBool(options.at("resize_images")) == true)
 	{

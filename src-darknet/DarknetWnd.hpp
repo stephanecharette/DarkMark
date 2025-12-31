@@ -68,6 +68,7 @@ namespace dm
 			Value v_iterations;
 			Value v_learning_rate;
 			Value v_max_chart_loss;
+			Value v_image_type;
 			Value v_do_not_resize_images;
 			Value v_resize_images;
 			Value v_tile_images;

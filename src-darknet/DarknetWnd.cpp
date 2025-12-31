@@ -284,6 +284,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	v_iterations					= info.iterations;
 	v_learning_rate					= info.learning_rate;
 	v_max_chart_loss				= info.max_chart_loss;
+	v_image_type					= info.image_type.c_str();
 	v_do_not_resize_images			= info.do_not_resize_images;
 	v_resize_images					= info.resize_images;
 	v_tile_images					= info.tile_images;
@@ -333,6 +334,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 	BooleanPropertyComponent	* b = nullptr;
 	SliderPropertyComponent		* s = nullptr;
 	ButtonPropertyComponent		* u = nullptr;
+	ChoicePropertyComponent		* dd = nullptr; // drop-down menu
 
 	if (normal_interface)
 	{
@@ -389,6 +391,12 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	pp.addSection(getText("configuration"), properties, true);
 	properties.clear();
+
+	const StringArray choices = {"JPG: real-world images, lossy compression", "PNG: text docs or sharp edges, non-lossy", "both: use a random mix of JPG and PNG"};
+	const Array<var> values = {"JPG", "PNG", "both"};
+	dd = new ChoicePropertyComponent(v_image_type, "format for cache images", choices, values);
+	setTooltip(dd, "Which format to use when saving training images in the DarkMark image cache?  If training a network to detect text or images with very clear sharp edges and lines where JPEG artifacts may cause problems, you likely want \"PNG\" or \"both\".  If using real world images, then you likely want JPG.  If in doubt, choose \"both\" which will work in all situations but saving the cache images takes slightly longer.");
+	properties.add(dd);
 
 	b = new BooleanPropertyComponent(v_do_not_resize_images, getText("do not resize images"), getText("do not resize images"));
 	setTooltip(b, "Images will be left exactly as they are. This means Darknet will be responsible for resizing them to match the network dimensions during training. This is not recommended.");
@@ -614,7 +622,7 @@ dm::DarknetWnd::DarknetWnd(dm::DMContent & c) :
 
 	if (normal_interface)
 	{
-		r = r.withSizeKeepingCentre(550, 700);
+		r = r.withSizeKeepingCentre(550, 750);
 	}
 	else
 	{
@@ -802,6 +810,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	cfg().setValue(content.cfg_prefix + "darknet_iterations"			, v_iterations					);
 	cfg().setValue(content.cfg_prefix + "darknet_learning_rate"			, v_learning_rate				);
 	cfg().setValue(content.cfg_prefix + "darknet_max_chart_loss"		, v_max_chart_loss				);
+	cfg().setValue(content.cfg_prefix + "darknet_image_type"			, v_image_type					);
 	cfg().setValue(content.cfg_prefix + "darknet_do_not_resize_images"	, v_do_not_resize_images		);
 	cfg().setValue(content.cfg_prefix + "darknet_resize_images"			, v_resize_images				);
 	cfg().setValue(content.cfg_prefix + "darknet_tile_images"			, v_tile_images					);
@@ -836,6 +845,7 @@ void dm::DarknetWnd::buttonClicked(Button * button)
 	info.iterations					= v_iterations				.getValue();
 	info.learning_rate				= v_learning_rate			.getValue();
 	info.max_chart_loss				= v_max_chart_loss			.getValue();
+	info.image_type					= v_image_type				.toString().toStdString();
 	info.do_not_resize_images		= v_do_not_resize_images	.getValue();
 	info.resize_images				= v_resize_images			.getValue();
 	info.tile_images				= v_tile_images				.getValue();

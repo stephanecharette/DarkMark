@@ -24,6 +24,7 @@ namespace dm
 			std::string	cfg_template;				///< e.g., @p /home/bob/darknet/cfg/yolov3-tiny.cfg
 
 			std::string extra_flags;				///< e.g., @p "-gpus 0,1 -dont_show"
+			std::string image_type;					///< e.g., @p both or @p PNG or @p JPG
 
 			bool		train_with_all_images;		///< should we train with *all* images, or should we use @ref training_images_percentage?
 			double		training_images_percentage;	///< between 0.0 and 1.0

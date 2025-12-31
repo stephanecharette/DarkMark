@@ -8,6 +8,13 @@ using json = nlohmann::json;
 
 namespace
 {
+	/** Force the cache images to be of a certain format:
+	 *		0 = both
+	 *		1 = JPG
+	 *		2 = PNG
+	 */
+	static int cache_image_format = 0;
+
 	/** Split a vector of filenames (or strings) into several parts.  When pieces is set to 0 (the default) an attempt
 	 * will be made to determine the number of available cores.
 	 * @since 2025-12-08
@@ -80,6 +87,15 @@ namespace
 
 	std::string rnd_image_filename(std::default_random_engine & rng, const std::string & basename)
 	{
+		if (cache_image_format == 1)
+		{
+			return basename + ".jpg";
+		}
+		if (cache_image_format == 2)
+		{
+			return basename + ".png";
+		}
+
 		std::uniform_int_distribution<int> distribution(0, 1);
 
 		return basename + (distribution(rng) ? ".jpg" : ".png");
@@ -182,6 +198,19 @@ void dm::DarknetWnd::find_all_annotated_images(ThreadWithProgressWindow & progre
 		progress_window.setProgress(work_done / work_to_do);
 
 		fs_skipped << image_filename << std::endl;
+	}
+
+	if (info.image_type == "JPG")
+	{
+		cache_image_format = 1;
+	}
+	else if (info.image_type == "PNG")
+	{
+		cache_image_format = 2;
+	}
+	else
+	{
+		cache_image_format = 0; // both
 	}
 
 	return;
