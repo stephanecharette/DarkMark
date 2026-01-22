@@ -456,6 +456,7 @@ void dm::DMContentFlipImages::run()
 						Log("flip: creating annotations for " + txt_fn);
 
 						std::ofstream ofs(txt_fn);
+						ofs.imbue(std::locale("C"));
 
 						const double rows = dst.rows;
 						const double cols = dst.cols;

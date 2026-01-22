@@ -28,17 +28,6 @@ void DarkMark_CPlusPlus_Terminate_Handler(void)
 }
 
 
-#if 0
-// std::set_unexpected() was removed in C++17
-void DarkMark_CPlusPlus_Unexpected_Handler(void)
-{
-	dm::Log("unexpected handler invoked");
-
-	exit(3);
-}
-#endif
-
-
 dm::DarkMarkApplication::DarkMarkApplication(void)
 {
 	return;
@@ -258,6 +247,7 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 	 *
 	 * so force the locale to use the standard "C" locale and (hopefully!) avoid any parsing issues.
 	 */
+	setlocale(LC_ALL, "C");
 	std::setlocale(LC_ALL, "C");
 
 	dm::Log("starting DarkMark v" DARKMARK_VERSION);

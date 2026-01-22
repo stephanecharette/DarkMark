@@ -416,6 +416,7 @@ void dm::DMContentRotateImages::run()
 						const double c			= std::cos(rads);
 
 						std::ofstream ofs(txt_fn);
+						ofs.imbue(std::locale("C"));
 
 						for (const auto & m : original_marks)
 						{

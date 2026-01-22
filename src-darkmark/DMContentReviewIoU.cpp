@@ -245,6 +245,7 @@ void dm::DMContentReviewIoU::run()
 		root["predictions"]["number_of_differences"]			= info.number_of_differences;
 
 		std::ofstream fs(f.getFullPathName().toStdString());
+		fs.imbue(std::locale("C"));
 		fs << root.dump(1, '\t') << std::endl;
 	}
 

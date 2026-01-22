@@ -532,6 +532,7 @@ void dm::DarknetWnd::tile_images(ThreadWithProgressWindow & progress_window, con
 						//
 						// we know our tile is from (tile_x, tile_y, tile_w, tile_h), so include any annotations within those bounds
 						std::ofstream fs_txt(output_label);
+						fs_txt.imbue(std::locale("C"));
 						fs_txt << std::fixed << std::setprecision(10);
 
 						size_t number_of_annotations = 0;
@@ -851,6 +852,7 @@ void dm::DarknetWnd::random_zoom_images(ThreadWithProgressWindow & progress_wind
 					// crop the annotations to match the image, and re-calculate the values for the .txt file.
 
 					std::ofstream fs_txt(output_label);
+					fs_txt.imbue(std::locale("C"));
 					fs_txt << std::fixed << std::setprecision(10);
 					size_t number_of_annotations = 0;
 					for (auto j : root["mark"])
@@ -1028,9 +1030,11 @@ void dm::DarknetWnd::drop_small_annotations(ThreadWithProgressWindow & progress_
 				}
 
 				std::stringstream ss;
+				ss.imbue(std::locale("C"));
 				ss << std::fixed << std::setprecision(10);
 
 				std::ifstream ifs(txt.string());
+				ifs.imbue(std::locale("C"));
 
 				size_t lines_dropped_in_this_file	= 0;
 				size_t lines_kept_in_this_file		= 0;

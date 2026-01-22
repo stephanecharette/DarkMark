@@ -199,6 +199,7 @@ void dm::DMStatsWnd::paintCell(Graphics & g, int rowNumber, int columnId, int wi
 	 *		11: maximum number of marks per image
 	 */
 	std::stringstream ss;
+	ss.imbue(std::locale("C"));
 	ss << std::fixed << std::setprecision(2);
 
 	switch (columnId)

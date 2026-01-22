@@ -40,6 +40,8 @@ dm::CfgHandler & dm::CfgHandler::parse(const std::string & filename)
 		throw std::runtime_error("Failed to read the template configuration file " + filename + ".");
 	}
 
+	ifs.imbue(std::locale("C"));
+
 	std::string line;
 	while (std::getline(ifs, line))
 	{
@@ -272,6 +274,8 @@ dm::CfgHandler & dm::CfgHandler::output(const dm::ProjectInfo & info)
 		Log("cannot save configuration file " + info.cfg_filename + " (cfg=" + std::to_string(cfg.size()) + ", template=" + info.cfg_template + ")");
 		throw std::runtime_error("cannot save configuration file \"" + info.cfg_filename + "\"");
 	}
+
+	ofs.imbue(std::locale("C"));
 
 	ofs	<< "# DarkMark v" << DARKMARK_VERSION << " output for Darknet"																<< std::endl
 		<< "# Project .... " << info.project_dir																					<< std::endl

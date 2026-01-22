@@ -144,7 +144,7 @@ dm::StartupWnd::StartupWnd() :
 		}
 
 #if JUCE_MAC
-		// fullscreen=true causes an issue when AlertWindow appears underneath the Launcher window 
+		// fullscreen=true causes an issue when AlertWindow appears underneath the Launcher window
 		// and the entire UI becomes blocked on mac
 		setFullScreen(false);
 #else
@@ -666,6 +666,7 @@ void dm::StartupWnd::buttonClicked(Button * button)
 					const std::regex rgx("^(\\w+)[ \t]*=[ \t]*([0-9.]+)$");
 
 					std::ifstream ifs(cfg_filename.toStdString());
+					ifs.imbue(std::locale("C"));
 					std::string line;
 					size_t line_count = 0; // we'll only read the first few lines of the .cfg file
 					while (line_count < 50 and std::getline(ifs, line))

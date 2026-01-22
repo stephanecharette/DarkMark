@@ -1565,6 +1565,8 @@ dm::DMContent & dm::DMContent::save_text()
 		}
 
 		std::ofstream fs(text_filename);
+		fs.imbue(std::locale("C"));
+
 		for (const auto & m : marks)
 		{
 			if (m.is_prediction)
@@ -1668,6 +1670,7 @@ dm::DMContent & dm::DMContent::save_json()
 		if (next_id > 0 or image_is_completely_empty)
 		{
 			std::ofstream fs(json_filename);
+			fs.imbue(std::locale("C"));
 			fs << root.dump(1, '\t') << std::endl;
 
 			if (fs.fail())
@@ -1808,6 +1811,7 @@ bool dm::DMContent::load_text()
 		for (auto iter = sa.begin(); iter != sa.end(); iter ++)
 		{
 			std::stringstream ss(iter->toStdString());
+			ss.imbue(std::locale("C"));
 			int class_idx = 0;
 			double x = 0.0;
 			double y = 0.0;

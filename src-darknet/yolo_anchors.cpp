@@ -240,6 +240,8 @@ Boxes read_boxes(const std::string & filename)
 	boxes.reserve(20);
 
 	std::ifstream ifs(filename);
+	ifs.imbue(std::locale("C"));
+
 	while (ifs.good())
 	{
 		box_label box;
