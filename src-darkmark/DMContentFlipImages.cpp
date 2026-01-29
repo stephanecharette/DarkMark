@@ -379,6 +379,36 @@ void dm::DMContentFlipImages::run()
 				continue;
 			}
 
+			// before we load the image and annotations we should check to see if the flipped files already exist
+			bool file_already_exists = true;
+			for (const auto & [flip_code, postfix] : flips)
+			{
+				std::string destination_filename = original_file.getSiblingFile(original_fn).getFullPathName().toStdString() + postfix + (use_png ? ".png" : ".jpg");
+				if (not std::filesystem::exists(destination_filename))
+				{
+					file_already_exists = false;
+					break;
+				}
+			}
+			if (file_already_exists)
+			{
+				Log("skip flip (already exists): " + content.image_filenames[idx]);
+				images_skipped ++;
+				continue;
+			}
+
+			// another common scenario is if non-annotated images are not flipped, and there are zero annotations, then skip this image
+			if (not flip_other_images)
+			{
+				const auto f = original_file.withFileExtension(".txt");
+				if (not f.exists())
+				{
+					Log("skip flip (non-annotated image): " + content.image_filenames[idx]);
+					images_skipped ++;
+					continue;
+				}
+			}
+
 			// load the given image so we can get access to the cv::Mat and annotations
 			Log("flip: loading image #" + std::to_string(idx) + ": " + content.image_filenames[idx]);
 			content.load_image(idx);
