@@ -69,6 +69,7 @@ namespace dm
 	class DMReviewCanvas;
 	class DMContentMoveEmptyImages;
 	class DMContentMoveNonAnnotatedImages;
+	class DMContentMoveBlackAndWhiteImages;
 	class DMContentRotateImages;
 	class DMContentFlipImages;
 	class DMContentDeleteRotateAndFlipImages;
@@ -126,6 +127,7 @@ namespace dm
 #include "DMContentDeleteRotateAndFlipImages.hpp"
 #include "DMContentMoveEmptyImages.hpp"
 #include "DMContentMoveNonAnnotatedImages.hpp"
+#include "DMContentMoveBlackAndWhiteImages.hpp"
 #include "DMContentImageFilenameSort.hpp"
 #include "DMContentStatistics.hpp"
 #include "DMContentReview.hpp"

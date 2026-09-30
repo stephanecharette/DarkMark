@@ -2355,6 +2355,7 @@ PopupMenu dm::DMContent::create_popup_menu()
 	image.addSeparator();
 	image.addItem("move empty images..."																						, std::function<void()>( [&]{ move_empty_images();			} ));
 	image.addItem("move non-annotated images..."																				, std::function<void()>( [&]{ move_non_annotated_images();	} ));
+	image.addItem("move black-and-white images..."																				, std::function<void()>( [&]{ move_black_and_white_images();} ));
 	image.addItem("re-load and re-save every image"																				, std::function<void()>( [&]{ reload_resave_every_image();	} ));
 	image.addSeparator();
 	image.addItem("flip images..."																								, std::function<void()>( [&]{ flip_images();				} ));
@@ -2661,6 +2662,7 @@ dm::DMContent & dm::DMContent::move_empty_images()
 	{
 		DMContentMoveEmptyImages helper(*this);
 		helper.runThread();
+		set_sort_order(ESort::kAlphabetical);
 	}
 
 	return *this;
@@ -2680,6 +2682,30 @@ dm::DMContent & dm::DMContent::move_non_annotated_images()
 	{
 		DMContentMoveNonAnnotatedImages helper(*this);
 		helper.runThread();
+		set_sort_order(ESort::kAlphabetical);
+	}
+
+	return *this;
+}
+
+
+dm::DMContent & dm::DMContent::move_black_and_white_images()
+{
+	const int result = AlertWindow::showOkCancelBox(AlertWindow::QuestionIcon, "DarkMark",
+		"This will move both black-and-white and greyscale images into a subdirectory named \"black-and-white_images\". "
+		"This has zero impact on how the neural network is trained.  The length of time to train won't change, and the "
+		"effectiveness of the neural network will be exactly the same. The only real purpose is to help people organize "
+		"their images for review.\n"
+		"\n"
+		"Note that if you have many images, or the images are very large, this can take some time to run.\n"
+		"\n"
+		"Do you wish to move all black-and-white and greyscale images into a folder called \"black-and-white_images\"?");
+
+	if (result != 0)
+	{
+		DMContentMoveBlackAndWhiteImages helper(*this);
+		helper.runThread();
+		set_sort_order(ESort::kAlphabetical);
 	}
 
 	return *this;
