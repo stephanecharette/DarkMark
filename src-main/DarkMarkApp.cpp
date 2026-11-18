@@ -254,6 +254,19 @@ void dm::DarkMarkApplication::initialise(const String & commandLine)
 
 	std::srand(std::time(nullptr));
 
+	// Using JUCE to open a file dialog over a remote X connection is *so* slow!  This fixes the issue.
+	#if JUCE_LINUX
+	if (std::getenv("SSH_CONNECTION") or
+		std::getenv("SSH_TTY"))
+	{
+		// forces GLib's D-Bus client to get an immediate ECONNREFUSED error in 0.01ms instead of hanging for 25 seconds per D-Bus interface
+		setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/dev/null", 1);
+
+		// stops GTK4's GtkFileChooser from querying gvfsd over D-Bus for trash, recent files, and remote mounts
+		setenv("GIO_USE_VFS", "local", 1);
+	}
+	#endif
+
 	// See if we have access to some sort of windowing system.  If the user does a "ssh" without "ssh -X" then JUCE will
 	// crash when we try to create a window.  So get ahead of this and attempt to detect if we have a desktop, otherwise
 	// log a message.
